@@ -1845,7 +1845,7 @@ async function fetchGlobalNews() {
 
   feed.innerHTML = allItems.slice(0, 15).map(n => {
     const ago = timeAgo(new Date(n.pubDate));
-    return '<div class="ind-news-card" onclick="window.open(''+n.link+'','_blank')">' +
+    return '<div class="ind-news-card" onclick="window.open(\'' + n.link + '\',\'_blank\')">' +
       '<div><span class="ind-tag ' + n.tag + '">' + n.tagLabel + '</span></div>' +
       '<div class="ind-title">' + n.title + '</div>' +
       '<div class="ind-src">' + n.source + ' &#183; ' + ago + '</div></div>';
@@ -1911,7 +1911,7 @@ function renderIndNews(filter) {
 
   feed.innerHTML = items.slice(0, 18).map(n => {
     const ago = timeAgo(new Date(n.pubDate));
-    return '<div class="ind-news-card" onclick="window.open(''+n.link+'','_blank')">' +
+    return '<div class="ind-news-card" onclick="window.open(\'' + n.link + '\',\'_blank\')">' +
       '<div><span class="ind-tag ' + n.tag + '">' + n.tagLabel + '</span></div>' +
       '<div class="ind-title">' + n.title + '</div>' +
       '<div class="ind-src">' + n.source + ' &#183; ' + ago + '</div></div>';
