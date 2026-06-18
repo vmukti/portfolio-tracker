@@ -3,382 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Multibagger Portfolio Tracker â Live</title>
+<title>Multibagger Portfolio Tracker &mdash; Live</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
-
-// ============================================================
-//  SENTIMENT & GLOBAL NEWS
-// ============================================================
-let sentimentLoaded = false;
-let globalNewsData = [];
-let indNewsData = [];
-const CORS_PROXIES = [
-  'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?',
-  'https://api.codetabs.com/v1/proxy?quest='
-];
-
-// Fetch global market indices
-async function fetchGlobalMarkets() {
-  const indices = [
-    {sym:'^GSPC',valId:'sp500Val',chgId:'sp500Chg',name:'S&P 500'},
-    {sym:'^IXIC',valId:'nasdaqVal',chgId:'nasdaqChg',name:'NASDAQ'},
-    {sym:'^DJI',valId:'dowVal',chgId:'dowChg',name:'Dow'},
-    {sym:'^FTSE',valId:'ftseVal',chgId:'ftseChg',name:'FTSE'},
-    {sym:'^N225',valId:'nikkeiVal',chgId:'nikkeiChg',name:'Nikkei'},
-    {sym:'^HSI',valId:'hsiVal',chgId:'hsiChg',name:'HSI'},
-    {sym:'^NSEI',valId:'niftyGVal',chgId:'niftyGChg',name:'Nifty'},
-    {sym:'USDINR=X',valId:'usdinrVal',chgId:'usdinrChg',name:'USD/INR'}
-  ];
-
-  for (const idx of indices) {
-    try {
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${idx.sym}?interval=1d&range=2d`;
-      for (const proxy of CORS_PROXIES) {
-        try {
-          const r = await fetch(proxy + encodeURIComponent(url));
-          if (!r.ok) continue;
-          const d = await r.json();
-          const meta = d.chart?.result?.[0]?.meta;
-          if (meta) {
-            const price = meta.regularMarketPrice;
-            const prev = meta.chartPreviousClose || meta.previousClose;
-            const chg = price - prev;
-            const chgPct = (chg / prev * 100);
-            const el = document.getElementById(idx.valId);
-            const chgEl = document.getElementById(idx.chgId);
-            if (el) el.textContent = idx.sym === 'USDINR=X' ? price.toFixed(2) : price.toLocaleString('en-IN',{maximumFractionDigits:0});
-            if (chgEl) {
-              chgEl.textContent = (chg >= 0 ? '+' : '') + chgPct.toFixed(2) + '%';
-              chgEl.className = 'g-chg ' + (chg >= 0 ? 'up' : 'down');
-            }
-            break;
-          }
-        } catch(e) { continue; }
-      }
-    } catch(e) {}
-  }
-}
-
-// Fetch India VIX + sentiment indicators
-async function fetchSentimentData() {
-  // India VIX
-  try {
-    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EINDIAVIX?interval=1d&range=5d';
-    for (const proxy of CORS_PROXIES) {
-      try {
-        const r = await fetch(proxy + encodeURIComponent(url));
-        if (!r.ok) continue;
-        const d = await r.json();
-        const meta = d.chart?.result?.[0]?.meta;
-        if (meta) {
-          const vix = meta.regularMarketPrice;
-          const prev = meta.chartPreviousClose || meta.previousClose;
-          const chg = ((vix - prev) / prev * 100);
-          document.getElementById('vixVal').textContent = vix.toFixed(2);
-          document.getElementById('vixSub').textContent = (chg >= 0 ? '+' : '') + chg.toFixed(1) + '% today';
-          const vixCard = document.getElementById('vixCard');
-          if (vix > 20) { vixCard.classList.add('fear'); }
-          else if (vix < 14) { vixCard.classList.add('greed'); }
-          else { vixCard.classList.add('neutral'); }
-          computeSentiment(vix);
-          break;
-        }
-      } catch(e) { continue; }
-    }
-  } catch(e) {}
-
-  // Gold
-  try {
-    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1d&range=2d';
-    for (const proxy of CORS_PROXIES) {
-      try {
-        const r = await fetch(proxy + encodeURIComponent(url));
-        if (!r.ok) continue;
-        const d = await r.json();
-        const meta = d.chart?.result?.[0]?.meta;
-        if (meta) {
-          const price = meta.regularMarketPrice;
-          const prev = meta.chartPreviousClose;
-          const chg = ((price - prev) / prev * 100);
-          document.getElementById('goldVal').textContent = '$' + price.toLocaleString('en-US',{maximumFractionDigits:0});
-          document.getElementById('goldSub').textContent = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '% today';
-          break;
-        }
-      } catch(e) { continue; }
-    }
-  } catch(e) {}
-
-  // Crude Oil (Brent)
-  try {
-    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=2d';
-    for (const proxy of CORS_PROXIES) {
-      try {
-        const r = await fetch(proxy + encodeURIComponent(url));
-        if (!r.ok) continue;
-        const d = await r.json();
-        const meta = d.chart?.result?.[0]?.meta;
-        if (meta) {
-          const price = meta.regularMarketPrice;
-          const prev = meta.chartPreviousClose;
-          const chg = ((price - prev) / prev * 100);
-          document.getElementById('oilVal').textContent = '$' + price.toFixed(2);
-          document.getElementById('oilSub').textContent = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '% today';
-          break;
-        }
-      } catch(e) { continue; }
-    }
-  } catch(e) {}
-
-  // Simulate FII/DII and breadth from market data
-  simulateFIIFlow();
-  simulateBreadth();
-  estimateNiftyPE();
-}
-
-// Compute overall sentiment score (0-100)
-function computeSentiment(vix) {
-  // VIX component (0-40 points): VIX < 12 = 40pts, VIX > 25 = 0pts
-  const vixScore = Math.max(0, Math.min(40, (25 - vix) / 13 * 40));
-
-  // Market trend component from loaded stocks (0-30 points)
-  const loadedStocks = stocks.filter(s => s.loaded && s.changePct !== 0);
-  const avgChg = loadedStocks.length > 0 ? loadedStocks.reduce((a,s) => a + s.changePct, 0) / loadedStocks.length : 0;
-  const trendScore = Math.max(0, Math.min(30, (avgChg + 3) / 6 * 30));
-
-  // Stocks near 52W high vs low (0-30 points)
-  const near52H = loadedStocks.filter(s => s.cmp > 0 && s.high52 > 0 && s.cmp >= s.high52 * 0.9).length;
-  const near52L = loadedStocks.filter(s => s.cmp > 0 && s.low52 > 0 && s.cmp <= s.low52 * 1.1).length;
-  const hlRatio = loadedStocks.length > 0 ? (near52H - near52L) / loadedStocks.length : 0;
-  const hlScore = Math.max(0, Math.min(30, (hlRatio + 0.5) * 30));
-
-  const total = Math.round(vixScore + trendScore + hlScore);
-  const score = Math.max(0, Math.min(100, total));
-
-  // Display
-  document.getElementById('fgScore').textContent = score;
-  const needle = document.getElementById('fgNeedle');
-  needle.style.left = score + '%';
-
-  const tag = document.getElementById('fgTag');
-  if (score <= 20) { tag.textContent = 'Extreme Fear'; tag.style.background = '#ef444433'; tag.style.color = '#ef4444'; }
-  else if (score <= 40) { tag.textContent = 'Fear'; tag.style.background = '#f59e0b33'; tag.style.color = '#f59e0b'; }
-  else if (score <= 60) { tag.textContent = 'Neutral'; tag.style.background = '#94a3b833'; tag.style.color = '#94a3b8'; }
-  else if (score <= 80) { tag.textContent = 'Greed'; tag.style.background = '#22c55e33'; tag.style.color = '#22c55e'; }
-  else { tag.textContent = 'Extreme Greed'; tag.style.background = '#22c55e33'; tag.style.color = '#22c55e'; }
-}
-
-// Simulate FII/DII flow from market data
-function simulateFIIFlow() {
-  const loaded = stocks.filter(s => s.loaded);
-  if (loaded.length === 0) { document.getElementById('fiiVal').textContent = 'Waiting...'; return; }
-  const avgChg = loaded.reduce((a,s) => a + s.changePct, 0) / loaded.length;
-  // Large-cap stocks tend to be FII-heavy
-  const largeCaps = loaded.filter(s => s.mcap > 50000);
-  const lcAvg = largeCaps.length > 0 ? largeCaps.reduce((a,s) => a + s.changePct, 0) / largeCaps.length : avgChg;
-
-  const fiiSignal = lcAvg > 0.5 ? 'Net Buying' : lcAvg < -0.5 ? 'Net Selling' : 'Neutral';
-  const fiiEl = document.getElementById('fiiVal');
-  fiiEl.textContent = fiiSignal;
-  fiiEl.style.color = lcAvg > 0.5 ? 'var(--green)' : lcAvg < -0.5 ? 'var(--red)' : 'var(--amber)';
-  document.getElementById('fiiSub').textContent = 'Based on large-cap flow';
-
-  const buyPct = Math.min(90, Math.max(10, Math.round(50 + lcAvg * 10)));
-  document.getElementById('fiiBuyPct').textContent = buyPct + '%';
-  document.getElementById('fiiSellPct').textContent = (100 - buyPct) + '%';
-  const fiiBar = document.getElementById('fiiBar');
-  fiiBar.innerHTML = '<div class="fii-buy" style="width:' + buyPct + '%"></div><div class="fii-sell" style="width:' + (100-buyPct) + '%"></div>';
-
-  // DII typically counter FII
-  const diiBuy = Math.min(90, Math.max(10, Math.round(50 - lcAvg * 5 + avgChg * 3)));
-  document.getElementById('diiBuyPct').textContent = diiBuy + '%';
-  document.getElementById('diiSellPct').textContent = (100 - diiBuy) + '%';
-  const diiBar = document.getElementById('diiBar');
-  diiBar.innerHTML = '<div class="fii-buy" style="width:' + diiBuy + '%;background:var(--accent)"></div><div class="fii-sell" style="width:' + (100-diiBuy) + '%;background:var(--amber)"></div>';
-
-  const fiiCard = document.getElementById('fiiCard');
-  fiiCard.className = 'sent-card ' + (lcAvg > 0.5 ? 'greed' : lcAvg < -0.5 ? 'fear' : 'neutral');
-}
-
-// Market breadth from portfolio
-function simulateBreadth() {
-  const loaded = stocks.filter(s => s.loaded);
-  if (loaded.length === 0) return;
-  const adv = loaded.filter(s => s.changePct > 0).length;
-  const dec = loaded.filter(s => s.changePct < 0).length;
-  const unch = loaded.length - adv - dec;
-  const ratio = dec > 0 ? (adv / dec).toFixed(2) : adv > 0 ? 'INF' : '0';
-  document.getElementById('breadthVal').textContent = adv + ':' + dec;
-  document.getElementById('breadthSub').textContent = 'A/D ratio: ' + ratio + ' (' + unch + ' flat)';
-  const bCard = document.getElementById('breadthCard');
-  bCard.className = 'sent-card ' + (adv > dec * 1.5 ? 'greed' : dec > adv * 1.5 ? 'fear' : 'neutral');
-}
-
-// Estimate Nifty PE from market level
-function estimateNiftyPE() {
-  // Historical: Nifty at 20000 ~ PE 22, at 25000 ~ PE 24
-  const niftyEl = document.getElementById('niftyGVal');
-  const niftyPrice = parseFloat(niftyEl?.textContent?.replace(/,/g,'')) || 0;
-  if (niftyPrice > 0) {
-    const estPE = (niftyPrice / 1050).toFixed(1); // rough EPS ~1050
-    document.getElementById('niftyPEVal').textContent = estPE + 'x';
-    const peNum = parseFloat(estPE);
-    document.getElementById('niftyPESub').textContent = peNum > 24 ? 'Expensive' : peNum > 20 ? 'Fair value' : 'Attractive';
-    const peCard = document.getElementById('niftyPECard');
-    peCard.className = 'sent-card ' + (peNum > 24 ? 'fear' : peNum < 20 ? 'greed' : 'neutral');
-  }
-}
-
-// Fetch Global News via Google News RSS
-async function fetchGlobalNews() {
-  const feed = document.getElementById('globalNewsFeed');
-  feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)"><span class="spinner"></span>Loading global news...</div>';
-
-  const queries = [
-    {q:'stock market today global', tag:'markets', tagLabel:'Markets'},
-    {q:'Federal Reserve interest rate 2026', tag:'policy', tagLabel:'Policy'},
-    {q:'crude oil gold price today', tag:'commodity', tagLabel:'Commodities'},
-    {q:'US China trade war tariffs 2026', tag:'geo', tagLabel:'Geopolitical'},
-    {q:'India GDP economy growth 2026', tag:'markets', tagLabel:'India'},
-  ];
-
-  let allItems = [];
-  for (const q of queries) {
-    try {
-      const rssUrl = 'https://news.google.com/rss/search?q=' + encodeURIComponent(q.q) + '&hl=en-IN&gl=IN&ceid=IN:en';
-      for (const proxy of CORS_PROXIES) {
-        try {
-          const r = await fetch(proxy + encodeURIComponent(rssUrl));
-          if (!r.ok) continue;
-          const text = await r.text();
-          const parser = new DOMParser();
-          const xml = parser.parseFromString(text, 'text/xml');
-          const items = xml.querySelectorAll('item');
-          items.forEach((item, i) => {
-            if (i >= 4) return;
-            const title = item.querySelector('title')?.textContent || '';
-            const link = item.querySelector('link')?.textContent || '';
-            const pubDate = item.querySelector('pubDate')?.textContent || '';
-            const source = item.querySelector('source')?.textContent || '';
-            allItems.push({title, link, pubDate, source, tag: q.tag, tagLabel: q.tagLabel});
-          });
-          break;
-        } catch(e) { continue; }
-      }
-    } catch(e) {}
-  }
-
-  globalNewsData = allItems;
-  if (allItems.length === 0) {
-    feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Unable to load news. Try refreshing.</div>';
-    return;
-  }
-
-  feed.innerHTML = allItems.slice(0, 15).map(n => {
-    const ago = timeAgo(new Date(n.pubDate));
-    return '<div class="ind-news-card" onclick="window.open(''+n.link+'','_blank')">' +
-      '<div><span class="ind-tag ' + n.tag + '">' + n.tagLabel + '</span></div>' +
-      '<div class="ind-title">' + n.title + '</div>' +
-      '<div class="ind-src">' + n.source + ' Â· ' + ago + '</div></div>';
-  }).join('');
-}
-
-// Fetch Industry News
-async function fetchIndustryNews() {
-  const feed = document.getElementById('indNewsFeed');
-  feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1"><span class="spinner"></span>Loading industry news...</div>';
-
-  const sectors = [
-    {q:'India IT sector TCS Infosys AI cloud 2026', tag:'tech', tagLabel:'IT/Tech'},
-    {q:'India solar wind energy Suzlon Waaree Tata Power 2026', tag:'energy-t', tagLabel:'Energy'},
-    {q:'India electric vehicle EV Ola Tata Motors 2026', tag:'auto', tagLabel:'Auto/EV'},
-    {q:'India real estate DLF Godrej property market 2026', tag:'realty', tagLabel:'Real Estate'},
-    {q:'RBI interest rate India banking HDFC SBI 2026', tag:'finance', tagLabel:'Banking'},
-    {q:'India stock market Nifty Sensex rally correction 2026', tag:'markets', tagLabel:'Markets'},
-    {q:'India chemical specialty PLI manufacturing 2026', tag:'policy', tagLabel:'Policy/PLI'},
-    {q:'gold crude oil commodity prices India 2026', tag:'commodity', tagLabel:'Commodities'},
-    {q:'US India trade deal geopolitics 2026', tag:'geo', tagLabel:'Geopolitical'},
-  ];
-
-  let allItems = [];
-  for (const s of sectors) {
-    try {
-      const rssUrl = 'https://news.google.com/rss/search?q=' + encodeURIComponent(s.q) + '&hl=en-IN&gl=IN&ceid=IN:en';
-      for (const proxy of CORS_PROXIES) {
-        try {
-          const r = await fetch(proxy + encodeURIComponent(rssUrl));
-          if (!r.ok) continue;
-          const text = await r.text();
-          const parser = new DOMParser();
-          const xml = parser.parseFromString(text, 'text/xml');
-          const items = xml.querySelectorAll('item');
-          items.forEach((item, i) => {
-            if (i >= 3) return;
-            const title = item.querySelector('title')?.textContent || '';
-            const link = item.querySelector('link')?.textContent || '';
-            const pubDate = item.querySelector('pubDate')?.textContent || '';
-            const source = item.querySelector('source')?.textContent || '';
-            allItems.push({title, link, pubDate, source, tag: s.tag, tagLabel: s.tagLabel});
-          });
-          break;
-        } catch(e) { continue; }
-      }
-    } catch(e) {}
-  }
-
-  indNewsData = allItems;
-  renderIndNews('all');
-}
-
-function renderIndNews(filter) {
-  const feed = document.getElementById('indNewsFeed');
-  let items = indNewsData;
-  if (filter !== 'all') items = items.filter(n => n.tag === filter);
-
-  if (items.length === 0) {
-    feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1">No news in this category. Try refreshing.</div>';
-    return;
-  }
-
-  feed.innerHTML = items.slice(0, 18).map(n => {
-    const ago = timeAgo(new Date(n.pubDate));
-    return '<div class="ind-news-card" onclick="window.open(''+n.link+'','_blank')">' +
-      '<div><span class="ind-tag ' + n.tag + '">' + n.tagLabel + '</span></div>' +
-      '<div class="ind-title">' + n.title + '</div>' +
-      '<div class="ind-src">' + n.source + ' Â· ' + ago + '</div></div>';
-  }).join('');
-}
-
-function filterIndNews(tag) {
-  renderIndNews(tag);
-}
-
-function timeAgo(date) {
-  if (isNaN(date.getTime())) return '';
-  const now = new Date();
-  const diff = Math.floor((now - date) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
-  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
-  return Math.floor(diff/86400) + 'd ago';
-}
-
-// Load sentiment when tab is switched
-function loadSentimentTab() {
-  if (sentimentLoaded) return;
-  sentimentLoaded = true;
-  fetchGlobalMarkets();
-  fetchSentimentData();
-  fetchGlobalNews();
-  fetchIndustryNews();
-  // Refresh sentiment after prices are loaded
-  setTimeout(() => {
-    simulateFIIFlow();
-    simulateBreadth();
-    estimateNiftyPE();
-  }, 15000);
-}
-
 </script>
 <style>
 :root{--bg:#0f1117;--card:#1a1d28;--card2:#222536;--accent:#4f8cff;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--text:#e2e8f0;--muted:#94a3b8;--border:#2d3148;--font:'Segoe UI',system-ui,-apple-system,sans-serif}
@@ -621,18 +247,18 @@ td{padding:10px 12px;white-space:nowrap}
       <span id="mktStatusHdr">Checking market...</span>
     </div>
     <span id="lastUpdate" style="color:var(--muted)">--</span>
-    <button class="btn btn-primary" onclick="fetchAllPrices()">â³ Refresh Now</button>
+    <button class="btn btn-primary" onclick="fetchAllPrices()">&#10227; Refresh Now</button>
   </div>
 </div>
 
 <div class="tabs" id="tabBar">
-  <div class="tab active" onclick="switchTab('portfolio',this)">ð Portfolio</div>
-  <div class="tab" onclick="switchTab('alerts',this)" id="alertsTab">ð Alerts <span class="tab-badge" id="alertBadge" style="display:none">0</span></div>
-  <div class="tab" onclick="switchTab('energy',this)">â¡ Energy & Battery</div>
-  <div class="tab" onclick="switchTab('news',this)">ð° News</div>
-  <div class="tab" onclick="switchTab('valuation',this)">ð Valuation</div>
-  <div class="tab" onclick="switchTab('sentiment',this)">ð Sentiment & News</div>
-  <div class="tab" onclick="switchTab('config',this)">âï¸ Alert Settings</div>
+  <div class="tab active" onclick="switchTab('portfolio',this)">&#128202; Portfolio</div>
+  <div class="tab" onclick="switchTab('alerts',this)" id="alertsTab">&#128276; Alerts <span class="tab-badge" id="alertBadge" style="display:none">0</span></div>
+  <div class="tab" onclick="switchTab('energy',this)">&#9889; Energy & Battery</div>
+  <div class="tab" onclick="switchTab('news',this)">&#128240; News</div>
+  <div class="tab" onclick="switchTab('valuation',this)">&#128202; Valuation</div>
+  <div class="tab" onclick="switchTab('sentiment',this)">&#127757; Sentiment & News</div>
+  <div class="tab" onclick="switchTab('config',this)">&#9881;&#65039; Alert Settings</div>
 </div>
 
 <div class="main">
@@ -651,13 +277,13 @@ td{padding:10px 12px;white-space:nowrap}
       <input type="text" id="searchInput" placeholder="Search by name, ticker, or sector..." oninput="filterTable()">
       <select id="layerFilter" onchange="filterTable()">
         <option value="all">All Layers</option>
-        <option value="Layer 1">Layer 1 â Buffett Core</option>
-        <option value="Layer 2">Layer 2 â Geopolitical</option>
-        <option value="Layer 3">Layer 3 â Frontier</option>
+        <option value="Layer 1">Layer 1 &mdash; Buffett Core</option>
+        <option value="Layer 2">Layer 2 &mdash; Geopolitical</option>
+        <option value="Layer 3">Layer 3 &mdash; Frontier</option>
         <option value="Energy">Energy & Battery</option>
       </select>
       <select id="sortBy" onchange="doSort()">
-        <option value="buyScore">Sort: Buy Score â</option>
+        <option value="buyScore">Sort: Buy Score &#8595;</option>
         <option value="name">Sort: Name</option>
         <option value="change">Sort: % Change</option>
         <option value="roce">Sort: ROCE</option>
@@ -668,7 +294,7 @@ td{padding:10px 12px;white-space:nowrap}
     <div class="tbl-wrap">
       <table><thead><tr>
         <th>Company</th><th>NSE / BSE</th><th>Layer</th><th>Sector</th>
-        <th>CMP (â¹)</th><th>Change</th><th>Buy Score</th><th>P/E</th><th>ROCE</th><th>52W Range</th><th>Signal</th>
+        <th>CMP (&#8377;)</th><th>Change</th><th>Buy Score</th><th>P/E</th><th>ROCE</th><th>52W Range</th><th>Signal</th>
       </tr></thead><tbody id="stockBody"></tbody></table>
     </div>
   </div>
@@ -687,14 +313,14 @@ td{padding:10px 12px;white-space:nowrap}
   <!-- ==================== ENERGY TAB ==================== -->
   <div id="tab-energy" style="display:none">
     <div class="chart-box">
-      <div class="chart-title">India BESS market growth â USD billion (2025-2031)</div>
+      <div class="chart-title">India BESS market growth &mdash; USD billion (2025-2031)</div>
       <div style="position:relative;height:280px"><canvas id="bessChart"></canvas></div>
     </div>
     <div class="grid4" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
       <div class="stat-card energy-hl"><div class="stat-label">BESS Market 2026</div><div class="stat-val" style="color:var(--amber)">$2.05B</div><div class="stat-sub" style="color:var(--amber)">33.2% CAGR</div></div>
       <div class="stat-card energy-hl"><div class="stat-label">2026 Installations</div><div class="stat-val" style="color:var(--amber)">5 GWh</div><div class="stat-sub" style="color:var(--amber)">10x vs 2025</div></div>
       <div class="stat-card energy-hl"><div class="stat-label">2032 Target</div><div class="stat-val" style="color:var(--amber)">411 GWh</div><div class="stat-sub" style="color:var(--amber)">CEA estimate</div></div>
-      <div class="stat-card energy-hl"><div class="stat-label">PLI Scheme</div><div class="stat-val" style="color:var(--amber)">â¹18.1K Cr</div><div class="stat-sub" style="color:var(--amber)">50 GWh target</div></div>
+      <div class="stat-card energy-hl"><div class="stat-label">PLI Scheme</div><div class="stat-val" style="color:var(--amber)">&#8377;18.1K Cr</div><div class="stat-sub" style="color:var(--amber)">50 GWh target</div></div>
     </div>
     <div class="sector-grid" style="margin-top:20px" id="energyGrid"></div>
   </div>
@@ -703,8 +329,8 @@ td{padding:10px 12px;white-space:nowrap}
   <div id="tab-news" style="display:none">
     <!-- Live Feed -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <h2 style="font-size:16px;font-weight:500">ð´ Live news feed <span style="font-size:12px;color:var(--muted);font-weight:400">(Google News RSS)</span></h2>
-      <button class="btn btn-outline btn-sm" onclick="liveNewsLoaded=false;fetchLiveNews()">â³ Refresh feed</button>
+      <h2 style="font-size:16px;font-weight:500">&#128308; Live news feed <span style="font-size:12px;color:var(--muted);font-weight:400">(Google News RSS)</span></h2>
+      <button class="btn btn-outline btn-sm" onclick="liveNewsLoaded=false;fetchLiveNews()">&#10227; Refresh feed</button>
     </div>
     <div id="liveNewsFeed" style="margin-bottom:24px">
       <div style="text-align:center;padding:20px;color:var(--muted)">Click the News tab or Refresh to load live news...</div>
@@ -713,7 +339,7 @@ td{padding:10px 12px;white-space:nowrap}
     <hr style="border:none;border-top:1px solid var(--border);margin:24px 0">
 
     <!-- Curated Research -->
-    <h2 style="font-size:16px;font-weight:500;margin-bottom:12px">ð Curated catalyst research <span style="font-size:12px;color:var(--muted);font-weight:400">(impact-scored)</span></h2>
+    <h2 style="font-size:16px;font-weight:500;margin-bottom:12px">&#128203; Curated catalyst research <span style="font-size:12px;color:var(--muted);font-weight:400">(impact-scored)</span></h2>
     <div class="search-bar">
       <input type="text" id="newsSearch" placeholder="Filter by company, ticker, or topic..." oninput="filterNews()">
       <select id="newsCat" onchange="filterNews()"><option value="all">All</option><option value="company">Company</option><option value="sector">Sector</option><option value="energy">Energy</option><option value="policy">Policy</option></select>
@@ -725,7 +351,7 @@ td{padding:10px 12px;white-space:nowrap}
   <!-- ==================== VALUATION TAB ==================== -->
   <div id="tab-valuation" style="display:none">
     <div class="top-picks" id="topPicksBanner">
-      <h3>ð Top Buy Picks Right Now</h3>
+      <h3>&#127942; Top Buy Picks Right Now</h3>
       <div class="top-pick-row" id="topPicksRow">Loading scores...</div>
     </div>
 
@@ -733,18 +359,18 @@ td{padding:10px 12px;white-space:nowrap}
       <input type="text" id="valSearch" placeholder="Search stocks..." oninput="renderValuation()" style="flex:1;min-width:200px">
       <select id="valLayerFilter" onchange="renderValuation()">
         <option value="all">All Layers</option>
-        <option value="Layer 1">Layer 1 â Buffett Core</option>
-        <option value="Layer 2">Layer 2 â Geopolitical</option>
-        <option value="Layer 3">Layer 3 â Frontier</option>
+        <option value="Layer 1">Layer 1 &mdash; Buffett Core</option>
+        <option value="Layer 2">Layer 2 &mdash; Geopolitical</option>
+        <option value="Layer 3">Layer 3 &mdash; Frontier</option>
         <option value="Energy">Energy & Battery</option>
       </select>
       <select id="valSortBy" onchange="renderValuation()">
-        <option value="buyScore">Sort: Buy Score â</option>
+        <option value="buyScore">Sort: Buy Score &#8595;</option>
         <option value="pe">Sort: P/E (Low first)</option>
-        <option value="roce">Sort: ROCE â</option>
-        <option value="roe">Sort: ROE â</option>
+        <option value="roce">Sort: ROCE &#8595;</option>
+        <option value="roe">Sort: ROE &#8595;</option>
         <option value="debtEquity">Sort: Debt (Low first)</option>
-        <option value="promoter">Sort: Promoter Holding â</option>
+        <option value="promoter">Sort: Promoter Holding &#8595;</option>
         <option value="52wPosition">Sort: Near 52W Low</option>
       </select>
     </div>
@@ -788,7 +414,7 @@ td{padding:10px 12px;white-space:nowrap}
 
     <!-- Global Markets -->
     <div class="news-section">
-      <div class="news-section-title">ð Global markets <span>(live via Yahoo Finance)</span></div>
+      <div class="news-section-title">&#127760; Global markets <span>(live via Yahoo Finance)</span></div>
       <div class="global-grid" id="globalGrid">
         <div class="global-card"><div><div class="g-name">S&P 500</div><div class="g-val" id="sp500Val">--</div></div><div class="g-chg" id="sp500Chg">--</div></div>
         <div class="global-card"><div><div class="g-name">NASDAQ</div><div class="g-val" id="nasdaqVal">--</div></div><div class="g-chg" id="nasdaqChg">--</div></div>
@@ -803,7 +429,7 @@ td{padding:10px 12px;white-space:nowrap}
 
     <!-- FII/DII Flow Bar -->
     <div class="news-section">
-      <div class="news-section-title">ð FII vs DII flow indicator <span>(derived from market signals)</span></div>
+      <div class="news-section-title">&#128202; FII vs DII flow indicator <span>(derived from market signals)</span></div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
         <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="color:var(--green)">FII Buying</span><span style="color:var(--red)">FII Selling</span></div>
         <div class="fii-bar" id="fiiBar"><div class="fii-buy" style="width:50%"></div><div class="fii-sell" style="width:50%"></div></div>
@@ -818,8 +444,8 @@ td{padding:10px 12px;white-space:nowrap}
 
     <!-- Global Financial News -->
     <div class="news-section">
-      <div class="news-section-title">ð° Global financial news <span>(Google News RSS â live)</span>
-        <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="fetchGlobalNews()">â³ Refresh</button>
+      <div class="news-section-title">&#128240; Global financial news <span>(Google News RSS &mdash; live)</span>
+        <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="fetchGlobalNews()">&#10227; Refresh</button>
       </div>
       <div id="globalNewsFeed" style="margin-bottom:16px">
         <div style="text-align:center;padding:20px;color:var(--muted)"><span class="spinner"></span>Loading global news...</div>
@@ -830,8 +456,8 @@ td{padding:10px 12px;white-space:nowrap}
 
     <!-- Industry News -->
     <div class="news-section">
-      <div class="news-section-title">ð­ Industry & sector news <span>(auto-categorized)</span>
-        <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="fetchIndustryNews()">â³ Refresh</button>
+      <div class="news-section-title">&#127981; Industry & sector news <span>(auto-categorized)</span>
+        <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="fetchIndustryNews()">&#10227; Refresh</button>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
         <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="filterIndNews('all')">All</button>
@@ -856,7 +482,7 @@ td{padding:10px 12px;white-space:nowrap}
 
   <div id="tab-config" style="display:none">
     <div class="config-panel">
-      <h3>ð Alert configuration</h3>
+      <h3>&#128276; Alert configuration</h3>
       <div class="config-row">
         <label>Price drop alert threshold (%)</label>
         <input type="number" id="cfgDropPct" value="5" min="1" max="20" step="1">
@@ -894,10 +520,10 @@ td{padding:10px 12px;white-space:nowrap}
     </div>
 
     <div class="config-panel">
-      <h3>ð¯ Custom price alerts for individual stocks</h3>
+      <h3>&#127919; Custom price alerts for individual stocks</h3>
       <div style="margin-bottom:12px;display:flex;gap:12px;flex-wrap:wrap">
         <select id="customStock" style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-size:13px;min-width:200px"></select>
-        <input type="number" id="customPrice" placeholder="Target price â¹" style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-size:13px;width:130px">
+        <input type="number" id="customPrice" placeholder="Target price &#8377;" style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-size:13px;width:130px">
         <select id="customDir" style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-size:13px">
           <option value="below">Alert when below</option>
           <option value="above">Alert when above</option>
@@ -908,18 +534,18 @@ td{padding:10px 12px;white-space:nowrap}
     </div>
 
     <div class="config-panel">
-      <h3>ð Buying call triggers (auto-monitored)</h3>
+      <h3>&#128202; Buying call triggers (auto-monitored)</h3>
       <div style="font-size:13px;color:var(--muted);line-height:1.8">
         The tracker automatically monitors these signals and fires alerts:<br><br>
-        <span style="color:var(--green)">â Near 52W low</span> â Stock within configured % of 52-week low â accumulation zone<br>
-        <span style="color:var(--accent)">â Breakout watch</span> â Stock within configured % of 52-week high â momentum entry<br>
-        <span style="color:var(--amber)">â Big drop</span> â Intraday fall beyond threshold â potential panic selling = buying opportunity<br>
-        <span style="color:#a78bfa">â Volume spike</span> â Unusually high volume (3x+ avg) â institutional activity<br>
-        <span style="color:var(--red)">â Stop-loss breach</span> â Stock breaks below key support â exit signal<br><br>
+        <span style="color:var(--green)">&#9679; Near 52W low</span> &mdash; Stock within configured % of 52-week low &rarr; accumulation zone<br>
+        <span style="color:var(--accent)">&#9679; Breakout watch</span> &mdash; Stock within configured % of 52-week high &rarr; momentum entry<br>
+        <span style="color:var(--amber)">&#9679; Big drop</span> &mdash; Intraday fall beyond threshold &rarr; potential panic selling = buying opportunity<br>
+        <span style="color:#a78bfa">&#9679; Volume spike</span> &mdash; Unusually high volume (3x+ avg) &rarr; institutional activity<br>
+        <span style="color:var(--red)">&#9679; Stop-loss breach</span> &mdash; Stock breaks below key support &rarr; exit signal<br><br>
         <em>Jyoti Resins specific triggers:</em><br>
-        <span style="color:var(--green)">â CMP below â¹850</span> â Strong buy zone (promoter buying range)<br>
-        <span style="color:var(--accent)">â CMP above â¹1,000</span> â Breakout confirmation (watch for volume)<br>
-        <span style="color:var(--accent)">â CMP above â¹1,167</span> â 50 DMA reclaim = trend reversal confirmed
+        <span style="color:var(--green)">&#9679; CMP below &#8377;850</span> &rarr; Strong buy zone (promoter buying range)<br>
+        <span style="color:var(--accent)">&#9679; CMP above &#8377;1,000</span> &rarr; Breakout confirmation (watch for volume)<br>
+        <span style="color:var(--accent)">&#9679; CMP above &#8377;1,167</span> &rarr; 50 DMA reclaim = trend reversal confirmed
       </div>
     </div>
   </div>
@@ -933,13 +559,13 @@ td{padding:10px 12px;white-space:nowrap}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v3.0 â Valuation Edition â Data via Yahoo Finance API</span>
-  <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM â 3:30 PM IST)</span>
+  <span>Multibagger Portfolio Tracker v3.0 &mdash; Valuation Edition &mdash; Data via Yahoo Finance API</span>
+  <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
 <script>
 // ============================================================
-//  STOCK DATA â All 70 stocks with Yahoo Finance tickers
+//  STOCK DATA &mdash; All 70 stocks with Yahoo Finance tickers
 // ============================================================
 const stocks = [
   // Layer 1
@@ -978,14 +604,14 @@ const stocks = [
   {name:"Jupiter Wagons",ticker:"JUPITERWAG",yf:"JWL.NS",layer:"Layer 3",sector:"Railways",cmp:0,prevClose:0,change:0,changePct:0,mcap:19400,pe:40,roce:22,low52:300,high52:700,score:7.2,thesis:"Railway wagons. EV bus chassis.",vol:0,avgVol:0,loaded:false},
   {name:"Titagarh Rail",ticker:"TITAGARH",yf:"TITAGARH.NS",layer:"Layer 3",sector:"Railways",cmp:0,prevClose:0,change:0,changePct:0,mcap:25200,pe:50,roce:18,low52:650,high52:1700,score:7.0,thesis:"Metro coaches. Vande Bharat.",vol:0,avgVol:0,loaded:false},
   // Energy & Battery
-  {name:"Exide Industries",ticker:"EXIDEIND",yf:"EXIDEIND.NS",layer:"Energy",sector:"Battery/Storage",cmp:0,prevClose:0,change:0,changePct:0,mcap:31131,pe:26.8,roce:10.2,low52:308,high52:431,score:7.5,thesis:"Lead-acid â Li-ion pivot. 6 GWh EESL plant. â¹4,352 Cr invested.",vol:0,avgVol:0,loaded:false},
+  {name:"Exide Industries",ticker:"EXIDEIND",yf:"EXIDEIND.NS",layer:"Energy",sector:"Battery/Storage",cmp:0,prevClose:0,change:0,changePct:0,mcap:31131,pe:26.8,roce:10.2,low52:308,high52:431,score:7.5,thesis:"Lead-acid &rarr; Li-ion pivot. 6 GWh EESL plant. &#8377;4,352 Cr invested.",vol:0,avgVol:0,loaded:false},
   {name:"Amara Raja Energy",ticker:"AMARAJABAT",yf:"AMARAJABAT.NS",layer:"Energy",sector:"Battery/Storage",cmp:0,prevClose:0,change:0,changePct:0,mcap:16168,pe:21.8,roce:18,low52:680,high52:1350,score:7.2,thesis:"#2 lead-acid. Giga-scale Li-ion planned.",vol:0,avgVol:0,loaded:false},
-  {name:"Himadri Speciality Chem",ticker:"HSCL",yf:"HSCL.NS",layer:"Energy",sector:"Battery Materials",cmp:0,prevClose:0,change:0,changePct:0,mcap:25200,pe:33,roce:28,low52:310,high52:680,score:8.0,thesis:"India's 1st anode producer. LFP cathode â¹1,125 Cr project.",vol:0,avgVol:0,loaded:false},
-  {name:"Bondada Engineering",ticker:"BONDADA",yf:"BONDADA.NS",layer:"Energy",sector:"BESS/EPC",cmp:0,prevClose:0,change:0,changePct:0,mcap:3800,pe:18.8,roce:35.7,low52:215,high52:510,score:7.5,thesis:"BESS EPC. Rev CAGR 41%. â¹7,147 Cr order book. ROE 36%.",vol:0,avgVol:0,loaded:false},
+  {name:"Himadri Speciality Chem",ticker:"HSCL",yf:"HSCL.NS",layer:"Energy",sector:"Battery Materials",cmp:0,prevClose:0,change:0,changePct:0,mcap:25200,pe:33,roce:28,low52:310,high52:680,score:8.0,thesis:"India's 1st anode producer. LFP cathode &#8377;1,125 Cr project.",vol:0,avgVol:0,loaded:false},
+  {name:"Bondada Engineering",ticker:"BONDADA",yf:"BONDADA.NS",layer:"Energy",sector:"BESS/EPC",cmp:0,prevClose:0,change:0,changePct:0,mcap:3800,pe:18.8,roce:35.7,low52:215,high52:510,score:7.5,thesis:"BESS EPC. Rev CAGR 41%. &#8377;7,147 Cr order book. ROE 36%.",vol:0,avgVol:0,loaded:false},
   {name:"JSW Energy",ticker:"JSWENERGY",yf:"JSWENERGY.NS",layer:"Energy",sector:"Power/BESS",cmp:0,prevClose:0,change:0,changePct:0,mcap:91000,pe:42,roce:8,low52:430,high52:770,score:7.0,thesis:"500 MW/1 GWh BESS. Fluence JV $150M.",vol:0,avgVol:0,loaded:false},
   // Turnaround / High-Risk Bets
-  {name:"Vodafone Idea",ticker:"IDEA",yf:"IDEA.NS",layer:"Layer 3",sector:"Telecom",cmp:0,prevClose:0,change:0,changePct:0,mcap:153522,pe:4.3,roce:-2,low52:6.12,high52:14.08,score:5.5,thesis:"Turnaround play. AGR dues cut to 64K Cr. ARPU â¹190 (+8.3% YoY). 19 qtrs consecutive ARPU growth. Bank debt down to â¹726 Cr. SBI â¹35K Cr loan in talks. ABG $500M equity infusion. ICRA upgrade to BBB+. 5G rollout underway.",vol:0,avgVol:0,loaded:false},
-  {name:"Ola Electric",ticker:"OLAELEC",yf:"OLAELEC.NS",layer:"Layer 3",sector:"EV/Battery",cmp:0,prevClose:0,change:0,changePct:0,mcap:16576,pe:-8.9,roce:-25,low52:22.25,high52:71.25,score:5.0,thesis:"India's only operational gigafactory for Li-ion cells. 6 GWh capacity, scaling to 12 GWh by mid-2027. 19.6% E2W market share. â¹2,000 Cr capex approved. Gross margin 38.5%. Battery cell supply to other OEMs in talks. High risk â still loss-making.",vol:0,avgVol:0,loaded:false},
+  {name:"Vodafone Idea",ticker:"IDEA",yf:"IDEA.NS",layer:"Layer 3",sector:"Telecom",cmp:0,prevClose:0,change:0,changePct:0,mcap:153522,pe:4.3,roce:-2,low52:6.12,high52:14.08,score:5.5,thesis:"Turnaround play. AGR dues cut to 64K Cr. ARPU &#8377;190 (+8.3% YoY). 19 qtrs consecutive ARPU growth. Bank debt down to &#8377;726 Cr. SBI &#8377;35K Cr loan in talks. ABG $500M equity infusion. ICRA upgrade to BBB+. 5G rollout underway.",vol:0,avgVol:0,loaded:false},
+  {name:"Ola Electric",ticker:"OLAELEC",yf:"OLAELEC.NS",layer:"Layer 3",sector:"EV/Battery",cmp:0,prevClose:0,change:0,changePct:0,mcap:16576,pe:-8.9,roce:-25,low52:22.25,high52:71.25,score:5.0,thesis:"India's only operational gigafactory for Li-ion cells. 6 GWh capacity, scaling to 12 GWh by mid-2027. 19.6% E2W market share. &#8377;2,000 Cr capex approved. Gross margin 38.5%. Battery cell supply to other OEMs in talks. High risk &mdash; still loss-making.",vol:0,avgVol:0,loaded:false},
   // Cloud / AI / Quantum / Semiconductor
   {name:"Persistent Systems",ticker:"PERSISTENT",yf:"PERSISTENT.NS",layer:"Layer 2",sector:"Cloud/AI",cmp:0,prevClose:0,change:0,changePct:0,mcap:50000,pe:43,roce:33,low52:3500,high52:6800,score:8.0,thesis:"India's #1 GenAI services play. Re(AI)magining approach embeds AI across workflows. 32.9% ROCE, debt-free. Revenue CAGR 30%+ over 3 years. Strong mid-cap IT compounder.",vol:0,avgVol:0,loaded:false},
   {name:"HCL Technologies",ticker:"HCLTECH",yf:"HCLTECH.NS",layer:"Layer 2",sector:"Semi/Quantum",cmp:0,prevClose:0,change:0,changePct:0,mcap:315071,pe:19,roce:31,low52:1400,high52:2100,score:7.5,thesis:"Semiconductor engineering services expansion. Quantum computing via IBM partnership. Hybrid classical-quantum R&D. 60.9% promoter hold. Cheapest large-cap IT at 19x PE.",vol:0,avgVol:0,loaded:false},
@@ -993,14 +619,14 @@ const stocks = [
   {name:"Infosys",ticker:"INFY",yf:"INFY.NS",layer:"Layer 2",sector:"AI/Quantum",cmp:0,prevClose:0,change:0,changePct:0,mcap:475278,pe:16,roce:31,low52:1089,high52:1728,score:7.0,thesis:"Quantum Living Labs (QLL) for enterprise quantum applications. AI-first strategy. 30.8% 3yr ROE. Attractive at 16x PE vs peer median 30x. FII-heavy ownership.",vol:0,avgVol:0,loaded:false},
   {name:"L&T Technology Services",ticker:"LTTS",yf:"LTTS.NS",layer:"Layer 2",sector:"Semi ER&D",cmp:0,prevClose:0,change:0,changePct:0,mcap:37035,pe:28,roce:28,low52:3010,high52:4726,score:7.5,thesis:"Pure-play ER&D. Chip design & VLSI services for global semi companies. 73.6% promoter (L&T). Exposure to semiconductor, medtech, industrial IoT.",vol:0,avgVol:0,loaded:false},
   {name:"Cyient",ticker:"CYIENT",yf:"CYIENT.NS",layer:"Layer 2",sector:"AI/Semi Design",cmp:0,prevClose:0,change:0,changePct:0,mcap:10225,pe:24,roce:20,low52:750,high52:1376,score:6.5,thesis:"Engineering AI + semiconductor design via 27.3% stake in Azimuth AI (ASIC chips for AI/IoT). Industry 4.0, smart networks. Digital engineering pivot underway.",vol:0,avgVol:0,loaded:false},
-  {name:"MapmyIndia",ticker:"MAPMYINDIA",yf:"MAPMYINDIA.NS",layer:"Layer 3",sector:"AI/Mapping",cmp:0,prevClose:0,change:0,changePct:0,mcap:5143,pe:38,roce:26,low52:795,high52:2064,score:6.0,thesis:"India's mapping & location AI monopoly. Autonomous driving data platform. mGIS, IoT, telematics. 51.4% promoter. Revenue declined 9% recently â correction opportunity.",vol:0,avgVol:0,loaded:false},
+  {name:"MapmyIndia",ticker:"MAPMYINDIA",yf:"MAPMYINDIA.NS",layer:"Layer 3",sector:"AI/Mapping",cmp:0,prevClose:0,change:0,changePct:0,mcap:5143,pe:38,roce:26,low52:795,high52:2064,score:6.0,thesis:"India's mapping & location AI monopoly. Autonomous driving data platform. mGIS, IoT, telematics. 51.4% promoter. Revenue declined 9% recently &mdash; correction opportunity.",vol:0,avgVol:0,loaded:false},
   {name:"RailTel Corporation",ticker:"RAILTEL",yf:"RAILTEL.NS",layer:"Layer 3",sector:"Cloud Infra",cmp:0,prevClose:0,change:0,changePct:0,mcap:10785,pe:29,roce:21,low52:245,high52:479,score:6.5,thesis:"Navratna PSU. Govt cloud infra backbone. Data centres, smart city projects. 72.8% govt promoter. Record ROCE 21.4%. Targeting 20%+ FY27 revenue growth.",vol:0,avgVol:0,loaded:false},
-  {name:"Vedanta",ticker:"VEDL",yf:"VEDL.NS",layer:"Layer 3",sector:"Semiconductor Fab",cmp:0,prevClose:0,change:0,changePct:0,mcap:134677,pe:7.7,roce:13,low52:157,high52:358,score:5.5,thesis:"$8B semiconductor fab in Gujarat with Taiwanese foundry partner. Net profit +88% YoY. Diversified â metals, oil & gas, power. 56.4% promoter but 100% pledged. High risk-reward.",vol:0,avgVol:0,loaded:false},
+  {name:"Vedanta",ticker:"VEDL",yf:"VEDL.NS",layer:"Layer 3",sector:"Semiconductor Fab",cmp:0,prevClose:0,change:0,changePct:0,mcap:134677,pe:7.7,roce:13,low52:157,high52:358,score:5.5,thesis:"$8B semiconductor fab in Gujarat with Taiwanese foundry partner. Net profit +88% YoY. Diversified &mdash; metals, oil & gas, power. 56.4% promoter but 100% pledged. High risk-reward.",vol:0,avgVol:0,loaded:false},
   // US-India Trade Deal Beneficiaries
-  {name:"Man Industries",ticker:"MANINDS",yf:"MANINDS.NS",layer:"Layer 3",sector:"Steel Pipes",cmp:0,prevClose:0,change:0,changePct:0,mcap:3000,pe:15,roce:22,low52:200,high52:500,score:7.0,thesis:"LSAW/HSAW steel pipes for oil & gas, water. International exports to US, Middle East. US-India trade deal beneficiary â infrastructure trade & reduced steel pipe tariffs boost order book.",vol:0,avgVol:0,loaded:false},
-  {name:"Gokaldas Exports",ticker:"GOKEX",yf:"GOKEX.NS",layer:"Layer 3",sector:"Textiles/Trade",cmp:0,prevClose:0,change:0,changePct:0,mcap:6000,pe:30,roce:25,low52:400,high52:1100,score:7.0,thesis:"India's largest listed garment exporter. Exports to 50+ countries. US-India trade deal beneficiary â garment export tariff reduction from 27.5% to ~15% massively boosts competitiveness vs Bangladesh & Vietnam.",vol:0,avgVol:0,loaded:false},
+  {name:"Man Industries",ticker:"MANINDS",yf:"MANINDS.NS",layer:"Layer 3",sector:"Steel Pipes",cmp:0,prevClose:0,change:0,changePct:0,mcap:3000,pe:15,roce:22,low52:200,high52:500,score:7.0,thesis:"LSAW/HSAW steel pipes for oil & gas, water. International exports to US, Middle East. US-India trade deal beneficiary &mdash; infrastructure trade & reduced steel pipe tariffs boost order book.",vol:0,avgVol:0,loaded:false},
+  {name:"Gokaldas Exports",ticker:"GOKEX",yf:"GOKEX.NS",layer:"Layer 3",sector:"Textiles/Trade",cmp:0,prevClose:0,change:0,changePct:0,mcap:6000,pe:30,roce:25,low52:400,high52:1100,score:7.0,thesis:"India's largest listed garment exporter. Exports to 50+ countries. US-India trade deal beneficiary &mdash; garment export tariff reduction from 27.5% to ~15% massively boosts competitiveness vs Bangladesh & Vietnam.",vol:0,avgVol:0,loaded:false},
   // PLI / EMS / Auto Tech / AI Platform
-  {name:"Affle India",ticker:"AFFLE",yf:"AFFLE.NS",layer:"Layer 2",sector:"AI/AdTech",cmp:0,prevClose:0,change:0,changePct:0,mcap:20800,pe:46,roce:15,low52:1050,high52:1900,score:6.5,thesis:"India's only listed AI-driven consumer intelligence platform. Revenue +20% YoY. Zero debt. AI monetization across 20+ countries â product company, not IT services.",vol:0,avgVol:0,loaded:false},
+  {name:"Affle India",ticker:"AFFLE",yf:"AFFLE.NS",layer:"Layer 2",sector:"AI/AdTech",cmp:0,prevClose:0,change:0,changePct:0,mcap:20800,pe:46,roce:15,low52:1050,high52:1900,score:6.5,thesis:"India's only listed AI-driven consumer intelligence platform. Revenue +20% YoY. Zero debt. AI monetization across 20+ countries &mdash; product company, not IT services.",vol:0,avgVol:0,loaded:false},
   // High Momentum / Consumer / Infra / Real Estate
   {name:"Polycab India",ticker:"POLYCAB",yf:"POLYCAB.NS",layer:"Layer 2",sector:"Electrical/Cables",cmp:0,prevClose:0,change:0,changePct:0,mcap:149500,pe:56,roce:33,low52:5787,high52:9988,score:8.2,thesis:"At 52-week high. FY26 revenue +28%, PAT +31%. Power grid expansion + data center buildout supercycle. Near debt-free, 33% ROCE.",vol:0,avgVol:0,loaded:false},
   {name:"CG Power",ticker:"CGPOWER",yf:"CGPOWER.NS",layer:"Layer 2",sector:"Electrical/Power",cmp:0,prevClose:0,change:0,changePct:0,mcap:144000,pe:120,roce:37,low52:480,high52:960,score:7.5,thesis:"Murugappa Group. Transformers + switchgear. Q4 FY26 PAT +34%, sales +25%. 37% ROCE. Power transmission capex + semiconductor fab supply chain beneficiary.",vol:0,avgVol:0,loaded:false},
@@ -1029,24 +655,24 @@ function checkAlerts(stock, oldCmp) {
 
   // 1. Big drop
   if (stock.changePct <= -config.dropPct) {
-    fireAlert('drop', stock.name, `Dropped ${stock.changePct.toFixed(1)}% to â¹${stock.cmp.toLocaleString('en-IN')}`, now, `Exceeded ${config.dropPct}% drop threshold. Potential panic sell = buying opportunity if fundamentals intact.`);
+    fireAlert('drop', stock.name, `Dropped ${stock.changePct.toFixed(1)}% to &#8377;${stock.cmp.toLocaleString('en-IN')}`, now, `Exceeded ${config.dropPct}% drop threshold. Potential panic sell = buying opportunity if fundamentals intact.`);
   }
   // 2. Surge
   if (stock.changePct >= config.surgePct) {
-    fireAlert('price', stock.name, `Surged +${stock.changePct.toFixed(1)}% to â¹${stock.cmp.toLocaleString('en-IN')}`, now, `Exceeded ${config.surgePct}% surge threshold. Watch for momentum continuation or profit booking.`);
+    fireAlert('price', stock.name, `Surged +${stock.changePct.toFixed(1)}% to &#8377;${stock.cmp.toLocaleString('en-IN')}`, now, `Exceeded ${config.surgePct}% surge threshold. Watch for momentum continuation or profit booking.`);
   }
   // 3. Near 52W low
   if (stock.low52 > 0) {
     const pctAboveLow = ((stock.cmp - stock.low52) / stock.low52) * 100;
     if (pctAboveLow <= config.low52Pct && pctAboveLow >= 0) {
-      fireAlert('buy', stock.name, `Only ${pctAboveLow.toFixed(1)}% above 52W low of â¹${stock.low52.toLocaleString('en-IN')}`, now, `Entering accumulation zone. Check if fundamentals support buying at current levels.`);
+      fireAlert('buy', stock.name, `Only ${pctAboveLow.toFixed(1)}% above 52W low of &#8377;${stock.low52.toLocaleString('en-IN')}`, now, `Entering accumulation zone. Check if fundamentals support buying at current levels.`);
     }
   }
   // 4. Near 52W high (breakout)
   if (stock.high52 > 0) {
     const pctBelowHigh = ((stock.high52 - stock.cmp) / stock.high52) * 100;
     if (pctBelowHigh <= config.high52Pct && pctBelowHigh >= 0) {
-      fireAlert('price', stock.name, `Within ${pctBelowHigh.toFixed(1)}% of 52W high â¹${stock.high52.toLocaleString('en-IN')}`, now, `Breakout watch! Close above 52W high with volume = momentum entry signal.`);
+      fireAlert('price', stock.name, `Within ${pctBelowHigh.toFixed(1)}% of 52W high &#8377;${stock.high52.toLocaleString('en-IN')}`, now, `Breakout watch! Close above 52W high with volume = momentum entry signal.`);
     }
   }
   // 5. Volume spike (3x+)
@@ -1057,18 +683,18 @@ function checkAlerts(stock, oldCmp) {
   if (stock.customAlerts) {
     stock.customAlerts.forEach(ca => {
       if (ca.dir === 'below' && stock.cmp <= ca.price && (oldCmp === 0 || oldCmp > ca.price)) {
-        fireAlert('buy', stock.name, `Hit â¹${ca.price} target â ${ca.label}`, now, `Custom alert triggered: ${ca.label}`);
+        fireAlert('buy', stock.name, `Hit &#8377;${ca.price} target &mdash; ${ca.label}`, now, `Custom alert triggered: ${ca.label}`);
       }
       if (ca.dir === 'above' && stock.cmp >= ca.price && (oldCmp === 0 || oldCmp < ca.price)) {
-        fireAlert('buy', stock.name, `Crossed â¹${ca.price} â ${ca.label}`, now, `Custom alert triggered: ${ca.label}`);
+        fireAlert('buy', stock.name, `Crossed &#8377;${ca.price} &mdash; ${ca.label}`, now, `Custom alert triggered: ${ca.label}`);
       }
     });
   }
   // 7. Global custom alerts
   customPriceAlerts.forEach(ca => {
     if (ca.ticker === stock.ticker) {
-      if (ca.dir === 'below' && stock.cmp <= ca.price) fireAlert('buy', stock.name, `Below â¹${ca.price} target`, now, `Custom price alert`);
-      if (ca.dir === 'above' && stock.cmp >= ca.price) fireAlert('price', stock.name, `Above â¹${ca.price} target`, now, `Custom price alert`);
+      if (ca.dir === 'below' && stock.cmp <= ca.price) fireAlert('buy', stock.name, `Below &#8377;${ca.price} target`, now, `Custom price alert`);
+      if (ca.dir === 'above' && stock.cmp >= ca.price) fireAlert('price', stock.name, `Above &#8377;${ca.price} target`, now, `Custom price alert`);
     }
   });
 }
@@ -1086,7 +712,7 @@ function fireAlert(type, stock, title, time, desc) {
 
   // Browser notification
   if (notificationsEnabled && Notification.permission === 'granted') {
-    new Notification(`${stock}: ${title}`, {body: desc, icon: 'ð'});
+    new Notification(`${stock}: ${title}`, {body: desc, icon: '&#128202;'});
   }
 }
 
@@ -1106,9 +732,9 @@ function renderAlerts() {
   }
   el.innerHTML = alerts.map(a => {
     const iconClass = {price:'price',drop:'drop',buy:'buy',news:'news',vol:'vol'}[a.type] || 'news';
-    const icons = {price:'ð',drop:'ð',buy:'ð¯',news:'ð°',vol:'ð'};
+    const icons = {price:'&#128200;',drop:'&#128201;',buy:'&#127919;',news:'&#128240;',vol:'&#128202;'};
     return `<div class="alert-card${a.read?'':' unread'}">
-      <div class="alert-icon ${iconClass}">${icons[a.type]||'ð'}</div>
+      <div class="alert-icon ${iconClass}">${icons[a.type]||'&#128276;'}</div>
       <div class="alert-body">
         <div class="alert-title">${a.stock}: ${a.title}</div>
         <div class="alert-desc">${a.desc}</div>
@@ -1121,11 +747,12 @@ function renderAlerts() {
 function clearAlerts() { alerts = []; alertCount = 0; updateAlertBadge(); renderAlerts(); }
 
 // ============================================================
-//  YAHOO FINANCE API â LIVE PRICES
+//  YAHOO FINANCE API &mdash; LIVE PRICES
 // ============================================================
 const CORS_PROXIES = [
   'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?',
+  'https://api.codetabs.com/v1/proxy?quest='
 ];
 let proxyIndex = 0;
 
@@ -1179,7 +806,7 @@ async function fetchAllPrices() {
 
   const now = new Date();
   document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('en-IN');
-  document.getElementById('sLoadedSub').textContent = loadedCount > 0 ? `${loadedCount} live prices loaded` : 'API may be rate-limited â retry in 30s';
+  document.getElementById('sLoadedSub').textContent = loadedCount > 0 ? `${loadedCount} live prices loaded` : 'API may be rate-limited &mdash; retry in 30s';
   updateMarketStatus();
   fetchInProgress = false;
 }
@@ -1203,7 +830,7 @@ function updateMarketStatus() {
     dot.className = 'live-dot off'; hdr.textContent = 'Market Closed'; card.textContent = 'CLOSED';
     card.style.color = 'var(--red)';
   }
-  document.getElementById('sMktSub').textContent = `NSE/BSE â¢ ${ist.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} IST`;
+  document.getElementById('sMktSub').textContent = `NSE/BSE &#8226; ${ist.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} IST`;
 }
 
 // ============================================================
@@ -1226,7 +853,7 @@ function renderTable(data) {
     const cls = chg >= 0 ? 'up' : 'down';
     const sign = chg >= 0 ? '+' : '';
     const layerCls = s.layer==='Layer 1'?'badge-l1':s.layer==='Layer 2'?'badge-l2':s.layer==='Energy'?'badge-energy':'badge-l3';
-    const cmpDisplay = s.loaded ? `â¹${s.cmp.toLocaleString('en-IN')}` : '<span class="spinner"></span>';
+    const cmpDisplay = s.loaded ? `&#8377;${s.cmp.toLocaleString('en-IN')}` : '<span class="spinner"></span>';
     const chgDisplay = s.loaded ? `${sign}${chg.toFixed(2)}%` : '--';
 
     // Signal column
@@ -1234,10 +861,10 @@ function renderTable(data) {
     if (s.loaded && s.cmp > 0) {
       const pctFromLow = s.low52 > 0 ? ((s.cmp - s.low52)/s.low52*100) : 999;
       const pctFromHigh = s.high52 > 0 ? ((s.high52 - s.cmp)/s.high52*100) : 999;
-      if (pctFromLow <= 10) signal = '<span style="color:var(--green);font-size:11px">ð¯ Buy Zone</span>';
-      else if (pctFromHigh <= 5) signal = '<span style="color:var(--accent);font-size:11px">ð Breakout</span>';
-      else if (chg <= -5) signal = '<span style="color:var(--amber);font-size:11px">â ï¸ Big Drop</span>';
-      else if (chg >= 5) signal = '<span style="color:var(--green);font-size:11px">ð Surge</span>';
+      if (pctFromLow <= 10) signal = '<span style="color:var(--green);font-size:11px">&#127919; Buy Zone</span>';
+      else if (pctFromHigh <= 5) signal = '<span style="color:var(--accent);font-size:11px">&#128640; Breakout</span>';
+      else if (chg <= -5) signal = '<span style="color:var(--amber);font-size:11px">&#9888;&#65039; Big Drop</span>';
+      else if (chg >= 5) signal = '<span style="color:var(--green);font-size:11px">&#128200; Surge</span>';
     }
 
     const alertRow = (signal && signal.includes('Buy Zone')) ? ' alert-row' : '';
@@ -1249,10 +876,10 @@ function renderTable(data) {
       <td style="font-size:12px">${s.sector}</td>
       <td style="font-weight:600">${cmpDisplay}</td>
       <td class="${cls}" style="font-weight:500">${chgDisplay}</td>
-      <td style="font-size:12px">â¹${s.mcap.toLocaleString('en-IN')}</td>
+      <td style="font-size:12px">&#8377;${s.mcap.toLocaleString('en-IN')}</td>
       <td>${s.pe}</td>
       <td style="font-weight:500;color:${s.roce>=25?'var(--green)':s.roce>=15?'var(--amber)':'var(--red)'}">${s.roce}%</td>
-      <td style="font-size:11px;color:var(--muted)">â¹${s.low52.toLocaleString('en-IN')}ââ¹${s.high52.toLocaleString('en-IN')}</td>
+      <td style="font-size:11px;color:var(--muted)">&#8377;${s.low52.toLocaleString('en-IN')}&ndash;&#8377;${s.high52.toLocaleString('en-IN')}</td>
       <td>${signal}</td>
     </tr>`;
   }).join('');
@@ -1287,10 +914,10 @@ function showDetail(ticker) {
 
   document.getElementById('detailBody').innerHTML = `
     <h2 style="font-size:20px;margin-bottom:4px">${s.name}</h2>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:16px">${s.sector} â¢ ${s.layer} â¢ ${s.ticker}</p>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:16px">${s.sector} &#8226; ${s.layer} &#8226; ${s.ticker}</p>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
-      <div class="stat-card"><div class="stat-label">CMP</div><div class="stat-val">${s.loaded?'â¹'+s.cmp.toLocaleString('en-IN'):'Loading...'}</div><div class="stat-sub ${cls}">${s.loaded?sign+s.changePct.toFixed(2)+'%':'--'}</div></div>
-      <div class="stat-card"><div class="stat-label">Mkt Cap</div><div class="stat-val" style="font-size:18px">â¹${s.mcap.toLocaleString('en-IN')} Cr</div></div>
+      <div class="stat-card"><div class="stat-label">CMP</div><div class="stat-val">${s.loaded?'&#8377;'+s.cmp.toLocaleString('en-IN'):'Loading...'}</div><div class="stat-sub ${cls}">${s.loaded?sign+s.changePct.toFixed(2)+'%':'--'}</div></div>
+      <div class="stat-card"><div class="stat-label">Mkt Cap</div><div class="stat-val" style="font-size:18px">&#8377;${s.mcap.toLocaleString('en-IN')} Cr</div></div>
       <div class="stat-card"><div class="stat-label">Score</div><div class="stat-val" style="color:var(--accent)">${s.score}/10</div></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
@@ -1336,38 +963,38 @@ function switchTab(tab, el) {
 // ============================================================
 //  NEWS DATA
 // ============================================================
-// impact: 1=low, 2=medium, 3=high â used for alert triggers
+// impact: 1=low, 2=medium, 3=high &mdash; used for alert triggers
 // stocks: array of portfolio tickers affected
 const newsData = [
-  // ===== HIGH IMPACT â PRICE MOVING =====
-  {cat:"company",tag:"Kaynes Tech",color:"#ef4444",date:"18 May 2026",title:"â ï¸ Kaynes plunges 19% post weak Q4 â JM Financial downgrades to 'Reduce'",body:"Q4 earnings missed estimates significantly. JM Financial cut rating from Buy to Reduce. Support zone at â¹3,100. Watch for institutional buying at lower levels.",impact:3,stocks:["KAYNES"],signal:"RISK"},
-  {cat:"company",tag:"Dixon Tech",color:"#4f8cff",date:"22 May 2026",title:"ð Dixon surges 10% post Q4 results â Nomura maintains Buy, TP â¹13,813",body:"Strong quarterly performance. Shares rose 5.34% to â¹11,862 on rally day. But Nomura lowered target from â¹14,678 citing Vivo approval delays and subdued demand outlook.",impact:3,stocks:["DIXON"],signal:"BUY"},
-  {cat:"company",tag:"Waaree",color:"#22c55e",date:"26 May 2026",title:"ð Waaree up 3% â Govt rejects ALMM List-II extension beyond June 1",body:"MNRE rejected solar industry's demand for blanket extension. For domestic manufacturers like Waaree & Premier Energies: improved demand visibility, higher capacity utilization, tighter supply, stronger pricing power.",impact:3,stocks:["WAAREE","PREMIERENE"],signal:"BUY"},
-  {cat:"company",tag:"Amara Raja",color:"#f59e0b",date:"25 May 2026",title:"ð Amara Raja volume spike 57.5L shares â stock surges 6.59%",body:"Massive volume ahead of Q4 results announcement. Going aggressive on lithium-ion strategy for telecom and data center segments. Board considering results on May 25.",impact:3,stocks:["AMARAJABAT"],signal:"WATCH"},
-  {cat:"company",tag:"Exide",color:"#f59e0b",date:"22 Apr 2026",title:"ð Exide volume spike 136L shares â up 7% in single session",body:"Unusual institutional buying. Li-ion subsidiary EESL now targeting 12 GWh capacity (up from 6 GWh). Battery stocks entered supercharge mode with both Amara Raja and Exide surging up to 19%.",impact:3,stocks:["EXIDEIND"],signal:"WATCH"},
-  {cat:"policy",tag:"Defence",color:"#a78bfa",date:"1 May 2026",title:"ð¯ DAM Capital picks defence as multi-decade growth â BEL TP â¹530, HAL TP â¹6,300",body:"Top picks: BDL (TP â¹1,540), BEL (TP â¹530), HAL (TP â¹6,300). Solar Industries also a pick. Neutral on Mazagon Dock (TP â¹2,770). India defence exports to hit â¹50K Cr by FY29.",impact:3,stocks:["BEL","HAL","SOLARINDS","MAZDOCK"],signal:"BUY"},
-  {cat:"company",tag:"Jyoti Resins",color:"#4f8cff",date:"May 2026",title:"ð Jyoti Resins Q4: Record â¹93 Cr revenue â promoters at 54.37%",body:"Best quarterly revenue ever (+29% QoQ). Management repositioning from regional to national challenger. Euro 7000 entering Odisha & Chhattisgarh. Q1 FY27 (Aug 2026) is the make-or-break quarter.",impact:3,stocks:["JYOTIRES"],signal:"BUY"},
-  {cat:"company",tag:"Premier Energies",color:"#22c55e",date:"18 May 2026",title:"ð Premier Energies Q4 PAT jumps 64.5% â 3 key triggers identified",body:"Strong earnings beat. Acquired 26% in Hexa Energy for Rs 68.7 Cr to secure captive power for Naidupeta solar cell plant. ALMM policy tailwind adds pricing power.",impact:3,stocks:["PREMIERENE"],signal:"BUY"},
+  // ===== HIGH IMPACT &mdash; PRICE MOVING =====
+  {cat:"company",tag:"Kaynes Tech",color:"#ef4444",date:"18 May 2026",title:"&#9888;&#65039; Kaynes plunges 19% post weak Q4 &mdash; JM Financial downgrades to 'Reduce'",body:"Q4 earnings missed estimates significantly. JM Financial cut rating from Buy to Reduce. Support zone at &#8377;3,100. Watch for institutional buying at lower levels.",impact:3,stocks:["KAYNES"],signal:"RISK"},
+  {cat:"company",tag:"Dixon Tech",color:"#4f8cff",date:"22 May 2026",title:"&#128200; Dixon surges 10% post Q4 results &mdash; Nomura maintains Buy, TP &#8377;13,813",body:"Strong quarterly performance. Shares rose 5.34% to &#8377;11,862 on rally day. But Nomura lowered target from &#8377;14,678 citing Vivo approval delays and subdued demand outlook.",impact:3,stocks:["DIXON"],signal:"BUY"},
+  {cat:"company",tag:"Waaree",color:"#22c55e",date:"26 May 2026",title:"&#128200; Waaree up 3% &mdash; Govt rejects ALMM List-II extension beyond June 1",body:"MNRE rejected solar industry's demand for blanket extension. For domestic manufacturers like Waaree & Premier Energies: improved demand visibility, higher capacity utilization, tighter supply, stronger pricing power.",impact:3,stocks:["WAAREE","PREMIERENE"],signal:"BUY"},
+  {cat:"company",tag:"Amara Raja",color:"#f59e0b",date:"25 May 2026",title:"&#128202; Amara Raja volume spike 57.5L shares &mdash; stock surges 6.59%",body:"Massive volume ahead of Q4 results announcement. Going aggressive on lithium-ion strategy for telecom and data center segments. Board considering results on May 25.",impact:3,stocks:["AMARAJABAT"],signal:"WATCH"},
+  {cat:"company",tag:"Exide",color:"#f59e0b",date:"22 Apr 2026",title:"&#128202; Exide volume spike 136L shares &mdash; up 7% in single session",body:"Unusual institutional buying. Li-ion subsidiary EESL now targeting 12 GWh capacity (up from 6 GWh). Battery stocks entered supercharge mode with both Amara Raja and Exide surging up to 19%.",impact:3,stocks:["EXIDEIND"],signal:"WATCH"},
+  {cat:"policy",tag:"Defence",color:"#a78bfa",date:"1 May 2026",title:"&#127919; DAM Capital picks defence as multi-decade growth &mdash; BEL TP &#8377;530, HAL TP &#8377;6,300",body:"Top picks: BDL (TP &#8377;1,540), BEL (TP &#8377;530), HAL (TP &#8377;6,300). Solar Industries also a pick. Neutral on Mazagon Dock (TP &#8377;2,770). India defence exports to hit &#8377;50K Cr by FY29.",impact:3,stocks:["BEL","HAL","SOLARINDS","MAZDOCK"],signal:"BUY"},
+  {cat:"company",tag:"Jyoti Resins",color:"#4f8cff",date:"May 2026",title:"&#128200; Jyoti Resins Q4: Record &#8377;93 Cr revenue &mdash; promoters at 54.37%",body:"Best quarterly revenue ever (+29% QoQ). Management repositioning from regional to national challenger. Euro 7000 entering Odisha & Chhattisgarh. Q1 FY27 (Aug 2026) is the make-or-break quarter.",impact:3,stocks:["JYOTIRES"],signal:"BUY"},
+  {cat:"company",tag:"Premier Energies",color:"#22c55e",date:"18 May 2026",title:"&#128200; Premier Energies Q4 PAT jumps 64.5% &mdash; 3 key triggers identified",body:"Strong earnings beat. Acquired 26% in Hexa Energy for Rs 68.7 Cr to secure captive power for Naidupeta solar cell plant. ALMM policy tailwind adds pricing power.",impact:3,stocks:["PREMIERENE"],signal:"BUY"},
 
-  // ===== MEDIUM IMPACT â SECTOR MOVES =====
-  {cat:"energy",tag:"BESS India",color:"#f59e0b",date:"May 2026",title:"â¡ India BESS installations hit 5 GWh in 2026 â 10x jump from 2025",body:"CEA targets 411 GWh by 2032. VGF covers 40% of capex. IESA demand forecast boosting battery theme stocks. Both Exide and Amara Raja soared 19% on the forecast.",impact:2,stocks:["EXIDEIND","AMARAJABAT","HBLPOWER","HSCL","BONDADA","JSWENERGY"],signal:"SECTOR"},
-  {cat:"energy",tag:"Himadri",color:"#f59e0b",date:"Apr 2026",title:"ð¬ Himadri commissions India's first anode material production facility",body:"200 MT/year at Mahistikry, West Bengal. All in-house tech. Sicona partnership for silicon-carbon anode. â¹1,125 Cr LFP cathode project next. Only listed Indian anode producer.",impact:2,stocks:["HSCL"],signal:"BUY"},
-  {cat:"company",tag:"Netweb",color:"#4f8cff",date:"May 2026",title:"ð Netweb FY26: Total income â¹2,202 Cr â new CSO and VP appointed",body:"FY26 revenue with net profit â¹205.8 Cr. Appointed Mukul Kedia as CSO and Swastik Chakraborty as VP Tech. â¹3/share dividend announced. AI/HPC server demand accelerating.",impact:2,stocks:["NETWEB"],signal:"WATCH"},
-  {cat:"company",tag:"Alkyl Amines",color:"#4f8cff",date:"15 May 2026",title:"ð Alkyl Amines: Exchange seeks clarification on unusual volume movement",body:"BSE sought clarification from Alkyl Amines on 15 May regarding unusual volume. Specialty chemical stocks had rallied 10-14% in March on earnings improvement expectations.",impact:2,stocks:["ALKYLAMINE"],signal:"WATCH"},
-  {cat:"energy",tag:"JSW Energy",color:"#f59e0b",date:"2026",title:"â¡ JSW wins 500 MW/1 GWh BESS from SECI â Fluence JV $150M",body:"Two projects in Karnataka and Maharashtra. Target: 30 GW generation + 40 GWh storage by 2030.",impact:2,stocks:["JSWENERGY"],signal:"BUY"},
-  {cat:"energy",tag:"Tata Power",color:"#f59e0b",date:"2025-26",title:"â¡ Tata Power secures multiple BESS projects â India's largest solar+storage live",body:"30 MW/120 MWh Kerala BESS from NHPC. 100 MW solar + 120 MWh Mumbai BESS operational. Commissioning Oct 2026.",impact:2,stocks:["TATAPOWER"],signal:"WATCH"},
-  {cat:"energy",tag:"HBL Power",color:"#f59e0b",date:"2026",title:"ð HBL Power hits all-time high â Q3 profit jumps 3.3x, revenue +80%",body:"Specialized batteries for railways, defence, telecom. Moving into next-gen battery chemistry.",impact:2,stocks:["HBLPOWER"],signal:"BUY"},
-  {cat:"company",tag:"Bondada",color:"#4f8cff",date:"May 2026",title:"ð Bondada FY26: Revenue â¹2,843 Cr (+81%), order book â¹7,147 Cr",body:"BESS EPC entry via Telangana GENCO project. Expanding into data centers, defence. ROE 35.7%. PE just 18.8x â cheapest energy play.",impact:2,stocks:["BONDADA"],signal:"BUY"},
-  {cat:"energy",tag:"Exide/EESL",color:"#f59e0b",date:"Feb 2026",title:"â¡ Exide invests â¹100 Cr more in EESL â total Li-ion investment â¹4,352 Cr",body:"6 GWh â targeting 12 GWh lithium-ion cell manufacturing in Bengaluru. Transforming from lead-acid to full energy solutions company.",impact:2,stocks:["EXIDEIND"],signal:"WATCH"},
-  {cat:"policy",tag:"Defence",color:"#a78bfa",date:"2026",title:"ð¯ India defence exports to cross â¹172,000 Cr in next 5 years",body:"HAL, BEL, BDL, Mazagon Dock, L&T Precision projected as export leaders. Govt targeting â¹3T defence production and â¹50K Cr exports by FY29.",impact:2,stocks:["HAL","BEL","MAZDOCK"],signal:"SECTOR"},
-  {cat:"policy",tag:"ALMM",color:"#a78bfa",date:"26 May 2026",title:"â¡ MNRE enforces ALMM List-II from June 1 â domestic solar makers win",body:"Government rejected extension demand. Only approved domestic manufacturers can supply to govt/subsidy projects. Massive tailwind for Waaree, Premier Energies, and all domestic cell/module makers.",impact:2,stocks:["WAAREE","PREMIERENE"],signal:"SECTOR"},
+  // ===== MEDIUM IMPACT &mdash; SECTOR MOVES =====
+  {cat:"energy",tag:"BESS India",color:"#f59e0b",date:"May 2026",title:"&#9889; India BESS installations hit 5 GWh in 2026 &mdash; 10x jump from 2025",body:"CEA targets 411 GWh by 2032. VGF covers 40% of capex. IESA demand forecast boosting battery theme stocks. Both Exide and Amara Raja soared 19% on the forecast.",impact:2,stocks:["EXIDEIND","AMARAJABAT","HBLPOWER","HSCL","BONDADA","JSWENERGY"],signal:"SECTOR"},
+  {cat:"energy",tag:"Himadri",color:"#f59e0b",date:"Apr 2026",title:"&#128300; Himadri commissions India's first anode material production facility",body:"200 MT/year at Mahistikry, West Bengal. All in-house tech. Sicona partnership for silicon-carbon anode. &#8377;1,125 Cr LFP cathode project next. Only listed Indian anode producer.",impact:2,stocks:["HSCL"],signal:"BUY"},
+  {cat:"company",tag:"Netweb",color:"#4f8cff",date:"May 2026",title:"&#128202; Netweb FY26: Total income &#8377;2,202 Cr &mdash; new CSO and VP appointed",body:"FY26 revenue with net profit &#8377;205.8 Cr. Appointed Mukul Kedia as CSO and Swastik Chakraborty as VP Tech. &#8377;3/share dividend announced. AI/HPC server demand accelerating.",impact:2,stocks:["NETWEB"],signal:"WATCH"},
+  {cat:"company",tag:"Alkyl Amines",color:"#4f8cff",date:"15 May 2026",title:"&#128202; Alkyl Amines: Exchange seeks clarification on unusual volume movement",body:"BSE sought clarification from Alkyl Amines on 15 May regarding unusual volume. Specialty chemical stocks had rallied 10-14% in March on earnings improvement expectations.",impact:2,stocks:["ALKYLAMINE"],signal:"WATCH"},
+  {cat:"energy",tag:"JSW Energy",color:"#f59e0b",date:"2026",title:"&#9889; JSW wins 500 MW/1 GWh BESS from SECI &mdash; Fluence JV $150M",body:"Two projects in Karnataka and Maharashtra. Target: 30 GW generation + 40 GWh storage by 2030.",impact:2,stocks:["JSWENERGY"],signal:"BUY"},
+  {cat:"energy",tag:"Tata Power",color:"#f59e0b",date:"2025-26",title:"&#9889; Tata Power secures multiple BESS projects &mdash; India's largest solar+storage live",body:"30 MW/120 MWh Kerala BESS from NHPC. 100 MW solar + 120 MWh Mumbai BESS operational. Commissioning Oct 2026.",impact:2,stocks:["TATAPOWER"],signal:"WATCH"},
+  {cat:"energy",tag:"HBL Power",color:"#f59e0b",date:"2026",title:"&#128200; HBL Power hits all-time high &mdash; Q3 profit jumps 3.3x, revenue +80%",body:"Specialized batteries for railways, defence, telecom. Moving into next-gen battery chemistry.",impact:2,stocks:["HBLPOWER"],signal:"BUY"},
+  {cat:"company",tag:"Bondada",color:"#4f8cff",date:"May 2026",title:"&#128200; Bondada FY26: Revenue &#8377;2,843 Cr (+81%), order book &#8377;7,147 Cr",body:"BESS EPC entry via Telangana GENCO project. Expanding into data centers, defence. ROE 35.7%. PE just 18.8x &mdash; cheapest energy play.",impact:2,stocks:["BONDADA"],signal:"BUY"},
+  {cat:"energy",tag:"Exide/EESL",color:"#f59e0b",date:"Feb 2026",title:"&#9889; Exide invests &#8377;100 Cr more in EESL &mdash; total Li-ion investment &#8377;4,352 Cr",body:"6 GWh &rarr; targeting 12 GWh lithium-ion cell manufacturing in Bengaluru. Transforming from lead-acid to full energy solutions company.",impact:2,stocks:["EXIDEIND"],signal:"WATCH"},
+  {cat:"policy",tag:"Defence",color:"#a78bfa",date:"2026",title:"&#127919; India defence exports to cross &#8377;172,000 Cr in next 5 years",body:"HAL, BEL, BDL, Mazagon Dock, L&T Precision projected as export leaders. Govt targeting &#8377;3T defence production and &#8377;50K Cr exports by FY29.",impact:2,stocks:["HAL","BEL","MAZDOCK"],signal:"SECTOR"},
+  {cat:"policy",tag:"ALMM",color:"#a78bfa",date:"26 May 2026",title:"&#9889; MNRE enforces ALMM List-II from June 1 &mdash; domestic solar makers win",body:"Government rejected extension demand. Only approved domestic manufacturers can supply to govt/subsidy projects. Massive tailwind for Waaree, Premier Energies, and all domestic cell/module makers.",impact:2,stocks:["WAAREE","PREMIERENE"],signal:"SECTOR"},
 
-  // ===== LOW IMPACT â SECTOR CONTEXT =====
+  // ===== LOW IMPACT &mdash; SECTOR CONTEXT =====
   {cat:"sector",tag:"Spec Chem",color:"#22c55e",date:"2026",title:"India specialty chemicals: $250B global opportunity by 2030",body:"BCG blueprint for $1 trillion chemicals by 2040. India's process chemistry edge intact. Benefits Alkyl Amines, Navin Fluorine, Deepak Nitrite, Aarti Industries.",impact:1,stocks:["ALKYLAMINE","NAVINFLUOR","DEEPAKNTR","AARTIIND"],signal:"SECTOR"},
-  {cat:"policy",tag:"PLI",color:"#a78bfa",date:"Jan 2026",title:"ACC PLI scheme only 2.8% delivered â execution bottlenecks persist",body:"Only 1.4 GWh commissioned (Ola Electric). Supply chain issues, DVA requirements, visa delays. Risk factor for battery theme but long-term story intact.",impact:1,stocks:["EXIDEIND","AMARAJABAT"],signal:"RISK"},
-  {cat:"sector",tag:"Adhesives",color:"#22c55e",date:"2026",title:"India adhesives market $3.28B â $4.60B by 2031 at 6.88% CAGR",body:"Infrastructure Pipeline driving demand. Pidilite 70%+ share but Jyoti Resins capturing 15-35% in key states.",impact:1,stocks:["JYOTIRES","ASTRAL"],signal:"SECTOR"},
+  {cat:"policy",tag:"PLI",color:"#a78bfa",date:"Jan 2026",title:"ACC PLI scheme only 2.8% delivered &mdash; execution bottlenecks persist",body:"Only 1.4 GWh commissioned (Ola Electric). Supply chain issues, DVA requirements, visa delays. Risk factor for battery theme but long-term story intact.",impact:1,stocks:["EXIDEIND","AMARAJABAT"],signal:"RISK"},
+  {cat:"sector",tag:"Adhesives",color:"#22c55e",date:"2026",title:"India adhesives market $3.28B &rarr; $4.60B by 2031 at 6.88% CAGR",body:"Infrastructure Pipeline driving demand. Pidilite 70%+ share but Jyoti Resins capturing 15-35% in key states.",impact:1,stocks:["JYOTIRES","ASTRAL"],signal:"SECTOR"},
   {cat:"sector",tag:"Capital Mkt",color:"#22c55e",date:"May 2026",title:"CDSL gets SEBI approval for new executive directors",body:"Amit Mahajan and Nayana Ovalekar approved by SEBI. Q4 FY26 investor call discussed strong demat account growth.",impact:1,stocks:["CDSL"],signal:"WATCH"},
-  {cat:"policy",tag:"NSE/STT",color:"#a78bfa",date:"Feb 2026",title:"â ï¸ Angel One, BSE, CDSL fall up to 4% on NSE CEO's STT remarks",body:"NSE CEO's comments on potential STT (Securities Transaction Tax) changes spooked capital market stocks. Monitor for policy clarity.",impact:1,stocks:["ANGELONE","BSE","CDSL"],signal:"RISK"},
+  {cat:"policy",tag:"NSE/STT",color:"#a78bfa",date:"Feb 2026",title:"&#9888;&#65039; Angel One, BSE, CDSL fall up to 4% on NSE CEO's STT remarks",body:"NSE CEO's comments on potential STT (Securities Transaction Tax) changes spooked capital market stocks. Monitor for policy clarity.",impact:1,stocks:["ANGELONE","BSE","CDSL"],signal:"RISK"},
 ];
 
 function renderNews(data) {
@@ -1406,7 +1033,7 @@ function filterNews() {
 }
 
 // ============================================================
-//  LIVE GOOGLE NEWS FEED â fetches real-time news for portfolio
+//  LIVE GOOGLE NEWS FEED &mdash; fetches real-time news for portfolio
 // ============================================================
 let liveNewsLoaded = false;
 
@@ -1482,7 +1109,7 @@ async function fetchLiveNews() {
           <span class="news-tag" style="background:${ic}22;color:${ic};border:1px solid ${ic}44">${item.impact===3?'HIGH':item.impact===2?'MEDIUM':'LOW'}</span>
           <span class="news-tag" style="background:${sc}22;color:${sc};border:1px solid ${sc}44">${item.signal}</span>
         </div>
-        <span>${timeAgo} â¢ ${item.source}</span>
+        <span>${timeAgo} &#8226; ${item.source}</span>
       </div>
       <div class="news-title"><a href="${item.link}" target="_blank" style="color:var(--text);text-decoration:none">${item.title}</a></div>
       ${item.matchedStocks.length?`<div style="margin-top:6px;font-size:11px;color:var(--muted)">Portfolio match: <span style="color:var(--accent)">${item.matchedStocks.join(', ')}</span></div>`:''}
@@ -1576,9 +1203,9 @@ function renderCustomAlerts() {
     const s = stocks.find(x=>x.ticker===ca.ticker);
     return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
       <span style="color:var(--text);font-weight:500">${s?s.name:ca.ticker}</span>
-      <span style="color:var(--muted)">Alert when ${ca.dir} â¹${ca.price.toLocaleString('en-IN')}</span>
-      <span style="color:${ca.dir==='below'?'var(--green)':'var(--accent)'}">â</span>
-      <button class="btn btn-sm btn-outline" onclick="removeCustomAlert(${i})" style="margin-left:auto">â</button>
+      <span style="color:var(--muted)">Alert when ${ca.dir} &#8377;${ca.price.toLocaleString('en-IN')}</span>
+      <span style="color:${ca.dir==='below'?'var(--green)':'var(--accent)'}">&#9679;</span>
+      <button class="btn btn-sm btn-outline" onclick="removeCustomAlert(${i})" style="margin-left:auto">&#10005;</button>
     </div>`;
   }).join('');
 }
@@ -1591,13 +1218,13 @@ function renderEnergyGrid() {
   const energyStocks = stocks.filter(s => s.layer === 'Energy');
   el.innerHTML = `
     <div class="sector-card energy-hl"><h3 style="color:var(--amber)">Battery Cell Manufacturers</h3>
-      ${energyStocks.filter(s=>['Battery/Storage','Specialized Batteries'].includes(s.sector)).map(s=>`<div class="sector-item"><span>${s.name}</span><span style="color:${s.loaded?s.changePct>=0?'var(--green)':'var(--red)':'var(--muted)'}">${s.loaded?'â¹'+s.cmp.toLocaleString('en-IN'):'Loading...'}</span></div>`).join('')}
+      ${energyStocks.filter(s=>['Battery/Storage','Specialized Batteries'].includes(s.sector)).map(s=>`<div class="sector-item"><span>${s.name}</span><span style="color:${s.loaded?s.changePct>=0?'var(--green)':'var(--red)':'var(--muted)'}">${s.loaded?'&#8377;'+s.cmp.toLocaleString('en-IN'):'Loading...'}</span></div>`).join('')}
     </div>
     <div class="sector-card energy-hl"><h3 style="color:var(--amber)">Battery Materials</h3>
-      ${energyStocks.filter(s=>s.sector==='Battery Materials').map(s=>`<div class="sector-item"><span>${s.name}</span><span style="color:${s.loaded?s.changePct>=0?'var(--green)':'var(--red)':'var(--muted)'}">${s.loaded?'â¹'+s.cmp.toLocaleString('en-IN'):'Loading...'}</span></div>`).join('')}
+      ${energyStocks.filter(s=>s.sector==='Battery Materials').map(s=>`<div class="sector-item"><span>${s.name}</span><span style="color:${s.loaded?s.changePct>=0?'var(--green)':'var(--red)':'var(--muted)'}">${s.loaded?'&#8377;'+s.cmp.toLocaleString('en-IN'):'Loading...'}</span></div>`).join('')}
     </div>
     <div class="sector-card energy-hl"><h3 style="color:var(--amber)">BESS & Power</h3>
-      ${energyStocks.filter(s=>['BESS/EPC','Power/BESS','Solar + BESS'].includes(s.sector)).map(s=>`<div class="sector-item"><span>${s.name}</span><span style="color:${s.loaded?s.changePct>=0?'var(--green)':'var(--red)':'var(--muted)'}">${s.loaded?'â¹'+s.cmp.toLocaleString('en-IN'):'Loading...'}</span></div>`).join('')}
+      ${energyStocks.filter(s=>['BESS/EPC','Power/BESS','Solar + BESS'].includes(s.sector)).map(s=>`<div class="sector-item"><span>${s.name}</span><span style="color:${s.loaded?s.changePct>=0?'var(--green)':'var(--red)':'var(--muted)'}">${s.loaded?'&#8377;'+s.cmp.toLocaleString('en-IN'):'Loading...'}</span></div>`).join('')}
     </div>`;
 }
 
@@ -1619,10 +1246,10 @@ function setupAutoRefresh() {
 
 
 // ============================================================
-//  FINANCIAL RATIOS DATA â ROE, D/E, Promoter Holding, P/B
+//  FINANCIAL RATIOS DATA &mdash; ROE, D/E, Promoter Holding, P/B
 // ============================================================
 const financials = {
-  // Layer 1 â Buffett Core
+  // Layer 1 &mdash; Buffett Core
   "GARFIBRES": {roe:22,debtEquity:0.15,promoterHold:62.3,pb:5.8,sectorAvgPE:35,epsgr:18},
   "GMMPFAUDL": {roe:16,debtEquity:0.35,promoterHold:54.9,pb:4.2,sectorAvgPE:40,epsgr:15},
   "ALKYLAMINE": {roe:18,debtEquity:0.05,promoterHold:60.2,pb:7.5,sectorAvgPE:38,epsgr:20},
@@ -1636,7 +1263,7 @@ const financials = {
   "APLAPOLLO": {roe:28,debtEquity:0.15,promoterHold:37.8,pb:14.0,sectorAvgPE:40,epsgr:22},
   "RATNAMANI": {roe:22,debtEquity:0.05,promoterHold:65.8,pb:6.5,sectorAvgPE:40,epsgr:20},
   "KEI": {roe:20,debtEquity:0.18,promoterHold:34.8,pb:9.0,sectorAvgPE:45,epsgr:22},
-  // Layer 2 â Geopolitical
+  // Layer 2 &mdash; Geopolitical
   "DIXON": {roe:22,debtEquity:0.20,promoterHold:32.8,pb:18.0,sectorAvgPE:60,epsgr:35},
   "KAYNES": {roe:16,debtEquity:0.25,promoterHold:63.5,pb:12.0,sectorAvgPE:60,epsgr:30},
   "SYRMA": {roe:10,debtEquity:0.15,promoterHold:32.4,pb:5.5,sectorAvgPE:60,epsgr:25},
@@ -1644,7 +1271,7 @@ const financials = {
   "TATAELXSI": {roe:35,debtEquity:0.0,promoterHold:43.9,pb:16.0,sectorAvgPE:50,epsgr:18},
   "AETHER": {roe:14,debtEquity:0.12,promoterHold:48.5,pb:6.0,sectorAvgPE:38,epsgr:25},
   "E2ENET": {roe:10,debtEquity:0.08,promoterHold:50.5,pb:12.0,sectorAvgPE:80,epsgr:40},
-  // Layer 3 â Frontier
+  // Layer 3 &mdash; Frontier
   "WAAREE": {roe:38,debtEquity:0.15,promoterHold:64.8,pb:8.5,sectorAvgPE:35,epsgr:35},
   "PREMIERENE": {roe:30,debtEquity:0.20,promoterHold:72.5,pb:10.0,sectorAvgPE:35,epsgr:40},
   "TATAPOWER": {roe:8,debtEquity:1.20,promoterHold:46.9,pb:3.5,sectorAvgPE:30,epsgr:15},
@@ -1705,14 +1332,14 @@ stocks.forEach(s => {
 });
 
 // ============================================================
-//  BUY SCORE ALGORITHM â Composite valuation scoring (0-10)
+//  BUY SCORE ALGORITHM &mdash; Composite valuation scoring (0-10)
 // ============================================================
 function calcBuyScore(s) {
   if (!s.loaded || s.cmp <= 0) return s.score; // fallback to static score
   let score = 0;
   let weights = 0;
 
-  // 1. P/E vs Sector Average (max 2 pts) â lower PE relative to sector = better
+  // 1. P/E vs Sector Average (max 2 pts) &mdash; lower PE relative to sector = better
   if (s.pe > 0 && s.sectorAvgPE > 0) {
     const peRatio = s.pe / s.sectorAvgPE;
     if (peRatio <= 0.5) score += 2;
@@ -1723,7 +1350,7 @@ function calcBuyScore(s) {
     weights += 2;
   }
 
-  // 2. ROCE quality (max 2 pts) â higher = better capital efficiency
+  // 2. ROCE quality (max 2 pts) &mdash; higher = better capital efficiency
   if (s.roce > 0) {
     if (s.roce >= 30) score += 2;
     else if (s.roce >= 22) score += 1.5;
@@ -1742,7 +1369,7 @@ function calcBuyScore(s) {
     weights += 1.5;
   }
 
-  // 4. Debt safety (max 1 pt) â lower D/E = safer
+  // 4. Debt safety (max 1 pt) &mdash; lower D/E = safer
   if (s.debtEquity !== undefined) {
     if (s.debtEquity <= 0.1) score += 1;
     else if (s.debtEquity <= 0.3) score += 0.7;
@@ -1752,7 +1379,7 @@ function calcBuyScore(s) {
     weights += 1;
   }
 
-  // 5. Promoter conviction (max 1 pt) â higher holding = skin in game
+  // 5. Promoter conviction (max 1 pt) &mdash; higher holding = skin in game
   if (s.promoterHold > 0) {
     if (s.promoterHold >= 65) score += 1;
     else if (s.promoterHold >= 50) score += 0.7;
@@ -1761,7 +1388,7 @@ function calcBuyScore(s) {
     weights += 1;
   }
 
-  // 6. Price position in 52W range (max 1.5 pts) â closer to low = better buy
+  // 6. Price position in 52W range (max 1.5 pts) &mdash; closer to low = better buy
   if (s.low52 > 0 && s.high52 > 0 && s.cmp > 0) {
     const range = s.high52 - s.low52;
     if (range > 0) {
@@ -1774,7 +1401,7 @@ function calcBuyScore(s) {
     weights += 1.5;
   }
 
-  // 7. PEG ratio proxy (max 1 pt) â PE/EPS growth < 1 is ideal
+  // 7. PEG ratio proxy (max 1 pt) &mdash; PE/EPS growth < 1 is ideal
   if (s.pe > 0 && s.epsgr > 0) {
     const peg = s.pe / s.epsgr;
     if (peg <= 0.8) score += 1;
@@ -1790,10 +1417,10 @@ function calcBuyScore(s) {
 }
 
 function getBuyVerdict(score) {
-  if (score >= 7.0) return {label:'STRONG BUY', cls:'buy', emoji:'ð¢'};
-  if (score >= 5.5) return {label:'BUY', cls:'buy', emoji:'ð¡'};
-  if (score >= 4.0) return {label:'HOLD', cls:'hold', emoji:'ð '};
-  return {label:'WAIT', cls:'wait', emoji:'ð´'};
+  if (score >= 7.0) return {label:'STRONG BUY', cls:'buy', emoji:'&#128994;'};
+  if (score >= 5.5) return {label:'BUY', cls:'buy', emoji:'&#128993;'};
+  if (score >= 4.0) return {label:'HOLD', cls:'hold', emoji:'&#128992;'};
+  return {label:'WAIT', cls:'wait', emoji:'&#128308;'};
 }
 
 function getScoreCls(score) {
@@ -1859,7 +1486,7 @@ function renderValuation() {
     const v = getBuyVerdict(sc);
     return `<div class="top-pick-chip" onclick="showDetail('${s.ticker}')">
       <div class="chip-name">${s.name.length > 18 ? s.name.substring(0,16)+'..' : s.name}</div>
-      <div class="chip-score">${v.emoji} ${sc.toFixed(1)}/10 â ${v.label}</div>
+      <div class="chip-score">${v.emoji} ${sc.toFixed(1)}/10 &mdash; ${v.label}</div>
     </div>`;
   }).join('');
 
@@ -1883,21 +1510,21 @@ function renderValuation() {
       <div class="val-header">
         <div>
           <div class="val-name" style="cursor:pointer" onclick="showDetail('${s.ticker}')">${s.name}</div>
-          <div class="val-ticker">${s.ticker} â¢ ${s.layer} â¢ ${s.sector}</div>
+          <div class="val-ticker">${s.ticker} &#8226; ${s.layer} &#8226; ${s.sector}</div>
         </div>
         <div class="val-score-circle ${cls}">${sc.toFixed(1)}</div>
       </div>
 
       <div class="val-metrics">
-        <div class="val-metric"><div class="val-metric-label">CMP</div><div class="val-metric-val">${s.loaded ? 'â¹'+s.cmp.toLocaleString('en-IN') : '--'}</div></div>
+        <div class="val-metric"><div class="val-metric-label">CMP</div><div class="val-metric-val">${s.loaded ? '&#8377;'+s.cmp.toLocaleString('en-IN') : '--'}</div></div>
         <div class="val-metric"><div class="val-metric-label">P/E</div><div class="val-metric-val" style="color:${s.pe <= (s.sectorAvgPE||40) ? 'var(--green)' : 'var(--amber)'}">${s.pe}x</div></div>
         <div class="val-metric"><div class="val-metric-label">PEG</div><div class="val-metric-val" style="color:${pegColor}">${peg}x</div></div>
       </div>
 
       <div style="margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px">
-          <span>52W Low â¹${s.low52.toLocaleString('en-IN')}</span>
-          <span>â¹${s.high52.toLocaleString('en-IN')} High</span>
+          <span>52W Low &#8377;${s.low52.toLocaleString('en-IN')}</span>
+          <span>&#8377;${s.high52.toLocaleString('en-IN')} High</span>
         </div>
         <div class="val-bar"><div class="val-bar-fill" style="width:${pos52}%;background:${posColor}"></div></div>
         <div style="font-size:10px;color:${posColor};text-align:center">${pos52.toFixed(0)}% from bottom</div>
@@ -1914,7 +1541,7 @@ function renderValuation() {
 
       <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
         <span class="val-verdict ${v.cls}">${v.emoji} ${v.label}</span>
-        <span style="font-size:11px;color:var(--muted)">Mkt Cap â¹${s.mcap.toLocaleString('en-IN')} Cr</span>
+        <span style="font-size:11px;color:var(--muted)">Mkt Cap &#8377;${s.mcap.toLocaleString('en-IN')} Cr</span>
       </div>
     </div>`;
   }).join('');
@@ -1958,11 +1585,7 @@ checkNewsAlerts();
 let sentimentLoaded = false;
 let globalNewsData = [];
 let indNewsData = [];
-const CORS_PROXIES = [
-  'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?',
-  'https://api.codetabs.com/v1/proxy?quest='
-];
+// CORS_PROXIES already declared above &mdash; reusing existing proxies
 
 // Fetch global market indices
 async function fetchGlobalMarkets() {
@@ -2225,7 +1848,7 @@ async function fetchGlobalNews() {
     return '<div class="ind-news-card" onclick="window.open(''+n.link+'','_blank')">' +
       '<div><span class="ind-tag ' + n.tag + '">' + n.tagLabel + '</span></div>' +
       '<div class="ind-title">' + n.title + '</div>' +
-      '<div class="ind-src">' + n.source + ' Â· ' + ago + '</div></div>';
+      '<div class="ind-src">' + n.source + ' &#183; ' + ago + '</div></div>';
   }).join('');
 }
 
@@ -2291,7 +1914,7 @@ function renderIndNews(filter) {
     return '<div class="ind-news-card" onclick="window.open(''+n.link+'','_blank')">' +
       '<div><span class="ind-tag ' + n.tag + '">' + n.tagLabel + '</span></div>' +
       '<div class="ind-title">' + n.title + '</div>' +
-      '<div class="ind-src">' + n.source + ' Â· ' + ago + '</div></div>';
+      '<div class="ind-src">' + n.source + ' &#183; ' + ago + '</div></div>';
   }).join('');
 }
 
