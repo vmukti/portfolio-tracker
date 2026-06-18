@@ -4,7 +4,382 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Multibagger Portfolio Tracker â Live</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
+
+// ============================================================
+//  SENTIMENT & GLOBAL NEWS
+// ============================================================
+let sentimentLoaded = false;
+let globalNewsData = [];
+let indNewsData = [];
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://api.codetabs.com/v1/proxy?quest='
+];
+
+// Fetch global market indices
+async function fetchGlobalMarkets() {
+  const indices = [
+    {sym:'^GSPC',valId:'sp500Val',chgId:'sp500Chg',name:'S&P 500'},
+    {sym:'^IXIC',valId:'nasdaqVal',chgId:'nasdaqChg',name:'NASDAQ'},
+    {sym:'^DJI',valId:'dowVal',chgId:'dowChg',name:'Dow'},
+    {sym:'^FTSE',valId:'ftseVal',chgId:'ftseChg',name:'FTSE'},
+    {sym:'^N225',valId:'nikkeiVal',chgId:'nikkeiChg',name:'Nikkei'},
+    {sym:'^HSI',valId:'hsiVal',chgId:'hsiChg',name:'HSI'},
+    {sym:'^NSEI',valId:'niftyGVal',chgId:'niftyGChg',name:'Nifty'},
+    {sym:'USDINR=X',valId:'usdinrVal',chgId:'usdinrChg',name:'USD/INR'}
+  ];
+
+  for (const idx of indices) {
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${idx.sym}?interval=1d&range=2d`;
+      for (const proxy of CORS_PROXIES) {
+        try {
+          const r = await fetch(proxy + encodeURIComponent(url));
+          if (!r.ok) continue;
+          const d = await r.json();
+          const meta = d.chart?.result?.[0]?.meta;
+          if (meta) {
+            const price = meta.regularMarketPrice;
+            const prev = meta.chartPreviousClose || meta.previousClose;
+            const chg = price - prev;
+            const chgPct = (chg / prev * 100);
+            const el = document.getElementById(idx.valId);
+            const chgEl = document.getElementById(idx.chgId);
+            if (el) el.textContent = idx.sym === 'USDINR=X' ? price.toFixed(2) : price.toLocaleString('en-IN',{maximumFractionDigits:0});
+            if (chgEl) {
+              chgEl.textContent = (chg >= 0 ? '+' : '') + chgPct.toFixed(2) + '%';
+              chgEl.className = 'g-chg ' + (chg >= 0 ? 'up' : 'down');
+            }
+            break;
+          }
+        } catch(e) { continue; }
+      }
+    } catch(e) {}
+  }
+}
+
+// Fetch India VIX + sentiment indicators
+async function fetchSentimentData() {
+  // India VIX
+  try {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EINDIAVIX?interval=1d&range=5d';
+    for (const proxy of CORS_PROXIES) {
+      try {
+        const r = await fetch(proxy + encodeURIComponent(url));
+        if (!r.ok) continue;
+        const d = await r.json();
+        const meta = d.chart?.result?.[0]?.meta;
+        if (meta) {
+          const vix = meta.regularMarketPrice;
+          const prev = meta.chartPreviousClose || meta.previousClose;
+          const chg = ((vix - prev) / prev * 100);
+          document.getElementById('vixVal').textContent = vix.toFixed(2);
+          document.getElementById('vixSub').textContent = (chg >= 0 ? '+' : '') + chg.toFixed(1) + '% today';
+          const vixCard = document.getElementById('vixCard');
+          if (vix > 20) { vixCard.classList.add('fear'); }
+          else if (vix < 14) { vixCard.classList.add('greed'); }
+          else { vixCard.classList.add('neutral'); }
+          computeSentiment(vix);
+          break;
+        }
+      } catch(e) { continue; }
+    }
+  } catch(e) {}
+
+  // Gold
+  try {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1d&range=2d';
+    for (const proxy of CORS_PROXIES) {
+      try {
+        const r = await fetch(proxy + encodeURIComponent(url));
+        if (!r.ok) continue;
+        const d = await r.json();
+        const meta = d.chart?.result?.[0]?.meta;
+        if (meta) {
+          const price = meta.regularMarketPrice;
+          const prev = meta.chartPreviousClose;
+          const chg = ((price - prev) / prev * 100);
+          document.getElementById('goldVal').textContent = '$' + price.toLocaleString('en-US',{maximumFractionDigits:0});
+          document.getElementById('goldSub').textContent = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '% today';
+          break;
+        }
+      } catch(e) { continue; }
+    }
+  } catch(e) {}
+
+  // Crude Oil (Brent)
+  try {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=2d';
+    for (const proxy of CORS_PROXIES) {
+      try {
+        const r = await fetch(proxy + encodeURIComponent(url));
+        if (!r.ok) continue;
+        const d = await r.json();
+        const meta = d.chart?.result?.[0]?.meta;
+        if (meta) {
+          const price = meta.regularMarketPrice;
+          const prev = meta.chartPreviousClose;
+          const chg = ((price - prev) / prev * 100);
+          document.getElementById('oilVal').textContent = '$' + price.toFixed(2);
+          document.getElementById('oilSub').textContent = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '% today';
+          break;
+        }
+      } catch(e) { continue; }
+    }
+  } catch(e) {}
+
+  // Simulate FII/DII and breadth from market data
+  simulateFIIFlow();
+  simulateBreadth();
+  estimateNiftyPE();
+}
+
+// Compute overall sentiment score (0-100)
+function computeSentiment(vix) {
+  // VIX component (0-40 points): VIX < 12 = 40pts, VIX > 25 = 0pts
+  const vixScore = Math.max(0, Math.min(40, (25 - vix) / 13 * 40));
+
+  // Market trend component from loaded stocks (0-30 points)
+  const loadedStocks = stocks.filter(s => s.loaded && s.changePct !== 0);
+  const avgChg = loadedStocks.length > 0 ? loadedStocks.reduce((a,s) => a + s.changePct, 0) / loadedStocks.length : 0;
+  const trendScore = Math.max(0, Math.min(30, (avgChg + 3) / 6 * 30));
+
+  // Stocks near 52W high vs low (0-30 points)
+  const near52H = loadedStocks.filter(s => s.cmp > 0 && s.high52 > 0 && s.cmp >= s.high52 * 0.9).length;
+  const near52L = loadedStocks.filter(s => s.cmp > 0 && s.low52 > 0 && s.cmp <= s.low52 * 1.1).length;
+  const hlRatio = loadedStocks.length > 0 ? (near52H - near52L) / loadedStocks.length : 0;
+  const hlScore = Math.max(0, Math.min(30, (hlRatio + 0.5) * 30));
+
+  const total = Math.round(vixScore + trendScore + hlScore);
+  const score = Math.max(0, Math.min(100, total));
+
+  // Display
+  document.getElementById('fgScore').textContent = score;
+  const needle = document.getElementById('fgNeedle');
+  needle.style.left = score + '%';
+
+  const tag = document.getElementById('fgTag');
+  if (score <= 20) { tag.textContent = 'Extreme Fear'; tag.style.background = '#ef444433'; tag.style.color = '#ef4444'; }
+  else if (score <= 40) { tag.textContent = 'Fear'; tag.style.background = '#f59e0b33'; tag.style.color = '#f59e0b'; }
+  else if (score <= 60) { tag.textContent = 'Neutral'; tag.style.background = '#94a3b833'; tag.style.color = '#94a3b8'; }
+  else if (score <= 80) { tag.textContent = 'Greed'; tag.style.background = '#22c55e33'; tag.style.color = '#22c55e'; }
+  else { tag.textContent = 'Extreme Greed'; tag.style.background = '#22c55e33'; tag.style.color = '#22c55e'; }
+}
+
+// Simulate FII/DII flow from market data
+function simulateFIIFlow() {
+  const loaded = stocks.filter(s => s.loaded);
+  if (loaded.length === 0) { document.getElementById('fiiVal').textContent = 'Waiting...'; return; }
+  const avgChg = loaded.reduce((a,s) => a + s.changePct, 0) / loaded.length;
+  // Large-cap stocks tend to be FII-heavy
+  const largeCaps = loaded.filter(s => s.mcap > 50000);
+  const lcAvg = largeCaps.length > 0 ? largeCaps.reduce((a,s) => a + s.changePct, 0) / largeCaps.length : avgChg;
+
+  const fiiSignal = lcAvg > 0.5 ? 'Net Buying' : lcAvg < -0.5 ? 'Net Selling' : 'Neutral';
+  const fiiEl = document.getElementById('fiiVal');
+  fiiEl.textContent = fiiSignal;
+  fiiEl.style.color = lcAvg > 0.5 ? 'var(--green)' : lcAvg < -0.5 ? 'var(--red)' : 'var(--amber)';
+  document.getElementById('fiiSub').textContent = 'Based on large-cap flow';
+
+  const buyPct = Math.min(90, Math.max(10, Math.round(50 + lcAvg * 10)));
+  document.getElementById('fiiBuyPct').textContent = buyPct + '%';
+  document.getElementById('fiiSellPct').textContent = (100 - buyPct) + '%';
+  const fiiBar = document.getElementById('fiiBar');
+  fiiBar.innerHTML = '<div class="fii-buy" style="width:' + buyPct + '%"></div><div class="fii-sell" style="width:' + (100-buyPct) + '%"></div>';
+
+  // DII typically counter FII
+  const diiBuy = Math.min(90, Math.max(10, Math.round(50 - lcAvg * 5 + avgChg * 3)));
+  document.getElementById('diiBuyPct').textContent = diiBuy + '%';
+  document.getElementById('diiSellPct').textContent = (100 - diiBuy) + '%';
+  const diiBar = document.getElementById('diiBar');
+  diiBar.innerHTML = '<div class="fii-buy" style="width:' + diiBuy + '%;background:var(--accent)"></div><div class="fii-sell" style="width:' + (100-diiBuy) + '%;background:var(--amber)"></div>';
+
+  const fiiCard = document.getElementById('fiiCard');
+  fiiCard.className = 'sent-card ' + (lcAvg > 0.5 ? 'greed' : lcAvg < -0.5 ? 'fear' : 'neutral');
+}
+
+// Market breadth from portfolio
+function simulateBreadth() {
+  const loaded = stocks.filter(s => s.loaded);
+  if (loaded.length === 0) return;
+  const adv = loaded.filter(s => s.changePct > 0).length;
+  const dec = loaded.filter(s => s.changePct < 0).length;
+  const unch = loaded.length - adv - dec;
+  const ratio = dec > 0 ? (adv / dec).toFixed(2) : adv > 0 ? 'INF' : '0';
+  document.getElementById('breadthVal').textContent = adv + ':' + dec;
+  document.getElementById('breadthSub').textContent = 'A/D ratio: ' + ratio + ' (' + unch + ' flat)';
+  const bCard = document.getElementById('breadthCard');
+  bCard.className = 'sent-card ' + (adv > dec * 1.5 ? 'greed' : dec > adv * 1.5 ? 'fear' : 'neutral');
+}
+
+// Estimate Nifty PE from market level
+function estimateNiftyPE() {
+  // Historical: Nifty at 20000 ~ PE 22, at 25000 ~ PE 24
+  const niftyEl = document.getElementById('niftyGVal');
+  const niftyPrice = parseFloat(niftyEl?.textContent?.replace(/,/g,'')) || 0;
+  if (niftyPrice > 0) {
+    const estPE = (niftyPrice / 1050).toFixed(1); // rough EPS ~1050
+    document.getElementById('niftyPEVal').textContent = estPE + 'x';
+    const peNum = parseFloat(estPE);
+    document.getElementById('niftyPESub').textContent = peNum > 24 ? 'Expensive' : peNum > 20 ? 'Fair value' : 'Attractive';
+    const peCard = document.getElementById('niftyPECard');
+    peCard.className = 'sent-card ' + (peNum > 24 ? 'fear' : peNum < 20 ? 'greed' : 'neutral');
+  }
+}
+
+// Fetch Global News via Google News RSS
+async function fetchGlobalNews() {
+  const feed = document.getElementById('globalNewsFeed');
+  feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)"><span class="spinner"></span>Loading global news...</div>';
+
+  const queries = [
+    {q:'stock market today global', tag:'markets', tagLabel:'Markets'},
+    {q:'Federal Reserve interest rate 2026', tag:'policy', tagLabel:'Policy'},
+    {q:'crude oil gold price today', tag:'commodity', tagLabel:'Commodities'},
+    {q:'US China trade war tariffs 2026', tag:'geo', tagLabel:'Geopolitical'},
+    {q:'India GDP economy growth 2026', tag:'markets', tagLabel:'India'},
+  ];
+
+  let allItems = [];
+  for (const q of queries) {
+    try {
+      const rssUrl = 'https://news.google.com/rss/search?q=' + encodeURIComponent(q.q) + '&hl=en-IN&gl=IN&ceid=IN:en';
+      for (const proxy of CORS_PROXIES) {
+        try {
+          const r = await fetch(proxy + encodeURIComponent(rssUrl));
+          if (!r.ok) continue;
+          const text = await r.text();
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(text, 'text/xml');
+          const items = xml.querySelectorAll('item');
+          items.forEach((item, i) => {
+            if (i >= 4) return;
+            const title = item.querySelector('title')?.textContent || '';
+            const link = item.querySelector('link')?.textContent || '';
+            const pubDate = item.querySelector('pubDate')?.textContent || '';
+            const source = item.querySelector('source')?.textContent || '';
+            allItems.push({title, link, pubDate, source, tag: q.tag, tagLabel: q.tagLabel});
+          });
+          break;
+        } catch(e) { continue; }
+      }
+    } catch(e) {}
+  }
+
+  globalNewsData = allItems;
+  if (allItems.length === 0) {
+    feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Unable to load news. Try refreshing.</div>';
+    return;
+  }
+
+  feed.innerHTML = allItems.slice(0, 15).map(n => {
+    const ago = timeAgo(new Date(n.pubDate));
+    return '<div class="ind-news-card" onclick="window.open(''+n.link+'','_blank')">' +
+      '<div><span class="ind-tag ' + n.tag + '">' + n.tagLabel + '</span></div>' +
+      '<div class="ind-title">' + n.title + '</div>' +
+      '<div class="ind-src">' + n.source + ' Â· ' + ago + '</div></div>';
+  }).join('');
+}
+
+// Fetch Industry News
+async function fetchIndustryNews() {
+  const feed = document.getElementById('indNewsFeed');
+  feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1"><span class="spinner"></span>Loading industry news...</div>';
+
+  const sectors = [
+    {q:'India IT sector TCS Infosys AI cloud 2026', tag:'tech', tagLabel:'IT/Tech'},
+    {q:'India solar wind energy Suzlon Waaree Tata Power 2026', tag:'energy-t', tagLabel:'Energy'},
+    {q:'India electric vehicle EV Ola Tata Motors 2026', tag:'auto', tagLabel:'Auto/EV'},
+    {q:'India real estate DLF Godrej property market 2026', tag:'realty', tagLabel:'Real Estate'},
+    {q:'RBI interest rate India banking HDFC SBI 2026', tag:'finance', tagLabel:'Banking'},
+    {q:'India stock market Nifty Sensex rally correction 2026', tag:'markets', tagLabel:'Markets'},
+    {q:'India chemical specialty PLI manufacturing 2026', tag:'policy', tagLabel:'Policy/PLI'},
+    {q:'gold crude oil commodity prices India 2026', tag:'commodity', tagLabel:'Commodities'},
+    {q:'US India trade deal geopolitics 2026', tag:'geo', tagLabel:'Geopolitical'},
+  ];
+
+  let allItems = [];
+  for (const s of sectors) {
+    try {
+      const rssUrl = 'https://news.google.com/rss/search?q=' + encodeURIComponent(s.q) + '&hl=en-IN&gl=IN&ceid=IN:en';
+      for (const proxy of CORS_PROXIES) {
+        try {
+          const r = await fetch(proxy + encodeURIComponent(rssUrl));
+          if (!r.ok) continue;
+          const text = await r.text();
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(text, 'text/xml');
+          const items = xml.querySelectorAll('item');
+          items.forEach((item, i) => {
+            if (i >= 3) return;
+            const title = item.querySelector('title')?.textContent || '';
+            const link = item.querySelector('link')?.textContent || '';
+            const pubDate = item.querySelector('pubDate')?.textContent || '';
+            const source = item.querySelector('source')?.textContent || '';
+            allItems.push({title, link, pubDate, source, tag: s.tag, tagLabel: s.tagLabel});
+          });
+          break;
+        } catch(e) { continue; }
+      }
+    } catch(e) {}
+  }
+
+  indNewsData = allItems;
+  renderIndNews('all');
+}
+
+function renderIndNews(filter) {
+  const feed = document.getElementById('indNewsFeed');
+  let items = indNewsData;
+  if (filter !== 'all') items = items.filter(n => n.tag === filter);
+
+  if (items.length === 0) {
+    feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1">No news in this category. Try refreshing.</div>';
+    return;
+  }
+
+  feed.innerHTML = items.slice(0, 18).map(n => {
+    const ago = timeAgo(new Date(n.pubDate));
+    return '<div class="ind-news-card" onclick="window.open(''+n.link+'','_blank')">' +
+      '<div><span class="ind-tag ' + n.tag + '">' + n.tagLabel + '</span></div>' +
+      '<div class="ind-title">' + n.title + '</div>' +
+      '<div class="ind-src">' + n.source + ' Â· ' + ago + '</div></div>';
+  }).join('');
+}
+
+function filterIndNews(tag) {
+  renderIndNews(tag);
+}
+
+function timeAgo(date) {
+  if (isNaN(date.getTime())) return '';
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+// Load sentiment when tab is switched
+function loadSentimentTab() {
+  if (sentimentLoaded) return;
+  sentimentLoaded = true;
+  fetchGlobalMarkets();
+  fetchSentimentData();
+  fetchGlobalNews();
+  fetchIndustryNews();
+  // Refresh sentiment after prices are loaded
+  setTimeout(() => {
+    simulateFIIFlow();
+    simulateBreadth();
+    estimateNiftyPE();
+  }, 15000);
+}
+
+</script>
 <style>
 :root{--bg:#0f1117;--card:#1a1d28;--card2:#222536;--accent:#4f8cff;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--text:#e2e8f0;--muted:#94a3b8;--border:#2d3148;--font:'Segoe UI',system-ui,-apple-system,sans-serif}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -185,6 +560,55 @@ td{padding:10px 12px;white-space:nowrap}
 .val-filters select,.val-filters input{background:var(--card);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;outline:none}
 .val-filters select:focus,.val-filters input:focus{border-color:var(--accent)}
 
+
+/* Sentiment & Global News Tab */
+.sent-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.sent-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;position:relative;overflow:hidden}
+.sent-card .sent-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.sent-card .sent-val{font-size:22px;font-weight:600}
+.sent-card .sent-sub{font-size:11px;margin-top:4px;color:var(--muted)}
+.sent-card.fear{border-left:3px solid var(--red)}
+.sent-card.greed{border-left:3px solid var(--green)}
+.sent-card.neutral{border-left:3px solid var(--amber)}
+
+.gauge-wrap{display:flex;justify-content:center;align-items:center;margin:20px 0 24px}
+.gauge-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 40px;text-align:center;min-width:350px}
+.gauge-bar{height:16px;border-radius:8px;background:linear-gradient(90deg,#ef4444 0%,#f59e0b 35%,#22c55e 65%,#22c55e 100%);position:relative;margin:12px 0 8px}
+.gauge-needle{position:absolute;top:-4px;width:4px;height:24px;background:#fff;border-radius:2px;transform:translateX(-50%);transition:left .8s ease}
+.gauge-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+.gauge-score{font-size:36px;font-weight:700;margin-bottom:4px}
+.gauge-tag{font-size:14px;font-weight:500;padding:4px 14px;border-radius:6px;display:inline-block}
+
+.global-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.global-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;justify-content:space-between;align-items:center}
+.global-card .g-name{font-size:12px;color:var(--muted)}
+.global-card .g-val{font-size:16px;font-weight:600}
+.global-card .g-chg{font-size:12px;font-weight:500}
+
+.news-section{margin-bottom:28px}
+.news-section-title{font-size:16px;font-weight:500;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.news-section-title span{font-size:12px;color:var(--muted);font-weight:400}
+.ind-news-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.ind-news-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;transition:.15s;cursor:pointer}
+.ind-news-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.ind-news-card .ind-title{font-size:13px;font-weight:500;margin-bottom:6px;line-height:1.5}
+.ind-news-card .ind-src{font-size:11px;color:var(--muted)}
+.ind-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-right:6px;margin-bottom:6px}
+.ind-tag.markets{background:#4f8cff22;color:var(--accent)}
+.ind-tag.policy{background:#22c55e22;color:var(--green)}
+.ind-tag.commodity{background:#f59e0b22;color:var(--amber)}
+.ind-tag.geo{background:#ef444422;color:var(--red)}
+.ind-tag.tech{background:#a78bfa22;color:#a78bfa}
+.ind-tag.energy-t{background:#f59e0b22;color:var(--amber)}
+.ind-tag.realty{background:#4f8cff22;color:var(--accent)}
+.ind-tag.auto{background:#22c55e22;color:var(--green)}
+.ind-tag.finance{background:#fbbf2422;color:#fbbf24}
+
+.fii-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:8px 0 4px}
+.fii-buy{background:var(--green)}
+.fii-sell{background:var(--red)}
+.fii-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+
 </style>
 </head>
 <body>
@@ -207,6 +631,7 @@ td{padding:10px 12px;white-space:nowrap}
   <div class="tab" onclick="switchTab('energy',this)">â¡ Energy & Battery</div>
   <div class="tab" onclick="switchTab('news',this)">ð° News</div>
   <div class="tab" onclick="switchTab('valuation',this)">ð Valuation</div>
+  <div class="tab" onclick="switchTab('sentiment',this)">ð Sentiment & News</div>
   <div class="tab" onclick="switchTab('config',this)">âï¸ Alert Settings</div>
 </div>
 
@@ -336,6 +761,99 @@ td{padding:10px 12px;white-space:nowrap}
   </div>
 
   <!-- ==================== CONFIG TAB ==================== -->
+
+  <!-- ==================== SENTIMENT & GLOBAL NEWS TAB ==================== -->
+  <div id="tab-sentiment" style="display:none">
+
+    <!-- Fear & Greed Gauge -->
+    <div class="gauge-wrap">
+      <div class="gauge-box">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px">INVESTOR SENTIMENT INDEX</div>
+        <div class="gauge-score" id="fgScore">--</div>
+        <div class="gauge-tag" id="fgTag" style="background:var(--card2);color:var(--muted)">Loading...</div>
+        <div class="gauge-bar"><div class="gauge-needle" id="fgNeedle" style="left:50%"></div></div>
+        <div class="gauge-labels"><span>Extreme Fear</span><span>Fear</span><span>Neutral</span><span>Greed</span><span>Extreme Greed</span></div>
+      </div>
+    </div>
+
+    <!-- Sentiment Indicator Cards -->
+    <div class="sent-grid" id="sentGrid">
+      <div class="sent-card" id="vixCard"><div class="sent-label">India VIX</div><div class="sent-val" id="vixVal">--</div><div class="sent-sub" id="vixSub">Fear gauge</div></div>
+      <div class="sent-card" id="fiiCard"><div class="sent-label">FII Flow Signal</div><div class="sent-val" id="fiiVal">--</div><div class="sent-sub" id="fiiSub">Net buying/selling</div></div>
+      <div class="sent-card" id="breadthCard"><div class="sent-label">Market Breadth</div><div class="sent-val" id="breadthVal">--</div><div class="sent-sub" id="breadthSub">Advance/Decline</div></div>
+      <div class="sent-card" id="niftyPECard"><div class="sent-label">Nifty 50 PE</div><div class="sent-val" id="niftyPEVal">--</div><div class="sent-sub" id="niftyPESub">Valuation level</div></div>
+      <div class="sent-card" id="goldCard"><div class="sent-label">Gold (USD/oz)</div><div class="sent-val" id="goldVal">--</div><div class="sent-sub" id="goldSub">Safe haven</div></div>
+      <div class="sent-card" id="oilCard"><div class="sent-label">Crude Oil (Brent)</div><div class="sent-val" id="oilVal">--</div><div class="sent-sub" id="oilSub">Energy cost</div></div>
+    </div>
+
+    <!-- Global Markets -->
+    <div class="news-section">
+      <div class="news-section-title">ð Global markets <span>(live via Yahoo Finance)</span></div>
+      <div class="global-grid" id="globalGrid">
+        <div class="global-card"><div><div class="g-name">S&P 500</div><div class="g-val" id="sp500Val">--</div></div><div class="g-chg" id="sp500Chg">--</div></div>
+        <div class="global-card"><div><div class="g-name">NASDAQ</div><div class="g-val" id="nasdaqVal">--</div></div><div class="g-chg" id="nasdaqChg">--</div></div>
+        <div class="global-card"><div><div class="g-name">Dow Jones</div><div class="g-val" id="dowVal">--</div></div><div class="g-chg" id="dowChg">--</div></div>
+        <div class="global-card"><div><div class="g-name">FTSE 100</div><div class="g-val" id="ftseVal">--</div></div><div class="g-chg" id="ftseChg">--</div></div>
+        <div class="global-card"><div><div class="g-name">Nikkei 225</div><div class="g-val" id="nikkeiVal">--</div></div><div class="g-chg" id="nikkeiChg">--</div></div>
+        <div class="global-card"><div><div class="g-name">Hang Seng</div><div class="g-val" id="hsiVal">--</div></div><div class="g-chg" id="hsiChg">--</div></div>
+        <div class="global-card"><div><div class="g-name">Nifty 50</div><div class="g-val" id="niftyGVal">--</div></div><div class="g-chg" id="niftyGChg">--</div></div>
+        <div class="global-card"><div><div class="g-name">USD/INR</div><div class="g-val" id="usdinrVal">--</div></div><div class="g-chg" id="usdinrChg">--</div></div>
+      </div>
+    </div>
+
+    <!-- FII/DII Flow Bar -->
+    <div class="news-section">
+      <div class="news-section-title">ð FII vs DII flow indicator <span>(derived from market signals)</span></div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="color:var(--green)">FII Buying</span><span style="color:var(--red)">FII Selling</span></div>
+        <div class="fii-bar" id="fiiBar"><div class="fii-buy" style="width:50%"></div><div class="fii-sell" style="width:50%"></div></div>
+        <div class="fii-labels"><span id="fiiBuyPct">50%</span><span id="fiiSellPct">50%</span></div>
+        <div style="margin-top:12px;display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--accent)">DII Buying</span><span style="color:var(--amber)">DII Selling</span></div>
+        <div class="fii-bar" id="diiBar"><div class="fii-buy" style="width:55%;background:var(--accent)"></div><div class="fii-sell" style="width:45%;background:var(--amber)"></div></div>
+        <div class="fii-labels"><span id="diiBuyPct">55%</span><span id="diiSellPct">45%</span></div>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:24px 0">
+
+    <!-- Global Financial News -->
+    <div class="news-section">
+      <div class="news-section-title">ð° Global financial news <span>(Google News RSS â live)</span>
+        <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="fetchGlobalNews()">â³ Refresh</button>
+      </div>
+      <div id="globalNewsFeed" style="margin-bottom:16px">
+        <div style="text-align:center;padding:20px;color:var(--muted)"><span class="spinner"></span>Loading global news...</div>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:24px 0">
+
+    <!-- Industry News -->
+    <div class="news-section">
+      <div class="news-section-title">ð­ Industry & sector news <span>(auto-categorized)</span>
+        <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="fetchIndustryNews()">â³ Refresh</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+        <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="filterIndNews('all')">All</button>
+        <button class="btn btn-outline btn-sm" onclick="filterIndNews('markets')">Markets</button>
+        <button class="btn btn-outline btn-sm" onclick="filterIndNews('tech')">IT/Tech</button>
+        <button class="btn btn-outline btn-sm" onclick="filterIndNews('energy-t')">Energy</button>
+        <button class="btn btn-outline btn-sm" onclick="filterIndNews('auto')">Auto/EV</button>
+        <button class="btn btn-outline btn-sm" onclick="filterIndNews('realty')">Real Estate</button>
+        <button class="btn btn-outline btn-sm" onclick="filterIndNews('finance')">Banking</button>
+        <button class="btn btn-outline btn-sm" onclick="filterIndNews('policy')">Policy/RBI</button>
+        <button class="btn btn-outline btn-sm" onclick="filterIndNews('commodity')">Commodities</button>
+        <button class="btn btn-outline btn-sm" onclick="filterIndNews('geo')">Geopolitical</button>
+      </div>
+      <div class="ind-news-grid" id="indNewsFeed">
+        <div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1"><span class="spinner"></span>Loading industry news...</div>
+      </div>
+    </div>
+
+  </div>
+
+
+
   <div id="tab-config" style="display:none">
     <div class="config-panel">
       <h3>ð Alert configuration</h3>
@@ -802,6 +1320,7 @@ document.getElementById('detailModal').addEventListener('click', e => { if(e.tar
 //  TABS
 // ============================================================
 function switchTab(tab, el) {
+  if (tab === 'sentiment') loadSentimentTab();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   ['portfolio','alerts','energy','news','valuation','config'].forEach(t => {
@@ -1431,6 +1950,381 @@ function checkNewsAlerts() {
 // Fetch prices on load
 fetchAllPrices();
 checkNewsAlerts();
+
+
+// ============================================================
+//  SENTIMENT & GLOBAL NEWS
+// ============================================================
+let sentimentLoaded = false;
+let globalNewsData = [];
+let indNewsData = [];
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://api.codetabs.com/v1/proxy?quest='
+];
+
+// Fetch global market indices
+async function fetchGlobalMarkets() {
+  const indices = [
+    {sym:'^GSPC',valId:'sp500Val',chgId:'sp500Chg',name:'S&P 500'},
+    {sym:'^IXIC',valId:'nasdaqVal',chgId:'nasdaqChg',name:'NASDAQ'},
+    {sym:'^DJI',valId:'dowVal',chgId:'dowChg',name:'Dow'},
+    {sym:'^FTSE',valId:'ftseVal',chgId:'ftseChg',name:'FTSE'},
+    {sym:'^N225',valId:'nikkeiVal',chgId:'nikkeiChg',name:'Nikkei'},
+    {sym:'^HSI',valId:'hsiVal',chgId:'hsiChg',name:'HSI'},
+    {sym:'^NSEI',valId:'niftyGVal',chgId:'niftyGChg',name:'Nifty'},
+    {sym:'USDINR=X',valId:'usdinrVal',chgId:'usdinrChg',name:'USD/INR'}
+  ];
+
+  for (const idx of indices) {
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${idx.sym}?interval=1d&range=2d`;
+      for (const proxy of CORS_PROXIES) {
+        try {
+          const r = await fetch(proxy + encodeURIComponent(url));
+          if (!r.ok) continue;
+          const d = await r.json();
+          const meta = d.chart?.result?.[0]?.meta;
+          if (meta) {
+            const price = meta.regularMarketPrice;
+            const prev = meta.chartPreviousClose || meta.previousClose;
+            const chg = price - prev;
+            const chgPct = (chg / prev * 100);
+            const el = document.getElementById(idx.valId);
+            const chgEl = document.getElementById(idx.chgId);
+            if (el) el.textContent = idx.sym === 'USDINR=X' ? price.toFixed(2) : price.toLocaleString('en-IN',{maximumFractionDigits:0});
+            if (chgEl) {
+              chgEl.textContent = (chg >= 0 ? '+' : '') + chgPct.toFixed(2) + '%';
+              chgEl.className = 'g-chg ' + (chg >= 0 ? 'up' : 'down');
+            }
+            break;
+          }
+        } catch(e) { continue; }
+      }
+    } catch(e) {}
+  }
+}
+
+// Fetch India VIX + sentiment indicators
+async function fetchSentimentData() {
+  // India VIX
+  try {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EINDIAVIX?interval=1d&range=5d';
+    for (const proxy of CORS_PROXIES) {
+      try {
+        const r = await fetch(proxy + encodeURIComponent(url));
+        if (!r.ok) continue;
+        const d = await r.json();
+        const meta = d.chart?.result?.[0]?.meta;
+        if (meta) {
+          const vix = meta.regularMarketPrice;
+          const prev = meta.chartPreviousClose || meta.previousClose;
+          const chg = ((vix - prev) / prev * 100);
+          document.getElementById('vixVal').textContent = vix.toFixed(2);
+          document.getElementById('vixSub').textContent = (chg >= 0 ? '+' : '') + chg.toFixed(1) + '% today';
+          const vixCard = document.getElementById('vixCard');
+          if (vix > 20) { vixCard.classList.add('fear'); }
+          else if (vix < 14) { vixCard.classList.add('greed'); }
+          else { vixCard.classList.add('neutral'); }
+          computeSentiment(vix);
+          break;
+        }
+      } catch(e) { continue; }
+    }
+  } catch(e) {}
+
+  // Gold
+  try {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1d&range=2d';
+    for (const proxy of CORS_PROXIES) {
+      try {
+        const r = await fetch(proxy + encodeURIComponent(url));
+        if (!r.ok) continue;
+        const d = await r.json();
+        const meta = d.chart?.result?.[0]?.meta;
+        if (meta) {
+          const price = meta.regularMarketPrice;
+          const prev = meta.chartPreviousClose;
+          const chg = ((price - prev) / prev * 100);
+          document.getElementById('goldVal').textContent = '$' + price.toLocaleString('en-US',{maximumFractionDigits:0});
+          document.getElementById('goldSub').textContent = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '% today';
+          break;
+        }
+      } catch(e) { continue; }
+    }
+  } catch(e) {}
+
+  // Crude Oil (Brent)
+  try {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=2d';
+    for (const proxy of CORS_PROXIES) {
+      try {
+        const r = await fetch(proxy + encodeURIComponent(url));
+        if (!r.ok) continue;
+        const d = await r.json();
+        const meta = d.chart?.result?.[0]?.meta;
+        if (meta) {
+          const price = meta.regularMarketPrice;
+          const prev = meta.chartPreviousClose;
+          const chg = ((price - prev) / prev * 100);
+          document.getElementById('oilVal').textContent = '$' + price.toFixed(2);
+          document.getElementById('oilSub').textContent = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '% today';
+          break;
+        }
+      } catch(e) { continue; }
+    }
+  } catch(e) {}
+
+  // Simulate FII/DII and breadth from market data
+  simulateFIIFlow();
+  simulateBreadth();
+  estimateNiftyPE();
+}
+
+// Compute overall sentiment score (0-100)
+function computeSentiment(vix) {
+  // VIX component (0-40 points): VIX < 12 = 40pts, VIX > 25 = 0pts
+  const vixScore = Math.max(0, Math.min(40, (25 - vix) / 13 * 40));
+
+  // Market trend component from loaded stocks (0-30 points)
+  const loadedStocks = stocks.filter(s => s.loaded && s.changePct !== 0);
+  const avgChg = loadedStocks.length > 0 ? loadedStocks.reduce((a,s) => a + s.changePct, 0) / loadedStocks.length : 0;
+  const trendScore = Math.max(0, Math.min(30, (avgChg + 3) / 6 * 30));
+
+  // Stocks near 52W high vs low (0-30 points)
+  const near52H = loadedStocks.filter(s => s.cmp > 0 && s.high52 > 0 && s.cmp >= s.high52 * 0.9).length;
+  const near52L = loadedStocks.filter(s => s.cmp > 0 && s.low52 > 0 && s.cmp <= s.low52 * 1.1).length;
+  const hlRatio = loadedStocks.length > 0 ? (near52H - near52L) / loadedStocks.length : 0;
+  const hlScore = Math.max(0, Math.min(30, (hlRatio + 0.5) * 30));
+
+  const total = Math.round(vixScore + trendScore + hlScore);
+  const score = Math.max(0, Math.min(100, total));
+
+  // Display
+  document.getElementById('fgScore').textContent = score;
+  const needle = document.getElementById('fgNeedle');
+  needle.style.left = score + '%';
+
+  const tag = document.getElementById('fgTag');
+  if (score <= 20) { tag.textContent = 'Extreme Fear'; tag.style.background = '#ef444433'; tag.style.color = '#ef4444'; }
+  else if (score <= 40) { tag.textContent = 'Fear'; tag.style.background = '#f59e0b33'; tag.style.color = '#f59e0b'; }
+  else if (score <= 60) { tag.textContent = 'Neutral'; tag.style.background = '#94a3b833'; tag.style.color = '#94a3b8'; }
+  else if (score <= 80) { tag.textContent = 'Greed'; tag.style.background = '#22c55e33'; tag.style.color = '#22c55e'; }
+  else { tag.textContent = 'Extreme Greed'; tag.style.background = '#22c55e33'; tag.style.color = '#22c55e'; }
+}
+
+// Simulate FII/DII flow from market data
+function simulateFIIFlow() {
+  const loaded = stocks.filter(s => s.loaded);
+  if (loaded.length === 0) { document.getElementById('fiiVal').textContent = 'Waiting...'; return; }
+  const avgChg = loaded.reduce((a,s) => a + s.changePct, 0) / loaded.length;
+  // Large-cap stocks tend to be FII-heavy
+  const largeCaps = loaded.filter(s => s.mcap > 50000);
+  const lcAvg = largeCaps.length > 0 ? largeCaps.reduce((a,s) => a + s.changePct, 0) / largeCaps.length : avgChg;
+
+  const fiiSignal = lcAvg > 0.5 ? 'Net Buying' : lcAvg < -0.5 ? 'Net Selling' : 'Neutral';
+  const fiiEl = document.getElementById('fiiVal');
+  fiiEl.textContent = fiiSignal;
+  fiiEl.style.color = lcAvg > 0.5 ? 'var(--green)' : lcAvg < -0.5 ? 'var(--red)' : 'var(--amber)';
+  document.getElementById('fiiSub').textContent = 'Based on large-cap flow';
+
+  const buyPct = Math.min(90, Math.max(10, Math.round(50 + lcAvg * 10)));
+  document.getElementById('fiiBuyPct').textContent = buyPct + '%';
+  document.getElementById('fiiSellPct').textContent = (100 - buyPct) + '%';
+  const fiiBar = document.getElementById('fiiBar');
+  fiiBar.innerHTML = '<div class="fii-buy" style="width:' + buyPct + '%"></div><div class="fii-sell" style="width:' + (100-buyPct) + '%"></div>';
+
+  // DII typically counter FII
+  const diiBuy = Math.min(90, Math.max(10, Math.round(50 - lcAvg * 5 + avgChg * 3)));
+  document.getElementById('diiBuyPct').textContent = diiBuy + '%';
+  document.getElementById('diiSellPct').textContent = (100 - diiBuy) + '%';
+  const diiBar = document.getElementById('diiBar');
+  diiBar.innerHTML = '<div class="fii-buy" style="width:' + diiBuy + '%;background:var(--accent)"></div><div class="fii-sell" style="width:' + (100-diiBuy) + '%;background:var(--amber)"></div>';
+
+  const fiiCard = document.getElementById('fiiCard');
+  fiiCard.className = 'sent-card ' + (lcAvg > 0.5 ? 'greed' : lcAvg < -0.5 ? 'fear' : 'neutral');
+}
+
+// Market breadth from portfolio
+function simulateBreadth() {
+  const loaded = stocks.filter(s => s.loaded);
+  if (loaded.length === 0) return;
+  const adv = loaded.filter(s => s.changePct > 0).length;
+  const dec = loaded.filter(s => s.changePct < 0).length;
+  const unch = loaded.length - adv - dec;
+  const ratio = dec > 0 ? (adv / dec).toFixed(2) : adv > 0 ? 'INF' : '0';
+  document.getElementById('breadthVal').textContent = adv + ':' + dec;
+  document.getElementById('breadthSub').textContent = 'A/D ratio: ' + ratio + ' (' + unch + ' flat)';
+  const bCard = document.getElementById('breadthCard');
+  bCard.className = 'sent-card ' + (adv > dec * 1.5 ? 'greed' : dec > adv * 1.5 ? 'fear' : 'neutral');
+}
+
+// Estimate Nifty PE from market level
+function estimateNiftyPE() {
+  // Historical: Nifty at 20000 ~ PE 22, at 25000 ~ PE 24
+  const niftyEl = document.getElementById('niftyGVal');
+  const niftyPrice = parseFloat(niftyEl?.textContent?.replace(/,/g,'')) || 0;
+  if (niftyPrice > 0) {
+    const estPE = (niftyPrice / 1050).toFixed(1); // rough EPS ~1050
+    document.getElementById('niftyPEVal').textContent = estPE + 'x';
+    const peNum = parseFloat(estPE);
+    document.getElementById('niftyPESub').textContent = peNum > 24 ? 'Expensive' : peNum > 20 ? 'Fair value' : 'Attractive';
+    const peCard = document.getElementById('niftyPECard');
+    peCard.className = 'sent-card ' + (peNum > 24 ? 'fear' : peNum < 20 ? 'greed' : 'neutral');
+  }
+}
+
+// Fetch Global News via Google News RSS
+async function fetchGlobalNews() {
+  const feed = document.getElementById('globalNewsFeed');
+  feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)"><span class="spinner"></span>Loading global news...</div>';
+
+  const queries = [
+    {q:'stock market today global', tag:'markets', tagLabel:'Markets'},
+    {q:'Federal Reserve interest rate 2026', tag:'policy', tagLabel:'Policy'},
+    {q:'crude oil gold price today', tag:'commodity', tagLabel:'Commodities'},
+    {q:'US China trade war tariffs 2026', tag:'geo', tagLabel:'Geopolitical'},
+    {q:'India GDP economy growth 2026', tag:'markets', tagLabel:'India'},
+  ];
+
+  let allItems = [];
+  for (const q of queries) {
+    try {
+      const rssUrl = 'https://news.google.com/rss/search?q=' + encodeURIComponent(q.q) + '&hl=en-IN&gl=IN&ceid=IN:en';
+      for (const proxy of CORS_PROXIES) {
+        try {
+          const r = await fetch(proxy + encodeURIComponent(rssUrl));
+          if (!r.ok) continue;
+          const text = await r.text();
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(text, 'text/xml');
+          const items = xml.querySelectorAll('item');
+          items.forEach((item, i) => {
+            if (i >= 4) return;
+            const title = item.querySelector('title')?.textContent || '';
+            const link = item.querySelector('link')?.textContent || '';
+            const pubDate = item.querySelector('pubDate')?.textContent || '';
+            const source = item.querySelector('source')?.textContent || '';
+            allItems.push({title, link, pubDate, source, tag: q.tag, tagLabel: q.tagLabel});
+          });
+          break;
+        } catch(e) { continue; }
+      }
+    } catch(e) {}
+  }
+
+  globalNewsData = allItems;
+  if (allItems.length === 0) {
+    feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Unable to load news. Try refreshing.</div>';
+    return;
+  }
+
+  feed.innerHTML = allItems.slice(0, 15).map(n => {
+    const ago = timeAgo(new Date(n.pubDate));
+    return '<div class="ind-news-card" onclick="window.open(''+n.link+'','_blank')">' +
+      '<div><span class="ind-tag ' + n.tag + '">' + n.tagLabel + '</span></div>' +
+      '<div class="ind-title">' + n.title + '</div>' +
+      '<div class="ind-src">' + n.source + ' Â· ' + ago + '</div></div>';
+  }).join('');
+}
+
+// Fetch Industry News
+async function fetchIndustryNews() {
+  const feed = document.getElementById('indNewsFeed');
+  feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1"><span class="spinner"></span>Loading industry news...</div>';
+
+  const sectors = [
+    {q:'India IT sector TCS Infosys AI cloud 2026', tag:'tech', tagLabel:'IT/Tech'},
+    {q:'India solar wind energy Suzlon Waaree Tata Power 2026', tag:'energy-t', tagLabel:'Energy'},
+    {q:'India electric vehicle EV Ola Tata Motors 2026', tag:'auto', tagLabel:'Auto/EV'},
+    {q:'India real estate DLF Godrej property market 2026', tag:'realty', tagLabel:'Real Estate'},
+    {q:'RBI interest rate India banking HDFC SBI 2026', tag:'finance', tagLabel:'Banking'},
+    {q:'India stock market Nifty Sensex rally correction 2026', tag:'markets', tagLabel:'Markets'},
+    {q:'India chemical specialty PLI manufacturing 2026', tag:'policy', tagLabel:'Policy/PLI'},
+    {q:'gold crude oil commodity prices India 2026', tag:'commodity', tagLabel:'Commodities'},
+    {q:'US India trade deal geopolitics 2026', tag:'geo', tagLabel:'Geopolitical'},
+  ];
+
+  let allItems = [];
+  for (const s of sectors) {
+    try {
+      const rssUrl = 'https://news.google.com/rss/search?q=' + encodeURIComponent(s.q) + '&hl=en-IN&gl=IN&ceid=IN:en';
+      for (const proxy of CORS_PROXIES) {
+        try {
+          const r = await fetch(proxy + encodeURIComponent(rssUrl));
+          if (!r.ok) continue;
+          const text = await r.text();
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(text, 'text/xml');
+          const items = xml.querySelectorAll('item');
+          items.forEach((item, i) => {
+            if (i >= 3) return;
+            const title = item.querySelector('title')?.textContent || '';
+            const link = item.querySelector('link')?.textContent || '';
+            const pubDate = item.querySelector('pubDate')?.textContent || '';
+            const source = item.querySelector('source')?.textContent || '';
+            allItems.push({title, link, pubDate, source, tag: s.tag, tagLabel: s.tagLabel});
+          });
+          break;
+        } catch(e) { continue; }
+      }
+    } catch(e) {}
+  }
+
+  indNewsData = allItems;
+  renderIndNews('all');
+}
+
+function renderIndNews(filter) {
+  const feed = document.getElementById('indNewsFeed');
+  let items = indNewsData;
+  if (filter !== 'all') items = items.filter(n => n.tag === filter);
+
+  if (items.length === 0) {
+    feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1">No news in this category. Try refreshing.</div>';
+    return;
+  }
+
+  feed.innerHTML = items.slice(0, 18).map(n => {
+    const ago = timeAgo(new Date(n.pubDate));
+    return '<div class="ind-news-card" onclick="window.open(''+n.link+'','_blank')">' +
+      '<div><span class="ind-tag ' + n.tag + '">' + n.tagLabel + '</span></div>' +
+      '<div class="ind-title">' + n.title + '</div>' +
+      '<div class="ind-src">' + n.source + ' Â· ' + ago + '</div></div>';
+  }).join('');
+}
+
+function filterIndNews(tag) {
+  renderIndNews(tag);
+}
+
+function timeAgo(date) {
+  if (isNaN(date.getTime())) return '';
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+// Load sentiment when tab is switched
+function loadSentimentTab() {
+  if (sentimentLoaded) return;
+  sentimentLoaded = true;
+  fetchGlobalMarkets();
+  fetchSentimentData();
+  fetchGlobalNews();
+  fetchIndustryNews();
+  // Refresh sentiment after prices are loaded
+  setTimeout(() => {
+    simulateFIIFlow();
+    simulateBreadth();
+    estimateNiftyPE();
+  }, 15000);
+}
+
 </script>
 </body>
 </html>
