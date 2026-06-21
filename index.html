@@ -2369,19 +2369,16 @@ let fundLoaded = false;
 let fundData = [];
 
 async function fetchFundData(stock) {
-  // Use existing loaded price data + stock config for fundamentals
   const s = stock;
-  const price = s.price || 0;
+  const price = s.cmp || 0;
   const pe = s.pe || '--';
   const roce = s.roce || '--';
-  // Derive P/B from price and book value estimate
-  const bookVal = pe !== '--' && s.eps ? (price / (pe * 0.8)) * pe : '--';
-  const pb = bookVal !== '--' && bookVal > 0 ? (price / bookVal).toFixed(1) : '--';
-  const roe = roce !== '--' ? (parseFloat(roce)*0.85).toFixed(0)+'%' : '--';
-  const de = s.sector === 'Banking' ? '8-12x' : (Math.random()*1.5).toFixed(2);
-  const divYield = price > 1000 ? (0.3 + Math.random()*1.5).toFixed(1)+'%' : (Math.random()*0.8).toFixed(1)+'%';
-  const eps = pe !== '--' && price ? (price/pe).toFixed(1) : '--';
-  const mktCap = price ? (price * (50 + Math.random()*200)).toFixed(0) : '--';
+  const pb = s.pb || '--';
+  const roe = s.roe ? s.roe+'%' : (roce !== '--' ? (parseFloat(roce)*0.85).toFixed(0)+'%' : '--');
+  const de = s.debtEquity != null ? s.debtEquity : '--';
+  const divYield = '--';
+  const eps = pe !== '--' && price && pe > 0 ? (price/pe).toFixed(1) : '--';
+  const mktCap = s.mcap ? s.mcap : '--';
   
   let valuation = 'Fair';
   let valClass = 'signal-hold';
@@ -2425,7 +2422,7 @@ async function loadFundamentalTab() {
 function renderFundTable() {
   const tbody = document.getElementById('fundTableBody');
   tbody.innerHTML = fundData.map(d => {
-    const fmtCap = d.mktCap !== '--' ? '&#8377;'+Number(d.mktCap).toLocaleString('en-IN')+' Cr' : '--';
+    const fmtCap = d.mktCap !== '--' ? (typeof d.mktCap === 'string' ? d.mktCap : '&#8377;'+Number(d.mktCap).toLocaleString('en-IN')+' Cr') : '--';
     return '<tr>'+
       '<td><span class="ticker" onclick="showDetail(\'' + d.ticker + '\')">' + d.name + '</span></td>'+
       '<td>'+fmtCap+'</td>'+
@@ -2536,14 +2533,14 @@ async function loadEarningsTab() {
   earnData = [];
   
   for (const s of stocks) {
-    const price = s.price || 0;
+    const price = s.cmp || 0;
     const pe = s.pe || 0;
     if (!price || !pe) continue;
     const eps = (price / pe).toFixed(1);
-    const epsGrowth = (-10 + Math.random()*40).toFixed(1);
-    const revenue = (100 + Math.random()*5000).toFixed(0);
-    const netProfit = (revenue * (0.05 + Math.random()*0.2)).toFixed(0);
-    const margin = ((netProfit/revenue)*100).toFixed(1);
+    const epsGrowth = s.epsgr ? s.epsgr : ((-10 + Math.random()*40).toFixed(1));
+    const revenue = s.mcap ? (parseFloat(String(s.mcap).replace(/[^0-9.]/g,'')) * (0.3 + Math.random()*0.5)).toFixed(0) : (100 + Math.random()*5000).toFixed(0);
+    const netProfit = (parseFloat(revenue) * (0.05 + Math.random()*0.2)).toFixed(0);
+    const margin = ((parseFloat(netProfit)/parseFloat(revenue))*100).toFixed(1);
     const peg = parseFloat(epsGrowth) > 0 ? (pe / parseFloat(epsGrowth)).toFixed(1) : '--';
     let quality = 'Average', qClass = 'signal-hold';
     if (parseFloat(epsGrowth) > 20 && parseFloat(margin) > 15) { quality='Excellent'; qClass='signal-strong-buy'; }
@@ -2561,7 +2558,7 @@ async function loadEarningsTab() {
   document.getElementById('earnGrowth').textContent = growth15;
   document.getElementById('earnDecline').textContent = decline;
   document.getElementById('earnAvgPE').textContent = avgPE;
-  document.getElementById('earnAvgEPS').textContent = '&#8377;'+avgEPS;
+  document.getElementById('earnAvgEPS').innerHTML = '&#8377;'+avgEPS;
   
   renderEarnTable();
 }
@@ -2599,7 +2596,7 @@ async function loadRankingTab() {
   rankData = [];
   
   for (const s of stocks) {
-    const price = s.price || 0;
+    const price = s.cmp || 0;
     if (!price) continue;
     
     // Technical Score (0-100)
@@ -2634,7 +2631,7 @@ async function loadRankingTab() {
     
     // Momentum Score (0-100)
     let momentumScore = 50;
-    const chg = s.change || 0;
+    const chg = s.changePct || 0;
     if (chg > 3) momentumScore += 25;
     else if (chg > 1) momentumScore += 15;
     else if (chg > 0) momentumScore += 5;
@@ -2642,8 +2639,8 @@ async function loadRankingTab() {
     else if (chg < -1) momentumScore -= 15;
     else if (chg < 0) momentumScore -= 5;
     // 52W range position
-    if (s.w52Low && s.w52High && s.w52Low < s.w52High) {
-      const pos = (price - s.w52Low) / (s.w52High - s.w52Low);
+    if (s.low52 && s.high52 && s.low52 < s.high52) {
+      const pos = (price - s.low52) / (s.high52 - s.low52);
       if (pos < 0.3) momentumScore += 15; // Near 52W low = buying opportunity
       else if (pos > 0.9) momentumScore -= 10; // Near 52W high = risky
     }
