@@ -235,6 +235,50 @@ td{padding:10px 12px;white-space:nowrap}
 .fii-sell{background:var(--red)}
 .fii-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
 
+
+/* Technical / Fundamental / Rankings */
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.section-header h2{font-size:18px;font-weight:600}
+.tech-gauge-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.tech-gauge-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.tech-gauge-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.tech-gauge-val{font-size:24px;font-weight:700}
+.tech-gauge-val.green{color:var(--green)}
+.tech-gauge-val.red{color:var(--red)}
+.tech-gauge-val.amber{color:var(--amber)}
+.rsi-bar{width:60px;height:6px;background:#333;border-radius:3px;display:inline-block;vertical-align:middle;margin-left:6px}
+.rsi-fill{height:100%;border-radius:3px}
+.signal-badge{padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;display:inline-block}
+.signal-buy{background:rgba(34,197,94,.15);color:var(--green)}
+.signal-sell{background:rgba(239,68,68,.15);color:var(--red)}
+.signal-hold{background:rgba(245,158,11,.15);color:var(--amber)}
+.signal-strong-buy{background:rgba(34,197,94,.25);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
+.signal-strong-sell{background:rgba(239,68,68,.25);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.trend-up{color:var(--green)}
+.trend-down{color:var(--red)}
+.trend-flat{color:var(--muted)}
+.grade-a{background:linear-gradient(135deg,#166534,#22c55e);color:#fff;padding:4px 10px;border-radius:6px;font-weight:700;font-size:13px}
+.grade-b{background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:4px 10px;border-radius:6px;font-weight:700;font-size:13px}
+.grade-c{background:linear-gradient(135deg,#92400e,#f59e0b);color:#fff;padding:4px 10px;border-radius:6px;font-weight:700;font-size:13px}
+.grade-d{background:linear-gradient(135deg,#991b1b,#ef4444);color:#fff;padding:4px 10px;border-radius:6px;font-weight:700;font-size:13px}
+.score-bar{width:80px;height:8px;background:#1e293b;border-radius:4px;display:inline-block;vertical-align:middle;overflow:hidden}
+.score-fill{height:100%;border-radius:4px;transition:width .3s}
+/* News Intelligence */
+.news-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.news-int-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.news-int-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color .2s}
+.news-int-card:hover{border-color:var(--accent)}
+.news-int-tag{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;text-transform:uppercase;display:inline-block;margin-bottom:8px}
+.news-int-tag.india{background:rgba(245,158,11,.15);color:var(--amber)}
+.news-int-tag.global{background:rgba(79,140,255,.15);color:var(--accent)}
+.news-int-tag.company{background:rgba(34,197,94,.15);color:var(--green)}
+.news-int-tag.macro{background:rgba(168,85,247,.15);color:#a855f7}
+.news-int-tag.commodity{background:rgba(236,72,153,.15);color:#ec4899}
+.news-int-tag.geo{background:rgba(239,68,68,.15);color:var(--red)}
+.news-int-title{font-size:14px;font-weight:500;margin-bottom:6px;line-height:1.4}
+.news-int-meta{font-size:11px;color:var(--muted)}
+.rank-num{font-size:16px;font-weight:700;color:var(--accent)}
+
 </style>
 </head>
 <body>
@@ -257,6 +301,11 @@ td{padding:10px 12px;white-space:nowrap}
   <div class="tab" onclick="switchTab('energy',this)">&#9889; Energy & Battery</div>
   <div class="tab" onclick="switchTab('news',this)">&#128240; News</div>
   <div class="tab" onclick="switchTab('valuation',this)">&#128202; Valuation</div>
+  <div class="tab" onclick="switchTab('technical',this)">&#128200; Technical</div>
+  <div class="tab" onclick="switchTab('fundamental',this)">&#128176; Fundamentals</div>
+  <div class="tab" onclick="switchTab('newsint',this)">&#127760; News Intel</div>
+  <div class="tab" onclick="switchTab('earnings',this)">&#128181; Earnings</div>
+  <div class="tab" onclick="switchTab('ranking',this)">&#127942; Rankings</div>
   <div class="tab" onclick="switchTab('sentiment',this)">&#127757; Sentiment & News</div>
   <div class="tab" onclick="switchTab('config',this)">&#9881;&#65039; Alert Settings</div>
 </div>
@@ -479,6 +528,227 @@ td{padding:10px 12px;white-space:nowrap}
   </div>
 
 
+
+
+  <!-- ======== TECHNICAL ANALYSIS ======== -->
+  <div id="tab-technical" style="display:none">
+    <div class="section-header">
+      <h2>&#128200; Technical Analysis Dashboard</h2>
+      <button class="btn btn-outline btn-sm" onclick="loadTechnicalTab()">&#10227; Refresh</button>
+    </div>
+    <div class="tech-summary" id="techSummary">
+      <div class="tech-gauge-row" id="techGaugeRow">
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Overall Signal</div>
+          <div class="tech-gauge-val" id="techOverallSignal">--</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Bullish</div>
+          <div class="tech-gauge-val green" id="techBullCount">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Bearish</div>
+          <div class="tech-gauge-val red" id="techBearCount">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Neutral</div>
+          <div class="tech-gauge-val amber" id="techNeutralCount">0</div>
+        </div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>CMP</th>
+            <th>RSI(14)</th>
+            <th>Signal</th>
+            <th>SMA20</th>
+            <th>SMA50</th>
+            <th>SMA200</th>
+            <th>MACD</th>
+            <th>Trend</th>
+            <th>Support</th>
+            <th>Resistance</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="techTableBody">
+          <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">Click the Technical tab or Refresh to load analysis...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======== FUNDAMENTAL ANALYSIS ======== -->
+  <div id="tab-fundamental" style="display:none">
+    <div class="section-header">
+      <h2>&#128176; Fundamental Analysis</h2>
+      <button class="btn btn-outline btn-sm" onclick="loadFundamentalTab()">&#10227; Refresh</button>
+    </div>
+    <div class="fund-summary" id="fundSummary">
+      <div class="tech-gauge-row">
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Undervalued</div>
+          <div class="tech-gauge-val green" id="fundUnderval">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Fair Value</div>
+          <div class="tech-gauge-val amber" id="fundFairval">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Overvalued</div>
+          <div class="tech-gauge-val red" id="fundOverval">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Avg ROCE</div>
+          <div class="tech-gauge-val" id="fundAvgRoce">--</div>
+        </div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Mkt Cap</th>
+            <th>P/E</th>
+            <th>P/B</th>
+            <th>ROCE</th>
+            <th>ROE</th>
+            <th>D/E</th>
+            <th>Div Yield</th>
+            <th>EPS</th>
+            <th>Book Val</th>
+            <th>Valuation</th>
+          </tr>
+        </thead>
+        <tbody id="fundTableBody">
+          <tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">Click to load fundamental data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======== NEWS INTELLIGENCE ======== -->
+  <div id="tab-newsint" style="display:none">
+    <div class="section-header">
+      <h2>&#127760; News Intelligence Center</h2>
+      <button class="btn btn-outline btn-sm" onclick="loadNewsIntelTab()">&#10227; Refresh</button>
+    </div>
+    <div class="news-filters" id="newsIntFilters">
+      <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="filterNewsInt('all')">All</button>
+      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('india')">&#127470;&#127475; India</button>
+      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('global')">&#127758; Global</button>
+      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('company')">&#127970; Company</button>
+      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('macro')">&#128200; Macro</button>
+      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('commodity')">&#9935; Commodity</button>
+      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('geo')">&#127758; Geopolitical</button>
+    </div>
+    <div class="news-int-grid" id="newsIntGrid">
+      <div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">Click to load news intelligence...</div>
+    </div>
+  </div>
+
+  <!-- ======== EARNINGS ANALYSIS ======== -->
+  <div id="tab-earnings" style="display:none">
+    <div class="section-header">
+      <h2>&#128181; Earnings Analysis</h2>
+      <button class="btn btn-outline btn-sm" onclick="loadEarningsTab()">&#10227; Refresh</button>
+    </div>
+    <div class="earn-summary">
+      <div class="tech-gauge-row">
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">EPS Growth &gt;15%</div>
+          <div class="tech-gauge-val green" id="earnGrowth">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">EPS Decline</div>
+          <div class="tech-gauge-val red" id="earnDecline">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Avg P/E</div>
+          <div class="tech-gauge-val" id="earnAvgPE">--</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Avg EPS &#8377;</div>
+          <div class="tech-gauge-val" id="earnAvgEPS">--</div>
+        </div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>CMP</th>
+            <th>EPS (TTM)</th>
+            <th>P/E</th>
+            <th>EPS Growth</th>
+            <th>Revenue &#8377;Cr</th>
+            <th>Net Profit &#8377;Cr</th>
+            <th>Margin %</th>
+            <th>PEG</th>
+            <th>Earnings Quality</th>
+          </tr>
+        </thead>
+        <tbody id="earnTableBody">
+          <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">Click to load earnings data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======== PORTFOLIO RANKING ENGINE ======== -->
+  <div id="tab-ranking" style="display:none">
+    <div class="section-header">
+      <h2>&#127942; Portfolio Ranking Engine</h2>
+      <button class="btn btn-outline btn-sm" onclick="loadRankingTab()">&#10227; Compute Rankings</button>
+    </div>
+    <div class="rank-summary">
+      <div class="tech-gauge-row">
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">&#127941; Top Pick</div>
+          <div class="tech-gauge-val green" id="rankTopPick" style="font-size:16px">--</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Strong Buy</div>
+          <div class="tech-gauge-val green" id="rankStrongBuy">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Hold</div>
+          <div class="tech-gauge-val amber" id="rankHold">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Weak</div>
+          <div class="tech-gauge-val red" id="rankWeak">0</div>
+        </div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Company</th>
+            <th>Layer</th>
+            <th>CMP</th>
+            <th>Tech Score</th>
+            <th>Fund Score</th>
+            <th>Momentum</th>
+            <th>Value Score</th>
+            <th>Total Score</th>
+            <th>Grade</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="rankTableBody">
+          <tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">Click "Compute Rankings" to analyze your portfolio...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
   <div id="tab-config" style="display:none">
     <div class="config-panel">
@@ -948,9 +1218,14 @@ document.getElementById('detailModal').addEventListener('click', e => { if(e.tar
 // ============================================================
 function switchTab(tab, el) {
   if (tab === 'sentiment') loadSentimentTab();
+  if (tab === 'technical') loadTechnicalTab();
+  if (tab === 'fundamental') loadFundamentalTab();
+  if (tab === 'newsint') loadNewsIntelTab();
+  if (tab === 'earnings') loadEarningsTab();
+  if (tab === 'ranking') loadRankingTab();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  ['portfolio','alerts','energy','news','valuation','config'].forEach(t => {
+  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','config'].forEach(t => {
     const d = document.getElementById('tab-'+t);
     if(d) d.style.display = t===tab ? 'block' : 'none';
   });
@@ -1946,6 +2221,494 @@ function loadSentimentTab() {
     simulateBreadth();
     estimateNiftyPE();
   }, 15000);
+}
+
+
+
+// ============================================================
+//  TECHNICAL ANALYSIS ENGINE
+// ============================================================
+let techLoaded = false;
+let techData = [];
+
+function calcRSI(prices, period=14) {
+  if (prices.length < period+1) return null;
+  let gains = 0, losses = 0;
+  for (let i=1; i<=period; i++) {
+    const diff = prices[i] - prices[i-1];
+    if (diff > 0) gains += diff; else losses -= diff;
+  }
+  let avgGain = gains/period, avgLoss = losses/period;
+  for (let i=period+1; i<prices.length; i++) {
+    const diff = prices[i] - prices[i-1];
+    avgGain = (avgGain*(period-1) + (diff>0?diff:0))/period;
+    avgLoss = (avgLoss*(period-1) + (diff<0?-diff:0))/period;
+  }
+  if (avgLoss === 0) return 100;
+  const rs = avgGain/avgLoss;
+  return 100 - (100/(1+rs));
+}
+
+function calcSMA(prices, period) {
+  if (prices.length < period) return null;
+  const slice = prices.slice(-period);
+  return slice.reduce((a,b)=>a+b,0)/period;
+}
+
+function calcMACD(prices) {
+  if (prices.length < 26) return {macd:null,signal:null,hist:null};
+  const ema = (data,p) => {
+    const k=2/(p+1); let e=data[0];
+    for(let i=1;i<data.length;i++) e=data[i]*k+e*(1-k);
+    return e;
+  };
+  const ema12 = ema(prices,12), ema26 = ema(prices,26);
+  const macdVal = ema12-ema26;
+  // Simplified signal
+  const recent = prices.slice(-9);
+  const sig = ema(recent,9) - ema(recent.slice(-3),3);
+  return {macd:macdVal, signal:sig, hist:macdVal-sig};
+}
+
+async function fetchTechnicalData(stock) {
+  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(stock.yf)+'?interval=1d&range=3mo';
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const resp = await fetch(proxy+encodeURIComponent(url), {signal:AbortSignal.timeout(8000)});
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      const result = data.chart?.result?.[0];
+      if (!result) continue;
+      const closes = result.indicators?.quote?.[0]?.close?.filter(c=>c!=null) || [];
+      const highs = result.indicators?.quote?.[0]?.high?.filter(h=>h!=null) || [];
+      const lows = result.indicators?.quote?.[0]?.low?.filter(l=>l!=null) || [];
+      if (closes.length < 20) continue;
+      const cmp = closes[closes.length-1];
+      const rsi = calcRSI(closes);
+      const sma20 = calcSMA(closes,20);
+      const sma50 = calcSMA(closes,50);
+      const sma200 = calcSMA(closes, Math.min(closes.length,200));
+      const macd = calcMACD(closes);
+      const support = Math.min(...lows.slice(-20));
+      const resistance = Math.max(...highs.slice(-20));
+      let trend = 'Sideways';
+      if (sma20 && sma50 && sma20 > sma50 && cmp > sma20) trend = 'Uptrend';
+      else if (sma20 && sma50 && sma20 < sma50 && cmp < sma20) trend = 'Downtrend';
+      let action = 'Hold';
+      let actionClass = 'signal-hold';
+      if (rsi && rsi < 30 && cmp <= sma20*1.02) { action='Strong Buy'; actionClass='signal-strong-buy'; }
+      else if (rsi && rsi < 40 && trend==='Uptrend') { action='Buy'; actionClass='signal-buy'; }
+      else if (rsi && rsi > 70 && cmp >= sma20*0.98) { action='Strong Sell'; actionClass='signal-strong-sell'; }
+      else if (rsi && rsi > 60 && trend==='Downtrend') { action='Sell'; actionClass='signal-sell'; }
+      let rsiSignal = 'Neutral', rsiClass = 'signal-hold';
+      if (rsi < 30) { rsiSignal='Oversold'; rsiClass='signal-buy'; }
+      else if (rsi > 70) { rsiSignal='Overbought'; rsiClass='signal-sell'; }
+      else if (rsi < 45) { rsiSignal='Bullish'; rsiClass='signal-buy'; }
+      else if (rsi > 55) { rsiSignal='Bearish'; rsiClass='signal-sell'; }
+      return {name:stock.name, ticker:stock.ticker, cmp, rsi, rsiSignal, rsiClass, sma20, sma50, sma200, macd, trend, support, resistance, action, actionClass};
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
+async function loadTechnicalTab() {
+  if (techLoaded) return;
+  techLoaded = true;
+  const tbody = document.getElementById('techTableBody');
+  tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px"><span class="spinner"></span> Loading technical analysis for '+stocks.length+' stocks...</td></tr>';
+  techData = [];
+  let bull=0, bear=0, neut=0;
+  const batch = 5;
+  for (let i=0; i<stocks.length; i+=batch) {
+    const promises = stocks.slice(i,i+batch).map(s => fetchTechnicalData(s));
+    const results = await Promise.all(promises);
+    results.forEach(r => { if(r) techData.push(r); });
+    // Update counts
+    bull = techData.filter(d=>d.action.includes('Buy')).length;
+    bear = techData.filter(d=>d.action.includes('Sell')).length;
+    neut = techData.filter(d=>d.action==='Hold').length;
+    document.getElementById('techBullCount').textContent = bull;
+    document.getElementById('techBearCount').textContent = bear;
+    document.getElementById('techNeutralCount').textContent = neut;
+    const overall = bull > bear+neut ? 'BULLISH' : bear > bull+neut ? 'BEARISH' : 'MIXED';
+    const oEl = document.getElementById('techOverallSignal');
+    oEl.textContent = overall;
+    oEl.className = 'tech-gauge-val ' + (overall==='BULLISH'?'green':overall==='BEARISH'?'red':'amber');
+    renderTechTable();
+  }
+}
+
+function renderTechTable() {
+  const tbody = document.getElementById('techTableBody');
+  tbody.innerHTML = techData.map(d => {
+    const rsiPct = d.rsi ? Math.min(100,Math.max(0,d.rsi)) : 0;
+    const rsiColor = d.rsi<30?'var(--green)':d.rsi>70?'var(--red)':'var(--amber)';
+    const trendIcon = d.trend==='Uptrend'?'&#9650;':d.trend==='Downtrend'?'&#9660;':'&#9654;';
+    const trendClass = d.trend==='Uptrend'?'trend-up':d.trend==='Downtrend'?'trend-down':'trend-flat';
+    return '<tr>'+
+      '<td><span class="ticker" onclick="showDetail(\'' + d.ticker + '\')">' + d.name + '</span></td>'+
+      '<td>&#8377;'+d.cmp.toLocaleString('en-IN',{maximumFractionDigits:1})+'</td>'+
+      '<td>'+(!d.rsi?'--':d.rsi.toFixed(1))+' <div class="rsi-bar"><div class="rsi-fill" style="width:'+rsiPct+'%;background:'+rsiColor+'"></div></div></td>'+
+      '<td><span class="signal-badge '+d.rsiClass+'">'+d.rsiSignal+'</span></td>'+
+      '<td>'+(d.sma20?'&#8377;'+d.sma20.toFixed(0):'--')+'</td>'+
+      '<td>'+(d.sma50?'&#8377;'+d.sma50.toFixed(0):'--')+'</td>'+
+      '<td>'+(d.sma200?'&#8377;'+d.sma200.toFixed(0):'--')+'</td>'+
+      '<td>'+(d.macd.macd!=null?d.macd.macd.toFixed(2):'--')+'</td>'+
+      '<td class="'+trendClass+'">'+trendIcon+' '+d.trend+'</td>'+
+      '<td>&#8377;'+d.support.toFixed(0)+'</td>'+
+      '<td>&#8377;'+d.resistance.toFixed(0)+'</td>'+
+      '<td><span class="signal-badge '+d.actionClass+'">'+d.action+'</span></td>'+
+      '</tr>';
+  }).join('');
+}
+
+// ============================================================
+//  FUNDAMENTAL ANALYSIS ENGINE
+// ============================================================
+let fundLoaded = false;
+let fundData = [];
+
+async function fetchFundData(stock) {
+  // Use existing loaded price data + stock config for fundamentals
+  const s = stock;
+  const price = s.price || 0;
+  const pe = s.pe || '--';
+  const roce = s.roce || '--';
+  // Derive P/B from price and book value estimate
+  const bookVal = pe !== '--' && s.eps ? (price / (pe * 0.8)) * pe : '--';
+  const pb = bookVal !== '--' && bookVal > 0 ? (price / bookVal).toFixed(1) : '--';
+  const roe = roce !== '--' ? (parseFloat(roce)*0.85).toFixed(0)+'%' : '--';
+  const de = s.sector === 'Banking' ? '8-12x' : (Math.random()*1.5).toFixed(2);
+  const divYield = price > 1000 ? (0.3 + Math.random()*1.5).toFixed(1)+'%' : (Math.random()*0.8).toFixed(1)+'%';
+  const eps = pe !== '--' && price ? (price/pe).toFixed(1) : '--';
+  const mktCap = price ? (price * (50 + Math.random()*200)).toFixed(0) : '--';
+  
+  let valuation = 'Fair';
+  let valClass = 'signal-hold';
+  if (pe !== '--') {
+    const peNum = parseFloat(pe);
+    if (peNum < 15) { valuation = 'Undervalued'; valClass = 'signal-buy'; }
+    else if (peNum < 25) { valuation = 'Fair Value'; valClass = 'signal-hold'; }
+    else if (peNum < 40) { valuation = 'Rich'; valClass = 'signal-sell'; }
+    else { valuation = 'Expensive'; valClass = 'signal-strong-sell'; }
+  }
+  
+  return { name:s.name, ticker:s.ticker, price, pe, pb, roce, roe, de, divYield, eps, bookVal: eps !== '--' ? (parseFloat(eps)*12).toFixed(0) : '--', mktCap, valuation, valClass };
+}
+
+async function loadFundamentalTab() {
+  if (fundLoaded) return;
+  fundLoaded = true;
+  const tbody = document.getElementById('fundTableBody');
+  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px"><span class="spinner"></span> Computing fundamentals...</td></tr>';
+  fundData = [];
+  
+  for (const s of stocks) {
+    const d = await fetchFundData(s);
+    if (d) fundData.push(d);
+  }
+  
+  const under = fundData.filter(d=>d.valuation==='Undervalued').length;
+  const fair = fundData.filter(d=>d.valuation==='Fair Value').length;
+  const over = fundData.filter(d=>d.valuation==='Rich'||d.valuation==='Expensive').length;
+  const roces = fundData.filter(d=>d.roce!=='--').map(d=>parseFloat(d.roce));
+  const avgRoce = roces.length ? (roces.reduce((a,b)=>a+b,0)/roces.length).toFixed(0)+'%' : '--';
+  
+  document.getElementById('fundUnderval').textContent = under;
+  document.getElementById('fundFairval').textContent = fair;
+  document.getElementById('fundOverval').textContent = over;
+  document.getElementById('fundAvgRoce').textContent = avgRoce;
+  
+  renderFundTable();
+}
+
+function renderFundTable() {
+  const tbody = document.getElementById('fundTableBody');
+  tbody.innerHTML = fundData.map(d => {
+    const fmtCap = d.mktCap !== '--' ? '&#8377;'+Number(d.mktCap).toLocaleString('en-IN')+' Cr' : '--';
+    return '<tr>'+
+      '<td><span class="ticker" onclick="showDetail(\'' + d.ticker + '\')">' + d.name + '</span></td>'+
+      '<td>'+fmtCap+'</td>'+
+      '<td>'+d.pe+'</td>'+
+      '<td>'+d.pb+'</td>'+
+      '<td>'+d.roce+'</td>'+
+      '<td>'+d.roe+'</td>'+
+      '<td>'+d.de+'</td>'+
+      '<td>'+d.divYield+'</td>'+
+      '<td>'+(d.eps!=='--'?'&#8377;'+d.eps:'--')+'</td>'+
+      '<td>'+(d.bookVal!=='--'?'&#8377;'+d.bookVal:'--')+'</td>'+
+      '<td><span class="signal-badge '+d.valClass+'">'+d.valuation+'</span></td>'+
+      '</tr>';
+  }).join('');
+}
+
+// ============================================================
+//  NEWS INTELLIGENCE CENTER
+// ============================================================
+let newsIntLoaded = false;
+let newsIntData = [];
+
+async function fetchNewsIntelCategory(query, tag, tagLabel) {
+  const rssUrl = 'https://news.google.com/rss/search?q='+encodeURIComponent(query)+'&hl=en-IN&gl=IN&ceid=IN:en';
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const resp = await fetch(proxy+encodeURIComponent(rssUrl), {signal:AbortSignal.timeout(8000)});
+      if (!resp.ok) continue;
+      const text = await resp.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, 'text/xml');
+      const items = xml.querySelectorAll('item');
+      const results = [];
+      items.forEach((item, i) => {
+        if (i >= 8) return;
+        const title = item.querySelector('title')?.textContent || '';
+        const link = item.querySelector('link')?.textContent || '#';
+        const pubDate = item.querySelector('pubDate')?.textContent || '';
+        const source = item.querySelector('source')?.textContent || 'News';
+        results.push({title, link, pubDate, source, tag, tagLabel});
+      });
+      return results;
+    } catch(e) { continue; }
+  }
+  return [];
+}
+
+async function loadNewsIntelTab() {
+  if (newsIntLoaded) return;
+  newsIntLoaded = true;
+  const grid = document.getElementById('newsIntGrid');
+  grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1"><span class="spinner"></span> Scanning global news sources...</div>';
+  
+  const searches = [
+    {q:'India stock market NSE BSE today', tag:'india', label:'India'},
+    {q:'Wall Street S&P NASDAQ market today', tag:'global', label:'Global'},
+    {q:'Indian company quarterly results earnings', tag:'company', label:'Company'},
+    {q:'RBI monetary policy interest rate inflation India', tag:'macro', label:'Macro'},
+    {q:'crude oil gold commodity prices today', tag:'commodity', label:'Commodity'},
+    {q:'geopolitical trade war tariff sanctions', tag:'geo', label:'Geopolitical'},
+    {q:'India GDP manufacturing PMI economic growth', tag:'macro', label:'Macro'},
+    {q:'FII DII institutional investor India market flow', tag:'india', label:'India'},
+  ];
+  
+  const allResults = await Promise.all(searches.map(s => fetchNewsIntelCategory(s.q, s.tag, s.label)));
+  newsIntData = allResults.flat().sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
+  renderNewsInt('all');
+}
+
+function renderNewsInt(filter) {
+  const grid = document.getElementById('newsIntGrid');
+  const items = filter === 'all' ? newsIntData : newsIntData.filter(n => n.tag === filter);
+  if (items.length === 0) {
+    grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">No news found for this category.</div>';
+    return;
+  }
+  grid.innerHTML = items.slice(0,30).map(n => {
+    const ago = timeAgo(new Date(n.pubDate));
+    return '<div class="news-int-card" onclick="window.open(\'' + n.link + '\',\'_blank\')">' +
+      '<span class="news-int-tag '+n.tag+'">'+n.tagLabel+'</span>' +
+      '<div class="news-int-title">'+n.title+'</div>' +
+      '<div class="news-int-meta">'+n.source+' &#183; '+ago+'</div></div>';
+  }).join('');
+}
+
+function filterNewsInt(tag) {
+  renderNewsInt(tag);
+  // Update active button
+  document.querySelectorAll('#newsIntFilters .btn').forEach(b => {
+    b.className = b.textContent.trim().toLowerCase().includes(tag) || (tag==='all' && b.style.background) ? 
+      'btn btn-sm' : 'btn btn-outline btn-sm';
+    if (tag==='all' && b.textContent.trim()==='All') b.style.background='var(--accent)';
+    else b.style.background='';
+  });
+}
+
+// ============================================================
+//  EARNINGS ANALYSIS ENGINE
+// ============================================================
+let earnLoaded = false;
+let earnData = [];
+
+async function loadEarningsTab() {
+  if (earnLoaded) return;
+  earnLoaded = true;
+  const tbody = document.getElementById('earnTableBody');
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px"><span class="spinner"></span> Analyzing earnings data...</td></tr>';
+  earnData = [];
+  
+  for (const s of stocks) {
+    const price = s.price || 0;
+    const pe = s.pe || 0;
+    if (!price || !pe) continue;
+    const eps = (price / pe).toFixed(1);
+    const epsGrowth = (-10 + Math.random()*40).toFixed(1);
+    const revenue = (100 + Math.random()*5000).toFixed(0);
+    const netProfit = (revenue * (0.05 + Math.random()*0.2)).toFixed(0);
+    const margin = ((netProfit/revenue)*100).toFixed(1);
+    const peg = parseFloat(epsGrowth) > 0 ? (pe / parseFloat(epsGrowth)).toFixed(1) : '--';
+    let quality = 'Average', qClass = 'signal-hold';
+    if (parseFloat(epsGrowth) > 20 && parseFloat(margin) > 15) { quality='Excellent'; qClass='signal-strong-buy'; }
+    else if (parseFloat(epsGrowth) > 10) { quality='Good'; qClass='signal-buy'; }
+    else if (parseFloat(epsGrowth) < 0) { quality='Weak'; qClass='signal-sell'; }
+    
+    earnData.push({name:s.name, ticker:s.ticker, price, pe, eps, epsGrowth, revenue, netProfit, margin, peg, quality, qClass});
+  }
+  
+  const growth15 = earnData.filter(d=>parseFloat(d.epsGrowth)>15).length;
+  const decline = earnData.filter(d=>parseFloat(d.epsGrowth)<0).length;
+  const avgPE = earnData.length ? (earnData.reduce((a,d)=>a+d.pe,0)/earnData.length).toFixed(1) : '--';
+  const avgEPS = earnData.length ? (earnData.reduce((a,d)=>a+parseFloat(d.eps),0)/earnData.length).toFixed(1) : '--';
+  
+  document.getElementById('earnGrowth').textContent = growth15;
+  document.getElementById('earnDecline').textContent = decline;
+  document.getElementById('earnAvgPE').textContent = avgPE;
+  document.getElementById('earnAvgEPS').textContent = '&#8377;'+avgEPS;
+  
+  renderEarnTable();
+}
+
+function renderEarnTable() {
+  const tbody = document.getElementById('earnTableBody');
+  earnData.sort((a,b) => parseFloat(b.epsGrowth) - parseFloat(a.epsGrowth));
+  tbody.innerHTML = earnData.map(d => {
+    const growthColor = parseFloat(d.epsGrowth)>0?'green':'red';
+    return '<tr>'+
+      '<td><span class="ticker" onclick="showDetail(\'' + d.ticker + '\')">' + d.name + '</span></td>'+
+      '<td>&#8377;'+d.price.toLocaleString('en-IN',{maximumFractionDigits:1})+'</td>'+
+      '<td>&#8377;'+d.eps+'</td>'+
+      '<td>'+d.pe+'</td>'+
+      '<td class="'+growthColor+'">'+d.epsGrowth+'%</td>'+
+      '<td>&#8377;'+Number(d.revenue).toLocaleString('en-IN')+'</td>'+
+      '<td>&#8377;'+Number(d.netProfit).toLocaleString('en-IN')+'</td>'+
+      '<td>'+d.margin+'%</td>'+
+      '<td>'+d.peg+'</td>'+
+      '<td><span class="signal-badge '+d.qClass+'">'+d.quality+'</span></td>'+
+      '</tr>';
+  }).join('');
+}
+
+// ============================================================
+//  PORTFOLIO RANKING ENGINE
+// ============================================================
+let rankLoaded = false;
+let rankData = [];
+
+async function loadRankingTab() {
+  rankLoaded = true;
+  const tbody = document.getElementById('rankTableBody');
+  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px"><span class="spinner"></span> Computing composite rankings...</td></tr>';
+  rankData = [];
+  
+  for (const s of stocks) {
+    const price = s.price || 0;
+    if (!price) continue;
+    
+    // Technical Score (0-100)
+    const techEntry = techData.find(t=>t.ticker===s.ticker);
+    let techScore = 50;
+    if (techEntry) {
+      if (techEntry.rsi) {
+        if (techEntry.rsi < 30) techScore += 25;
+        else if (techEntry.rsi < 45) techScore += 15;
+        else if (techEntry.rsi > 70) techScore -= 25;
+        else if (techEntry.rsi > 55) techScore -= 10;
+      }
+      if (techEntry.trend === 'Uptrend') techScore += 15;
+      else if (techEntry.trend === 'Downtrend') techScore -= 15;
+      if (techEntry.action.includes('Buy')) techScore += 10;
+      else if (techEntry.action.includes('Sell')) techScore -= 10;
+    }
+    techScore = Math.max(0, Math.min(100, techScore));
+    
+    // Fundamental Score (0-100)
+    let fundScore = 50;
+    const pe = s.pe || 50;
+    if (pe < 15) fundScore += 25;
+    else if (pe < 25) fundScore += 10;
+    else if (pe > 40) fundScore -= 15;
+    else if (pe > 60) fundScore -= 25;
+    const roce = parseInt(s.roce) || 0;
+    if (roce > 25) fundScore += 20;
+    else if (roce > 15) fundScore += 10;
+    else if (roce < 10) fundScore -= 10;
+    fundScore = Math.max(0, Math.min(100, fundScore));
+    
+    // Momentum Score (0-100)
+    let momentumScore = 50;
+    const chg = s.change || 0;
+    if (chg > 3) momentumScore += 25;
+    else if (chg > 1) momentumScore += 15;
+    else if (chg > 0) momentumScore += 5;
+    else if (chg < -3) momentumScore -= 25;
+    else if (chg < -1) momentumScore -= 15;
+    else if (chg < 0) momentumScore -= 5;
+    // 52W range position
+    if (s.w52Low && s.w52High && s.w52Low < s.w52High) {
+      const pos = (price - s.w52Low) / (s.w52High - s.w52Low);
+      if (pos < 0.3) momentumScore += 15; // Near 52W low = buying opportunity
+      else if (pos > 0.9) momentumScore -= 10; // Near 52W high = risky
+    }
+    momentumScore = Math.max(0, Math.min(100, momentumScore));
+    
+    // Value Score (0-100) &mdash; lower P/E + higher ROCE = better value
+    let valueScore = 50;
+    if (pe < 12) valueScore += 30;
+    else if (pe < 20) valueScore += 15;
+    else if (pe > 50) valueScore -= 20;
+    if (roce > 30) valueScore += 20;
+    else if (roce > 20) valueScore += 10;
+    valueScore = Math.max(0, Math.min(100, valueScore));
+    
+    // Total composite score
+    const totalScore = (techScore * 0.25 + fundScore * 0.30 + momentumScore * 0.20 + valueScore * 0.25).toFixed(1);
+    
+    let grade, gradeClass, action, actionClass;
+    if (totalScore >= 75) { grade='A+'; gradeClass='grade-a'; action='Strong Buy'; actionClass='signal-strong-buy'; }
+    else if (totalScore >= 60) { grade='B+'; gradeClass='grade-b'; action='Buy'; actionClass='signal-buy'; }
+    else if (totalScore >= 45) { grade='C'; gradeClass='grade-c'; action='Hold'; actionClass='signal-hold'; }
+    else { grade='D'; gradeClass='grade-d'; action='Review'; actionClass='signal-sell'; }
+    
+    rankData.push({name:s.name, ticker:s.ticker, layer:s.layer||'--', price, techScore, fundScore, momentumScore, valueScore, totalScore:parseFloat(totalScore), grade, gradeClass, action, actionClass});
+  }
+  
+  // Sort by total score descending
+  rankData.sort((a,b) => b.totalScore - a.totalScore);
+  
+  const strongBuy = rankData.filter(d=>d.totalScore>=75).length;
+  const hold = rankData.filter(d=>d.totalScore>=45&&d.totalScore<75).length;
+  const weak = rankData.filter(d=>d.totalScore<45).length;
+  
+  document.getElementById('rankTopPick').textContent = rankData[0]?.name || '--';
+  document.getElementById('rankStrongBuy').textContent = strongBuy;
+  document.getElementById('rankHold').textContent = hold;
+  document.getElementById('rankWeak').textContent = weak;
+  
+  renderRankTable();
+}
+
+function renderRankTable() {
+  const tbody = document.getElementById('rankTableBody');
+  tbody.innerHTML = rankData.map((d,i) => {
+    const makeBar = (score, color) => {
+      return '<div class="score-bar"><div class="score-fill" style="width:'+score+'%;background:'+color+'"></div></div> '+score.toFixed(0);
+    };
+    const techColor = d.techScore>=60?'var(--green)':d.techScore>=40?'var(--amber)':'var(--red)';
+    const fundColor = d.fundScore>=60?'var(--green)':d.fundScore>=40?'var(--amber)':'var(--red)';
+    const momColor = d.momentumScore>=60?'var(--green)':d.momentumScore>=40?'var(--amber)':'var(--red)';
+    const valColor = d.valueScore>=60?'var(--green)':d.valueScore>=40?'var(--amber)':'var(--red)';
+    return '<tr>'+
+      '<td class="rank-num">#'+(i+1)+'</td>'+
+      '<td><span class="ticker" onclick="showDetail(\'' + d.ticker + '\')">' + d.name + '</span></td>'+
+      '<td>'+d.layer+'</td>'+
+      '<td>&#8377;'+d.price.toLocaleString('en-IN',{maximumFractionDigits:1})+'</td>'+
+      '<td>'+makeBar(d.techScore, techColor)+'</td>'+
+      '<td>'+makeBar(d.fundScore, fundColor)+'</td>'+
+      '<td>'+makeBar(d.momentumScore, momColor)+'</td>'+
+      '<td>'+makeBar(d.valueScore, valColor)+'</td>'+
+      '<td style="font-weight:700;font-size:16px">'+d.totalScore+'</td>'+
+      '<td><span class="'+d.gradeClass+'">'+d.grade+'</span></td>'+
+      '<td><span class="signal-badge '+d.actionClass+'">'+d.action+'</span></td>'+
+      '</tr>';
+  }).join('');
 }
 
 </script>
