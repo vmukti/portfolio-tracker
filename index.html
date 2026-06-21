@@ -2700,11 +2700,11 @@ function renderFundTable() {
 //  Sources: NewsIntelProxy (RSS+NSE+Triggers) → rss2json fallback
 //  + Agent-Curated Research + Agent Reach Social Intelligence
 // ============================================================
-let newsIntLoaded = false;
-let newsIntData = [];
-let newsTriggersData = [];
-let nseAnnouncementsData = [];
-let newsApiUrl = localStorage.getItem('newsApiUrl') || 'https://script.google.com/macros/s/AKfycbxQuaffSeoi2FypmiAdHlOPB6jb_qKHNDahhKK4xhWipdhlcAr9ujgrCIyAujwd7kM/exec';
+var newsIntLoaded = false;
+var newsIntData = [];
+var newsTriggersData = [];
+var nseAnnouncementsData = [];
+var newsApiUrl = localStorage.getItem('newsApiUrl') || 'https://script.google.com/macros/s/AKfycbxQuaffSeoi2FypmiAdHlOPB6jb_qKHNDahhKK4xhWipdhlcAr9ujgrCIyAujwd7kM/exec';
 const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
 
 // ---- News API URL Management ----
