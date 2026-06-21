@@ -277,6 +277,7 @@ td{padding:10px 12px;white-space:nowrap}
 .news-int-tag.geo{background:rgba(239,68,68,.15);color:var(--red)}
 .news-int-title{font-size:14px;font-weight:500;margin-bottom:6px;line-height:1.4}
 .news-int-meta{font-size:11px;color:var(--muted)}
+.news-int-card.curated{border-left:3px solid #ffa500}
 .rank-num{font-size:16px;font-weight:700;color:var(--accent)}
 
 </style>
@@ -638,13 +639,13 @@ td{padding:10px 12px;white-space:nowrap}
       <button class="btn btn-outline btn-sm" onclick="loadNewsIntelTab()">&#10227; Refresh</button>
     </div>
     <div class="news-filters" id="newsIntFilters">
-      <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="filterNewsInt('all')">All</button>
-      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('india')">&#127470;&#127475; India</button>
-      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('global')">&#127758; Global</button>
-      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('company')">&#127970; Company</button>
-      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('macro')">&#128200; Macro</button>
-      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('commodity')">&#9935; Commodity</button>
-      <button class="btn btn-outline btn-sm" onclick="filterNewsInt('geo')">&#127758; Geopolitical</button>
+      <button class="btn btn-sm" data-tag="all" style="background:var(--accent);color:#fff" onclick="filterNewsInt('all')">All</button>
+      <button class="btn btn-outline btn-sm" data-tag="india" onclick="filterNewsInt('india')">&#127470;&#127475; India</button>
+      <button class="btn btn-outline btn-sm" data-tag="global" onclick="filterNewsInt('global')">&#127758; Global</button>
+      <button class="btn btn-outline btn-sm" data-tag="company" onclick="filterNewsInt('company')">&#127970; Stocks</button>
+      <button class="btn btn-outline btn-sm" data-tag="macro" onclick="filterNewsInt('macro')">&#128200; Macro</button>
+      <button class="btn btn-outline btn-sm" data-tag="commodity" onclick="filterNewsInt('commodity')">&#9935; Commodity</button>
+      <button class="btn btn-outline btn-sm" data-tag="geo" onclick="filterNewsInt('geo')">&#127758; Geopolitical</button>
     </div>
     <div class="news-int-grid" id="newsIntGrid">
       <div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">Click to load news intelligence...</div>
@@ -2440,82 +2441,346 @@ function renderFundTable() {
 }
 
 // ============================================================
-//  NEWS INTELLIGENCE CENTER
+//  NEWS INTELLIGENCE CENTER (rss2json.com powered)
 // ============================================================
 let newsIntLoaded = false;
 let newsIntData = [];
+const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
 
-async function fetchNewsIntelCategory(query, tag, tagLabel) {
+async function fetchNewsViaRss2Json(query, tag, tagLabel) {
   const rssUrl = 'https://news.google.com/rss/search?q='+encodeURIComponent(query)+'&hl=en-IN&gl=IN&ceid=IN:en';
-  for (const proxy of CORS_PROXIES) {
-    try {
-      const resp = await fetch(proxy+encodeURIComponent(rssUrl), {signal:AbortSignal.timeout(8000)});
-      if (!resp.ok) continue;
-      const text = await resp.text();
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(text, 'text/xml');
-      const items = xml.querySelectorAll('item');
-      const results = [];
-      items.forEach((item, i) => {
-        if (i >= 8) return;
-        const title = item.querySelector('title')?.textContent || '';
-        const link = item.querySelector('link')?.textContent || '#';
-        const pubDate = item.querySelector('pubDate')?.textContent || '';
-        const source = item.querySelector('source')?.textContent || 'News';
-        results.push({title, link, pubDate, source, tag, tagLabel});
-      });
-      return results;
-    } catch(e) { continue; }
-  }
-  return [];
+  try {
+    const resp = await fetch(RSS2JSON + encodeURIComponent(rssUrl), {signal:AbortSignal.timeout(10000)});
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    if (data.status !== 'ok' || !data.items) return [];
+    return data.items.slice(0,8).map(item => ({
+      title: item.title || '',
+      link: item.link || '#',
+      pubDate: item.pubDate || '',
+      source: item.author || extractSource(item.title),
+      tag, tagLabel,
+      desc: (item.description || '').replace(/<[^>]*>/g,'').substring(0,120)
+    }));
+  } catch(e) { return []; }
 }
+
+function extractSource(title) {
+  const m = title.match(/ - ([^-]+)$/);
+  return m ? m[1].trim() : 'News';
+}
+
+// Stock-specific news: group portfolio stocks into batched searches
+function getStockNewsQueries() {
+  const groups = {};
+  stocks.forEach(s => {
+    const sector = s.sector || 'Other';
+    if (!groups[sector]) groups[sector] = [];
+    groups[sector].push(s.name.split(' ')[0]); // first word of company name
+  });
+  const queries = [];
+  // Top movers by change% - these are the ones likely to have news
+  const movers = [...stocks].filter(s => s.cmp && s.changePct).sort((a,b) => Math.abs(b.changePct||0) - Math.abs(a.changePct||0));
+  // Top 10 movers get individual searches
+  movers.slice(0,10).forEach(s => {
+    queries.push({q: s.name + ' share price news', tag:'company', label: s.name.split(' ')[0]});
+  });
+  return queries;
+}
+
+
+// ============================================================
+//  AGENT-CURATED NEWS INTELLIGENCE (web-search powered)
+//  Last updated: 21 Jun 2026 by AI Research Agent
+// ============================================================
+const CURATED_NEWS = [
+  // === MEGA CATALYST: Jio IPO ===
+  {title:"Jio Platforms files DRHP for India's largest-ever IPO; $4B raise at $133-180B valuation",
+   source:"Business Standard",link:"https://www.business-standard.com/markets/news/jio-ipo-may-unlock-value-and-trigger-ril-rerating-say-market-experts-126061901136_1.html",
+   pubDate:"2026-06-19",tag:"company",tagLabel:"Reliance",
+   impact:"bullish",impactText:"Massive Value Unlock",
+   stocks:["Reliance Industries"],
+   detail:"DRHP filed Jun 19. Fresh issue of 27cr shares. Will reduce RJIL debt, improve net margins. RIL up 6% in 4 days on IPO buzz. Potential Sensex/Nifty inclusion for Jio standalone."},
+
+  {title:"Jio IPO could trigger Reliance Industries re-rating - analysts decode impact",
+   source:"BusinessToday",link:"https://www.businesstoday.in/markets/stocks/story/reliance-jio-ipo-what-will-be-its-impact-on-reliance-industries-analysts-decode-537470-2026-06-17",
+   pubDate:"2026-06-17",tag:"company",tagLabel:"Reliance",
+   impact:"bullish",impactText:"Re-rating Catalyst",
+   stocks:["Reliance Industries"],
+   detail:"Proceeds to repay RJIL borrowings. Lower leverage improves profitability. Establishes standalone valuation benchmark for India's largest digital platform."},
+
+  // === MACRO: Iran War & Oil ===
+  {title:"Brent crude at $110/bbl as Iran conflict creates largest supply disruption in history - IEA",
+   source:"Morgan Stanley",link:"https://www.morganstanley.com/insights/articles/iran-war-oil-shock-stock-market-impacts",
+   pubDate:"2026-06-20",tag:"macro",tagLabel:"Oil Crisis",
+   impact:"bearish",impactText:"Major Risk",
+   stocks:["BPCL","Indian Oil","HPCL"],
+   detail:"Strait of Hormuz closure. India imports 90% crude. Rupee at 96.88/USD record low. RBI deployed $12-15B forex reserves. OMCs face under-recoveries in Q1 FY27."},
+
+  {title:"Indian Rupee hits record low 96.88/USD; RBI intervenes with $15B forex deployment",
+   source:"Gulf News",link:"https://gulfnews.com/business/markets/india-markets-slump-as-iran-war-tensions-push-oil-prices-higher-1.500546794",
+   pubDate:"2026-06-20",tag:"macro",tagLabel:"Currency",
+   impact:"bearish",impactText:"Rupee Pressure",
+   stocks:[],
+   detail:"Rupee fallen 6% since Iran conflict. RBI intervening in spot, forward & offshore markets. Export-oriented IT stocks benefit but import-heavy sectors hurt."},
+
+  // === MARKET OUTLOOK ===
+  {title:"Sensex, Nifty likely to extend rally Jun 22-26; FIIs return as net buyers with Rs 3,386cr inflow",
+   source:"GoodReturns",link:"https://www.goodreturns.in/news/indian-stock-market-outlook-next-week-june-22-26-sensex-nifty-likely-extend-rally-as-fii-flow-crude-1517039.html",
+   pubDate:"2026-06-21",tag:"india",tagLabel:"Market Outlook",
+   impact:"bullish",impactText:"FII Buying",
+   stocks:[],
+   detail:"BSE Sensex gained 1.7% to 76,803. Nifty Midcap +2.9%, Smallcap +3.2%. FIIs turned net buyers after prolonged selling. Easing geopolitical tensions improving sentiment."},
+
+  {title:"Nifty 50 holds above 24,000; NTPC +1.93%, HDFC Bank +1.74%, Tata Motors +1.12% lead gains",
+   source:"TradingEconomics",link:"https://tradingeconomics.com/india/stock-market",
+   pubDate:"2026-06-20",tag:"india",tagLabel:"Market Movers",
+   impact:"bullish",impactText:"Index Gainers",
+   stocks:["NTPC","HDFC Bank","Tata Motors"],
+   detail:"Sensex rose 254pts to 77,410. IndiGo +2.7%, Trent +2.5%, BEL +2.1%, SBI +1.6%. IT stocks under pressure - Infosys, TCS, HCL Tech declined."},
+
+  // === COMPANY SPECIFIC ===
+  {title:"Suzlon Energy retains Buy rating (target Rs 65); wins 838 MW order from Tata Power",
+   source:"BusinessToday",link:"https://www.businesstoday.in/markets/stocks/story/suzlon-waaree-iex-bhel-tata-power-sjvn-adani-green-buy-sell-or-hold-535972-2026-06-10",
+   pubDate:"2026-06-16",tag:"company",tagLabel:"Suzlon",
+   impact:"bullish",impactText:"Order Win",
+   stocks:["Suzlon Energy"],
+   detail:"CMP Rs 59.97. FY26 revenue grew 54%. New appointment: Ashok Ramachandran as President India Business. Despite strong results, stock dipped 8% creating buying opportunity."},
+
+  {title:"Infosys crashes 9% to 52-week low Rs 1,030; Accenture guidance cut sparks IT sell-off",
+   source:"TradingKey",link:"https://www.tradingkey.com/news/market-movers/261979325-market-movers-infy-20260620",
+   pubDate:"2026-06-20",tag:"company",tagLabel:"IT Sector",
+   impact:"bearish",impactText:"Sector Crash",
+   stocks:["Infosys","TCS","HCL Tech"],
+   detail:"Wiped Rs 40,000cr market cap. FY27 revenue guidance weak at 1.5-3.5%. Q1 results Jul 23. Global peer Accenture downgrade triggered sell-off across Indian IT."},
+
+  {title:"Dixon Technologies rises 4.5% to Rs 14,954; signs 60:40 JV with Gemtek for optical transceivers",
+   source:"Yahoo Finance",link:"https://finance.yahoo.com/quote/DIXON.NS/",
+   pubDate:"2026-06-09",tag:"company",tagLabel:"Dixon Tech",
+   impact:"bullish",impactText:"JV Catalyst",
+   stocks:["Dixon Technologies"],
+   detail:"Binding term sheet signed Jun 9 for BOSA & optical transceiver manufacturing. Multiple brokerages positive after management meetings with SBI Funds & Motilal Oswal."},
+
+  // === DEFENCE SECTOR (Note: not in portfolio per rules) ===
+  {title:"India defence production hits all-time high Rs 21.78 lakh crore in FY26; stocks rally 5-19%",
+   source:"BusinessToday",link:"https://www.businesstoday.in/markets/stocks/story/paras-defence-hal-bharat-dynamics-mazagon-dock-bel-what-fuelled-rally-in-defence-stocks-537693-2026-06-18",
+   pubDate:"2026-06-18",tag:"india",tagLabel:"Defence Boom",
+   impact:"bullish",impactText:"Sector Rally",
+   stocks:[],
+   detail:"BEL top pick with Buy rating, target Rs 510 (Motilal Oswal). HAL expects Rs 90,000cr orders in 2 years. BEL got Rs 2,100cr BrahMos deal. Portfolio rule: NO DEFENCE stocks."},
+
+  {title:"Waaree Energies wins 800MW solar module order; stock at Rs 3,064",
+   source:"Screener",link:"https://www.screener.in/company/WAAREEENER/consolidated/",
+   pubDate:"2026-06-15",tag:"company",tagLabel:"Waaree",
+   impact:"bullish",impactText:"Order Win",
+   stocks:["Waaree Energies"],
+   detail:"800MW solar modules for FY27. Also signed 300MW wind PPA with SECI. India's largest solar module maker. CPO Sanjeev Pushkarna resigned Jun 19 - watch for replacement."},
+
+  {title:"BSE & NSE closed Jun 26 for Eid; extended 3-day weekend ahead",
+   source:"NSE India",link:"https://www.nseindia.com/",
+   pubDate:"2026-06-20",tag:"india",tagLabel:"Holiday",
+   impact:"neutral",impactText:"Market Holiday",
+   stocks:[],
+   detail:"Thursday Jun 26 market closed. Only 4 trading days next week (Mon-Wed, Fri). Plan positions accordingly. Lower liquidity days around holidays."},
+
+  {title:"RBI likely to hike rates in June amid Iran war oil shock; inflation concerns mount",
+   source:"Outlook Money",link:"https://www.outlookmoney.com/amp/story/news/rbi-may-resort-to-rate-hike-as-early-as-june-amid-geopolitical-uncertainty-high-crude-oil-prices",
+   pubDate:"2026-06-18",tag:"macro",tagLabel:"RBI Policy",
+   impact:"bearish",impactText:"Rate Hike Risk",
+   stocks:["HDFC Bank","SBI","Bajaj Finance"],
+   detail:"Crude above $100/bbl forcing RBI hand. Higher rates negative for banks, NBFCs, real estate. But positive for deposit-heavy banks. Gold at record highs as safe haven."},
+
+  {title:"Polycab India on track for Rs 20,000cr revenue in FY26; management confident",
+   source:"Screener",link:"https://www.screener.in/company/POLYCAB/",
+   pubDate:"2026-06-12",tag:"company",tagLabel:"Polycab",
+   impact:"bullish",impactText:"Revenue Beat",
+   stocks:["Polycab India"],
+   detail:"Management reiterated Rs 20,000cr revenue target achievable this fiscal. Strong position in wires & cables. Infrastructure capex cycle beneficiary."},
+
+  {title:"Cochin Shipyard forms Green Maritime Propulsion JV; subscribes 40% stake for Rs 3.6cr",
+   source:"Business Standard",link:"https://www.business-standard.com/markets/cochin-shipyard-ltd-share-price-5762/news",
+   pubDate:"2026-06-11",tag:"company",tagLabel:"Cochin Ship",
+   impact:"bullish",impactText:"Green Push",
+   stocks:["Cochin Shipyard"],
+   detail:"Green Maritime Propulsion Pvt Ltd formed Jun 11. ESG-positive move into sustainable shipping. Shipbuilding order book remains strong."},
+
+  {title:"Bajaj Auto board approves Rs 5,632cr buyback; record date June 24",
+   source:"NSE India",link:"https://www.nseindia.com/",
+   pubDate:"2026-06-19",tag:"company",tagLabel:"Bajaj Auto",
+   impact:"bullish",impactText:"Buyback",
+   stocks:[],
+   detail:"Rs 5,632.8cr buyback approved. Record date Jun 24. Signals management confidence in valuation. Positive for shareholder returns."},
+
+  {title:"KPIT Technologies: ROE 28-34% driven by EV & ADAS embedded software; structurally higher margins",
+   source:"TradeBrains",link:"https://tradebrains.in/kpit-dixon-technologies-and-3-other-stocks-with-roe-above-20-to-keep-on-your-radar/",
+   pubDate:"2026-06-14",tag:"company",tagLabel:"KPIT Tech",
+   impact:"bullish",impactText:"Quality Play",
+   stocks:["KPIT Technologies"],
+   detail:"ROE 28-34% well above IT services avg. EV/ADAS software commands structural premium. Electric vehicle megatrend beneficiary."},
+
+  {title:"IPO surge may drain secondary market liquidity; Jio IPO largest-ever at $4B",
+   source:"Business Standard",link:"https://www.business-standard.com/markets/news/stock-market-outlook-2026-earnings-budget-fii-flow-trade-deal-to-drive-stocks-125122900073_1.html",
+   pubDate:"2026-06-20",tag:"macro",tagLabel:"Liquidity",
+   impact:"bearish",impactText:"Liquidity Risk",
+   stocks:[],
+   detail:"Multiple large IPOs in pipeline. Jio alone may absorb $4B. Could reduce secondary market liquidity and put pressure on mid/small-caps temporarily."},
+];
 
 async function loadNewsIntelTab() {
   if (newsIntLoaded) return;
   newsIntLoaded = true;
   const grid = document.getElementById('newsIntGrid');
-  grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1"><span class="spinner"></span> Scanning global news sources...</div>';
-  
-  const searches = [
-    {q:'India stock market NSE BSE today', tag:'india', label:'India'},
-    {q:'Wall Street S&P NASDAQ market today', tag:'global', label:'Global'},
-    {q:'Indian company quarterly results earnings', tag:'company', label:'Company'},
-    {q:'RBI monetary policy interest rate inflation India', tag:'macro', label:'Macro'},
-    {q:'crude oil gold commodity prices today', tag:'commodity', label:'Commodity'},
-    {q:'geopolitical trade war tariff sanctions', tag:'geo', label:'Geopolitical'},
-    {q:'India GDP manufacturing PMI economic growth', tag:'macro', label:'Macro'},
-    {q:'FII DII institutional investor India market flow', tag:'india', label:'India'},
-  ];
-  
-  const allResults = await Promise.all(searches.map(s => fetchNewsIntelCategory(s.q, s.tag, s.label)));
-  newsIntData = allResults.flat().sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+  // Phase 0: Show curated agent-researched news immediately
+  const curatedItems = CURATED_NEWS.map(n => ({
+    title: n.title,
+    link: n.link,
+    pubDate: n.pubDate,
+    source: n.source,
+    tag: n.tag,
+    tagLabel: n.tagLabel,
+    desc: n.detail || '',
+    impact: n.impact || '',
+    impactText: n.impactText || '',
+    matchedStocks: n.stocks || [],
+    curated: true
+  }));
+  newsIntData = [...curatedItems];
   renderNewsInt('all');
+
+  // Phase 1: Try fetching live news in background via rss2json
+  const marketSearches = [
+    {q:'India stock market Sensex Nifty today', tag:'india', label:'India'},
+    {q:'NSE BSE stocks buy sell signal today', tag:'india', label:'India'},
+    {q:'S&P 500 NASDAQ Wall Street market today', tag:'global', label:'Global'},
+    {q:'global markets Asia Europe stocks today', tag:'global', label:'Global'},
+    {q:'RBI interest rate inflation monetary policy', tag:'macro', label:'Macro'},
+    {q:'crude oil gold commodity prices today', tag:'commodity', label:'Commodity'},
+    {q:'US China trade tariff geopolitical', tag:'geo', label:'Geopolitical'},
+    {q:'India quarterly results earnings revenue', tag:'company', label:'Company'},
+  ];
+
+  // Run live fetches in background
+  setTimeout(async () => {
+    try {
+      const liveResults = [];
+      for (let i = 0; i < marketSearches.length; i += 4) {
+        const batch = marketSearches.slice(i, i+4);
+        const results = await Promise.all(batch.map(s => fetchNewsViaRss2Json(s.q, s.tag, s.label)));
+        liveResults.push(...results.flat());
+        if (i + 4 < marketSearches.length) await new Promise(r => setTimeout(r, 1200));
+      }
+
+      // Stock-specific live searches for top movers
+      await new Promise(r => setTimeout(r, 1000));
+      const stockQueries = getStockNewsQueries();
+      for (let i = 0; i < stockQueries.length; i += 3) {
+        const batch = stockQueries.slice(i, i+3);
+        const results = await Promise.all(batch.map(s => fetchNewsViaRss2Json(s.q, s.tag, s.label)));
+        liveResults.push(...results.flat());
+        if (i + 3 < stockQueries.length) await new Promise(r => setTimeout(r, 1000));
+      }
+
+      if (liveResults.length > 0) {
+        // Merge live results with curated, dedup
+        const merged = [...curatedItems, ...liveResults];
+        const seen = new Set();
+        newsIntData = merged.filter(n => {
+          const key = n.title.substring(0,40).toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        }).sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
+        // Update count badge
+        const badge = document.getElementById('newsCountBadge');
+        if (badge) badge.textContent = newsIntData.length + ' stories';
+        renderNewsInt(currentNewsFilter || 'all');
+      }
+    } catch(e) { console.log('Live news fetch error:', e); }
+  }, 500);
+}
+let currentNewsFilter = 'all';
+
+function updateNewsGrid(items, loadingMsg) {
+  const grid = document.getElementById('newsIntGrid');
+  const unique = [];
+  const seen = new Set();
+  items.forEach(n => {
+    const key = n.title.substring(0,50).toLowerCase();
+    if (!seen.has(key)) { seen.add(key); unique.push(n); }
+  });
+  const sorted = unique.sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
+  let html = sorted.slice(0,30).map(n => buildNewsCard(n)).join('');
+  if (loadingMsg) {
+    html += '<div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1"><span class="spinner"></span> ' + loadingMsg + '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+function buildNewsCardV2(n) {
+  const title = n.title.toLowerCase();
+  // Impact detection - use curated data if available, else auto-detect
+  let impact = '';
+  let impactClass = '';
+  if (n.impact === 'bullish' || n.impactText) {
+    if (n.impact === 'bullish') { impact = '&#9650; ' + (n.impactText||'Bullish'); impactClass = 'signal-buy'; }
+    else if (n.impact === 'bearish') { impact = '&#9660; ' + (n.impactText||'Bearish'); impactClass = 'signal-sell'; }
+    else if (n.impact === 'neutral') { impact = '&#9644; ' + (n.impactText||'Neutral'); impactClass = 'signal-hold'; }
+  } else {
+    if (title.match(/surge|soar|jump|rally|breakout|bull|record|ipo|upgrade|buy|order win/)) {
+      impact = '&#9650; Bullish'; impactClass = 'signal-buy';
+    } else if (title.match(/crash|fall|drop|plunge|bear|downgrade|sell|warning|risk|low|slump/)) {
+      impact = '&#9660; Bearish'; impactClass = 'signal-sell';
+    } else if (title.match(/result|earning|profit|revenue|quarter/)) {
+      impact = '&#128200; Earnings'; impactClass = 'signal-hold';
+    }
+  }
+  // Matched stocks - curated or auto-detect
+  let matchedStocks = n.matchedStocks || [];
+  if (matchedStocks.length === 0) {
+    stocks.forEach(s => {
+      const words = s.name.toLowerCase().split(' ');
+      if (words.some(w => w.length > 3 && title.includes(w))) matchedStocks.push(s.name);
+    });
+  }
+  const stockTags = matchedStocks.slice(0,3).map(s => '<span style="font-size:10px;background:rgba(0,200,150,0.15);color:#00c896;padding:1px 6px;border-radius:8px;font-weight:600">&#127919; '+s+'</span>').join('');
+  
+  const isCurated = n.curated ? '<span style="font-size:9px;background:rgba(255,165,0,0.2);color:#ffa500;padding:1px 5px;border-radius:6px;font-weight:600">AI Research</span>' : '';
+  
+  return '<div class="news-int-card'+(n.curated?' curated':'')+'" onclick="window.open(\'' + n.link.replace(/'/g,"\\'") + '\',\'_blank\')">' +
+    '<div style="display:flex;gap:5px;align-items:center;margin-bottom:6px;flex-wrap:wrap">' +
+    '<span class="news-int-tag '+n.tag+'">'+n.tagLabel+'</span>' +
+    (impact ? '<span class="signal-badge '+impactClass+'" style="font-size:10px">'+impact+'</span>' : '') +
+    isCurated + stockTags +
+    '</div>' +
+    '<div class="news-int-title">'+n.title+'</div>' +
+    (n.desc ? '<div style="font-size:12px;color:var(--muted);margin:5px 0;line-height:1.4">'+n.desc+'</div>' : '') +
+    '<div class="news-int-meta">'+n.source+' &#183; '+(n.pubDate ? timeAgo(new Date(n.pubDate)) : '')+'</div></div>';
 }
 
 function renderNewsInt(filter) {
+  currentNewsFilter = filter;
   const grid = document.getElementById('newsIntGrid');
   const items = filter === 'all' ? newsIntData : newsIntData.filter(n => n.tag === filter);
   if (items.length === 0) {
-    grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">No news found for this category.</div>';
+    grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">No news found for this category. Try refreshing.</div>';
     return;
   }
-  grid.innerHTML = items.slice(0,30).map(n => {
-    const ago = timeAgo(new Date(n.pubDate));
-    return '<div class="news-int-card" onclick="window.open(\'' + n.link + '\',\'_blank\')">' +
-      '<span class="news-int-tag '+n.tag+'">'+n.tagLabel+'</span>' +
-      '<div class="news-int-title">'+n.title+'</div>' +
-      '<div class="news-int-meta">'+n.source+' &#183; '+ago+'</div></div>';
-  }).join('');
+  grid.innerHTML = items.slice(0,50).map(n => buildNewsCardV2(n)).join('');
 }
 
 function filterNewsInt(tag) {
+  currentNewsFilter = tag;
   renderNewsInt(tag);
-  // Update active button
   document.querySelectorAll('#newsIntFilters .btn').forEach(b => {
-    b.className = b.textContent.trim().toLowerCase().includes(tag) || (tag==='all' && b.style.background) ? 
-      'btn btn-sm' : 'btn btn-outline btn-sm';
-    if (tag==='all' && b.textContent.trim()==='All') b.style.background='var(--accent)';
-    else b.style.background='';
+    const btnTag = b.getAttribute('data-tag') || '';
+    if (btnTag === tag) {
+      b.style.background = 'var(--accent)';
+      b.style.color = '#fff';
+    } else {
+      b.style.background = '';
+      b.style.color = '';
+    }
   });
 }
 
