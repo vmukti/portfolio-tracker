@@ -12,7 +12,7 @@
 body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
 
 /* Header */
-.header{background:linear-gradient(135deg,#1e2761 0%,#0f1117 100%);padding:20px 32px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.header{background:linear-gradient(135deg,#1e2761 0%,#0f1117 100%);padding:20px 32px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;position:relative}
 .header h1{font-size:22px;font-weight:600;letter-spacing:-0.5px}
 .header h1 span{color:var(--accent);font-weight:400}
 .hdr-right{display:flex;align-items:center;gap:16px;font-size:13px}
@@ -280,6 +280,20 @@ td{padding:10px 12px;white-space:nowrap}
 .news-int-card.curated{border-left:3px solid #ffa500}
 .rank-num{font-size:16px;font-weight:700;color:var(--accent)}
 
+/* Live Dashboard */
+.refresh-bar{height:3px;background:var(--card2);position:relative;overflow:hidden;border-radius:2px}
+.refresh-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width 1s linear;border-radius:2px}
+.countdown{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.api-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px}
+.api-badge.live{background:#22c55e22;color:var(--green);border:1px solid #22c55e44}
+.api-badge.proxy{background:#f59e0b22;color:var(--amber);border:1px solid #f59e0b44}
+.api-badge.off{background:#ef444422;color:var(--red);border:1px solid #ef444444}
+@keyframes flashGreen{0%{background:var(--card)}50%{background:#22c55e18}100%{background:var(--card)}}
+@keyframes flashRed{0%{background:var(--card)}50%{background:#ef444418}100%{background:var(--card)}}
+tbody tr.flash-up{animation:flashGreen .8s ease}
+tbody tr.flash-down{animation:flashRed .8s ease}
+.fetch-speed{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+
 </style>
 </head>
 <body>
@@ -291,9 +305,13 @@ td{padding:10px 12px;white-space:nowrap}
       <div class="live-dot" id="liveDot"></div>
       <span id="mktStatusHdr">Checking market...</span>
     </div>
+    <span class="api-badge off" id="apiBadge">NO API</span>
     <span id="lastUpdate" style="color:var(--muted)">--</span>
-    <button class="btn btn-primary" onclick="fetchAllPrices()">&#10227; Refresh Now</button>
+    <span class="countdown" id="countdownTimer"></span>
+    <span class="fetch-speed" id="fetchSpeed"></span>
+    <button class="btn btn-primary" onclick="fetchAllPrices()">&#10227; Refresh</button>
   </div>
+  <div class="refresh-bar" style="position:absolute;bottom:0;left:0;right:0"><div class="refresh-bar-fill" id="refreshBar" style="width:100%"></div></div>
 </div>
 
 <div class="tabs" id="tabBar">
@@ -791,6 +809,20 @@ td{padding:10px 12px;white-space:nowrap}
     </div>
 
     <div class="config-panel">
+      <h3>&#9889; Live Price API (Google Apps Script)</h3>
+      <div class="config-row">
+        <label>API URL</label>
+        <input type="text" id="cfgApiUrl" placeholder="https://script.google.com/macros/s/.../exec" style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;width:100%">
+        <span style="color:var(--muted);font-size:12px">Deploy the free Google Apps Script proxy to get seamless batch price fetching. See <code>DEPLOY_STOCK_API.md</code> for instructions. Without this, CORS proxies are used as fallback (less reliable).</span>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+        <button class="btn btn-primary" onclick="saveApiUrl()">Save API URL</button>
+        <button class="btn btn-outline" onclick="testApiUrl()">Test connection</button>
+        <span id="apiTestResult" style="font-size:12px"></span>
+      </div>
+    </div>
+
+    <div class="config-panel">
       <h3>&#127919; Custom price alerts for individual stocks</h3>
       <div style="margin-bottom:12px;display:flex;gap:12px;flex-wrap:wrap">
         <select id="customStock" style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-size:13px;min-width:200px"></select>
@@ -1018,7 +1050,7 @@ function renderAlerts() {
 function clearAlerts() { alerts = []; alertCount = 0; updateAlertBadge(); renderAlerts(); }
 
 // ============================================================
-//  YAHOO FINANCE API &mdash; LIVE PRICES
+//  LIVE PRICE ENGINE &mdash; Apps Script (primary) + CORS proxy (fallback)
 // ============================================================
 const CORS_PROXIES = [
   'https://api.allorigins.win/raw?url=',
@@ -1026,8 +1058,104 @@ const CORS_PROXIES = [
   'https://api.codetabs.com/v1/proxy?quest='
 ];
 let proxyIndex = 0;
+let appsScriptUrl = localStorage.getItem('stockApiUrl') || '';
+let priceSource = 'none';
+let fetchInProgress = false;
+let loadedCount = 0;
+let lastFetchMs = 0;
 
-async function fetchPrice(stock) {
+function updateApiBadge() {
+  const b = document.getElementById('apiBadge');
+  if (!b) return;
+  if (priceSource === 'api') { b.textContent = 'LIVE API'; b.className = 'api-badge live'; }
+  else if (priceSource === 'proxy') { b.textContent = 'CORS PROXY'; b.className = 'api-badge proxy'; }
+  else { b.textContent = appsScriptUrl ? 'CONNECTING' : 'NO API'; b.className = 'api-badge off'; }
+}
+
+function applyPriceData(stock, price, prevClose, volume, high52, low52) {
+  const oldCmp = stock.cmp;
+  stock.cmp = Math.round((price || 0) * 100) / 100;
+  stock.prevClose = prevClose || 0;
+  stock.change = Math.round((stock.cmp - stock.prevClose) * 100) / 100;
+  stock.changePct = stock.prevClose > 0 ? Math.round((stock.change / stock.prevClose) * 10000) / 100 : 0;
+  stock.vol = volume || 0;
+  if (high52) stock.high52 = high52;
+  if (low52) stock.low52 = low52;
+  stock.loaded = true;
+  checkAlerts(stock, oldCmp);
+  if (oldCmp > 0 && stock.cmp !== oldCmp) {
+    stock._flash = stock.cmp > oldCmp ? 'up' : 'down';
+    setTimeout(() => { stock._flash = ''; }, 900);
+  }
+}
+
+async function fetchViaAppsScript() {
+  if (!appsScriptUrl) return false;
+  const symbols = stocks.map(s => s.yf).join(',');
+  try {
+    const resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbols) + '&mode=all', {signal: AbortSignal.timeout(20000)});
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (!data.success || !data.data) throw new Error(data.error || 'Bad response');
+
+    if (data.data.stocks) {
+      stocks.forEach(s => {
+        const d = data.data.stocks[s.yf];
+        if (d) { applyPriceData(s, d.price, d.prevClose, d.volume, d.high52, d.low52); loadedCount++; }
+      });
+    }
+
+    // Apply indices + macro data
+    if (data.data.indices) {
+      const idx = data.data.indices;
+      const idxMap = [
+        {sym:'^GSPC',valId:'sp500Val',chgId:'sp500Chg',isCurrency:false},
+        {sym:'^IXIC',valId:'nasdaqVal',chgId:'nasdaqChg',isCurrency:false},
+        {sym:'^DJI',valId:'dowVal',chgId:'dowChg',isCurrency:false},
+        {sym:'^FTSE',valId:'ftseVal',chgId:'ftseChg',isCurrency:false},
+        {sym:'^N225',valId:'nikkeiVal',chgId:'nikkeiChg',isCurrency:false},
+        {sym:'^HSI',valId:'hsiVal',chgId:'hsiChg',isCurrency:false},
+        {sym:'^NSEI',valId:'niftyGVal',chgId:'niftyGChg',isCurrency:false},
+        {sym:'USDINR=X',valId:'usdinrVal',chgId:'usdinrChg',isCurrency:true}
+      ];
+      idxMap.forEach(m => {
+        const d = idx[m.sym];
+        if (!d) return;
+        const el = document.getElementById(m.valId);
+        const chgEl = document.getElementById(m.chgId);
+        if (el) el.textContent = m.isCurrency ? d.price.toFixed(2) : d.price.toLocaleString('en-IN',{maximumFractionDigits:0});
+        if (chgEl) { chgEl.textContent = (d.changePct >= 0 ? '+' : '') + d.changePct.toFixed(2) + '%'; chgEl.className = 'g-chg ' + (d.changePct >= 0 ? 'up' : 'down'); }
+      });
+      // VIX
+      if (idx['^INDIAVIX']) {
+        const vix = idx['^INDIAVIX'].price;
+        const vChg = idx['^INDIAVIX'].changePct;
+        const vEl = document.getElementById('vixVal'); if(vEl) vEl.textContent = vix.toFixed(2);
+        const vSub = document.getElementById('vixSub'); if(vSub) vSub.textContent = (vChg>=0?'+':'')+vChg.toFixed(1)+'% today';
+        const vCard = document.getElementById('vixCard');
+        if(vCard){vCard.classList.remove('fear','greed','neutral');if(vix>20)vCard.classList.add('fear');else if(vix<14)vCard.classList.add('greed');else vCard.classList.add('neutral');}
+        computeSentiment(vix);
+      }
+      // Gold
+      if (idx['GC=F']) {
+        const g = idx['GC=F'];
+        const gEl = document.getElementById('goldVal'); if(gEl) gEl.textContent = '$'+g.price.toLocaleString('en-US',{maximumFractionDigits:0});
+        const gSub = document.getElementById('goldSub'); if(gSub) gSub.textContent = (g.changePct>=0?'+':'')+g.changePct.toFixed(2)+'% today';
+      }
+      // Oil
+      if (idx['BZ=F']) {
+        const o = idx['BZ=F'];
+        const oEl = document.getElementById('oilVal'); if(oEl) oEl.textContent = '$'+o.price.toFixed(2);
+        const oSub = document.getElementById('oilSub'); if(oSub) oSub.textContent = (o.changePct>=0?'+':'')+o.changePct.toFixed(2)+'% today';
+      }
+    }
+    priceSource = 'api';
+    return true;
+  } catch(e) { console.warn('Apps Script fetch failed:', e); return false; }
+}
+
+// ---- FALLBACK: CORS proxy individual fetch ----
+async function fetchPriceViaProxy(stock) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(stock.yf)}?interval=1d&range=1d`;
   for (let i = 0; i < CORS_PROXIES.length; i++) {
     const proxy = CORS_PROXIES[(proxyIndex + i) % CORS_PROXIES.length];
@@ -1038,48 +1166,92 @@ async function fetchPrice(stock) {
       const result = data?.chart?.result?.[0];
       if (!result) continue;
       const meta = result.meta;
-      const oldCmp = stock.cmp;
-      stock.cmp = Math.round((meta.regularMarketPrice || 0) * 100) / 100;
-      stock.prevClose = meta.previousClose || meta.chartPreviousClose || 0;
-      stock.change = Math.round((stock.cmp - stock.prevClose) * 100) / 100;
-      stock.changePct = stock.prevClose > 0 ? Math.round((stock.change / stock.prevClose) * 10000) / 100 : 0;
-      stock.vol = meta.regularMarketVolume || 0;
-      stock.high52 = meta.fiftyTwoWeekHigh || stock.high52;
-      stock.low52 = meta.fiftyTwoWeekLow || stock.low52;
-      stock.mcap = meta.regularMarketPrice && meta.regularMarketVolume ? stock.mcap : stock.mcap;
-      stock.loaded = true;
-      checkAlerts(stock, oldCmp);
+      applyPriceData(stock, meta.regularMarketPrice, meta.previousClose || meta.chartPreviousClose, meta.regularMarketVolume, meta.fiftyTwoWeekHigh, meta.fiftyTwoWeekLow);
       return true;
     } catch(e) { continue; }
   }
   return false;
 }
 
-let fetchInProgress = false;
-let loadedCount = 0;
-
-async function fetchAllPrices() {
-  if (fetchInProgress) return;
-  fetchInProgress = true;
-  document.getElementById('sLoadedSub').textContent = 'Fetching live prices...';
-  loadedCount = 0;
-
-  // Batch in groups of 5 to avoid rate limiting
+async function fetchAllViaProxy() {
   for (let i = 0; i < stocks.length; i += 5) {
     const batch = stocks.slice(i, i + 5);
-    const results = await Promise.allSettled(batch.map(s => fetchPrice(s)));
+    const results = await Promise.allSettled(batch.map(s => fetchPriceViaProxy(s)));
     results.forEach(r => { if (r.status === 'fulfilled' && r.value) loadedCount++; });
     document.getElementById('sLoaded').textContent = `${loadedCount} / ${stocks.length}`;
     renderTable(getFilteredStocks());
-    // Small delay between batches
     if (i + 5 < stocks.length) await new Promise(r => setTimeout(r, 500));
   }
+  if (loadedCount > 0) priceSource = 'proxy';
+  return loadedCount > 0;
+}
 
+// ---- MASTER FETCH: tries Apps Script first, then falls back ----
+async function fetchAllPrices() {
+  if (fetchInProgress) return;
+  fetchInProgress = true;
+  loadedCount = 0;
+  const t0 = performance.now();
+  document.getElementById('sLoadedSub').textContent = appsScriptUrl ? 'Batch fetching via API...' : 'Fetching via CORS proxy...';
+  updateApiBadge();
+
+  // Try Apps Script first (all stocks in ~2s)
+  let ok = await fetchViaAppsScript();
+
+  // Fallback to CORS proxy
+  if (!ok) {
+    document.getElementById('sLoadedSub').textContent = 'Falling back to CORS proxy...';
+    ok = await fetchAllViaProxy();
+  }
+
+  lastFetchMs = Math.round(performance.now() - t0);
   const now = new Date();
   document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('en-IN');
-  document.getElementById('sLoadedSub').textContent = loadedCount > 0 ? `${loadedCount} live prices loaded` : 'API may be rate-limited &mdash; retry in 30s';
+  document.getElementById('fetchSpeed').textContent = lastFetchMs < 60000 ? (lastFetchMs/1000).toFixed(1)+'s' : '';
+  document.getElementById('sLoaded').textContent = `${loadedCount} / ${stocks.length}`;
+  document.getElementById('sLoadedSub').textContent = loadedCount > 0
+    ? `${loadedCount} prices via ${priceSource === 'api' ? 'Apps Script API' : 'CORS proxy'}`
+    : 'All sources failed &mdash; retry in 30s';
+  updateApiBadge();
   updateMarketStatus();
+  renderTable(getFilteredStocks());
   fetchInProgress = false;
+}
+
+// ---- API URL management ----
+function saveApiUrl() {
+  const url = (document.getElementById('cfgApiUrl')?.value || '').trim();
+  if (url && !url.startsWith('https://script.google.com/')) {
+    document.getElementById('apiTestResult').textContent = 'URL must start with https://script.google.com/';
+    document.getElementById('apiTestResult').style.color = 'var(--red)';
+    return;
+  }
+  appsScriptUrl = url;
+  localStorage.setItem('stockApiUrl', url);
+  priceSource = 'none';
+  updateApiBadge();
+  document.getElementById('apiTestResult').textContent = url ? 'Saved! Click Test or Refresh to verify.' : 'Cleared. Using CORS proxy fallback.';
+  document.getElementById('apiTestResult').style.color = 'var(--green)';
+}
+async function testApiUrl() {
+  const url = (document.getElementById('cfgApiUrl')?.value || '').trim();
+  if (!url) { document.getElementById('apiTestResult').textContent = 'Enter a URL first'; document.getElementById('apiTestResult').style.color='var(--amber)'; return; }
+  document.getElementById('apiTestResult').textContent = 'Testing...';
+  document.getElementById('apiTestResult').style.color = 'var(--muted)';
+  try {
+    const t0 = performance.now();
+    const r = await fetch(url + '?symbols=RELIANCE.NS,TCS.NS&mode=price', {signal: AbortSignal.timeout(15000)});
+    const d = await r.json();
+    const ms = Math.round(performance.now() - t0);
+    if (d.success && d.data?.stocks && Object.keys(d.data.stocks).length > 0) {
+      document.getElementById('apiTestResult').innerHTML = `<span style="color:var(--green)">&#9989; Working! ${Object.keys(d.data.stocks).length} stocks in ${ms}ms</span>`;
+      saveApiUrl();
+    } else {
+      document.getElementById('apiTestResult').innerHTML = `<span style="color:var(--red)">&#10060; Response OK but no data. Check script deployment.</span>`;
+    }
+  } catch(e) {
+    document.getElementById('apiTestResult').innerHTML = `<span style="color:var(--red)">&#10060; ${e.message}. Check URL and deployment.</span>`;
+  }
 }
 
 function updateMarketStatus() {
@@ -1126,6 +1298,7 @@ function renderTable(data) {
     const layerCls = s.layer==='Layer 1'?'badge-l1':s.layer==='Layer 2'?'badge-l2':s.layer==='Energy'?'badge-energy':'badge-l3';
     const cmpDisplay = s.loaded ? `&#8377;${s.cmp.toLocaleString('en-IN')}` : '<span class="spinner"></span>';
     const chgDisplay = s.loaded ? `${sign}${chg.toFixed(2)}%` : '--';
+    const flashCls = s._flash === 'up' ? ' flash-up' : s._flash === 'down' ? ' flash-down' : '';
 
     // Signal column
     let signal = '';
@@ -1140,7 +1313,7 @@ function renderTable(data) {
 
     const alertRow = (signal && signal.includes('Buy Zone')) ? ' alert-row' : '';
 
-    return `<tr class="${alertRow}">
+    return `<tr class="${alertRow}${flashCls}">
       <td><span class="ticker" onclick="showDetail('${s.ticker}')">${s.name}</span></td>
       <td style="color:var(--muted);font-size:12px">${s.ticker}</td>
       <td><span class="badge ${layerCls}">${s.layer}</span></td>
@@ -1444,6 +1617,14 @@ function resetConfig() {
   document.getElementById('cfgRefresh').value=60;
   saveConfig();
 }
+// Load API URL from localStorage on page load
+function initApiConfig() {
+  const saved = localStorage.getItem('stockApiUrl') || '';
+  appsScriptUrl = saved;
+  const input = document.getElementById('cfgApiUrl');
+  if (input && saved) input.value = saved;
+  updateApiBadge();
+}
 function toggleNotifications(el) {
   if (!notificationsEnabled) {
     Notification.requestPermission().then(p => {
@@ -1505,19 +1686,42 @@ function renderEnergyGrid() {
 }
 
 // ============================================================
-//  AUTO REFRESH
+//  AUTO REFRESH WITH COUNTDOWN
 // ============================================================
 let refreshTimer = null;
+let countdownTimer = null;
+let countdownSec = 0;
+
 function setupAutoRefresh() {
   if(refreshTimer) clearInterval(refreshTimer);
+  if(countdownTimer) clearInterval(countdownTimer);
+  countdownSec = config.refreshSec;
+
+  // Main refresh timer
   refreshTimer = setInterval(() => {
     const now = new Date();
     const ist = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
     const hrs = ist.getHours(), mins = ist.getMinutes(), day = ist.getDay();
     const isOpen = day>0 && day<6 && ((hrs===9&&mins>=15)||(hrs>9&&hrs<15)||(hrs===15&&mins<=30));
-    if(isOpen) fetchAllPrices();
+    if(isOpen) { fetchAllPrices(); countdownSec = config.refreshSec; }
     updateMarketStatus();
   }, config.refreshSec * 1000);
+
+  // Countdown ticker (every second)
+  countdownTimer = setInterval(() => {
+    countdownSec = Math.max(0, countdownSec - 1);
+    const ct = document.getElementById('countdownTimer');
+    const bar = document.getElementById('refreshBar');
+    const ist = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+    const hrs = ist.getHours(), mins = ist.getMinutes(), day = ist.getDay();
+    const isOpen = day>0 && day<6 && ((hrs===9&&mins>=15)||(hrs>9&&hrs<15)||(hrs===15&&mins<=30));
+    if (isOpen && ct) {
+      ct.textContent = countdownSec > 0 ? `Next: ${countdownSec}s` : 'Refreshing...';
+    } else if (ct) {
+      ct.textContent = 'Market closed';
+    }
+    if (bar) bar.style.width = (countdownSec / config.refreshSec * 100) + '%';
+  }, 1000);
 }
 
 
@@ -1831,6 +2035,7 @@ populateCustomDropdown();
 renderCustomAlerts();
 renderEnergyGrid();
 updateMarketStatus();
+initApiConfig();
 setupAutoRefresh();
 // Check curated news for alerts on load
 function checkNewsAlerts() {
