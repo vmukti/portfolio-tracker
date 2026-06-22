@@ -53,10 +53,9 @@ td{padding:10px 12px;white-space:nowrap}
 .ticker:hover{text-decoration:underline}
 .up{color:var(--green)}.down{color:var(--red)}
 .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
-.badge-l1{background:#1e276122;color:#cadcfc;border:1px solid #1e276155}
-.badge-l2{background:#0f6e5622;color:#5dcaa5;border:1px solid #0f6e5655}
-.badge-l3{background:#85401022;color:#f0997b;border:1px solid #85401055}
-.badge-energy{background:#412402;color:#fac775;border:1px solid #85400b55}
+.badge-imm{background:#dc262622;color:#fca5a5;border:1px solid #dc262655}
+.badge-1mo{background:#f59e0b22;color:#fcd34d;border:1px solid #f59e0b55}
+.badge-lt{background:#0f6e5622;color:#5dcaa5;border:1px solid #0f6e5655}
 .scan-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;margin-left:6px;letter-spacing:0.3px}
 .scan-strong{background:#1b5e2033;color:#4caf50;border:1px solid #1b5e2066}
 .scan-intact{background:#1565c033;color:#64b5f6;border:1px solid #1565c066}
@@ -351,16 +350,15 @@ tbody tr.flash-down{animation:flashRed .8s ease}
       <span style="color:#64b5f6;cursor:pointer" onclick="document.getElementById('scanFilter').value='INTACT';filterTable()">&#10003; INTACT: <span id="scanIntact">0</span></span>
       <span style="color:#ffb74d;cursor:pointer" onclick="document.getElementById('scanFilter').value='WEAKENING';filterTable()">&#8595; WEAK: <span id="scanWeak">0</span></span>
       <span style="color:var(--muted);cursor:pointer" onclick="document.getElementById('scanFilter').value='all';filterTable()">TOTAL: <span id="scanTotal">0</span></span>
-      <span style="color:var(--muted);font-weight:400;font-size:11px;margin-left:8px">June 2026 Scan</span>
+      <span style="color:var(--muted);font-weight:400;font-size:11px;margin-left:8px">Primary Research Portfolio &mdash; Jun 2026</span>
     </div>
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Search by name, ticker, or sector..." oninput="filterTable()">
       <select id="layerFilter" onchange="filterTable()">
-        <option value="all">All Layers</option>
-        <option value="Layer 1">Layer 1 &mdash; Buffett Core</option>
-        <option value="Layer 2">Layer 2 &mdash; Geopolitical</option>
-        <option value="Layer 3">Layer 3 &mdash; Frontier</option>
-        <option value="Energy">Energy & Battery</option>
+        <option value="all">All Categories</option>
+        <option value="Immediate">&#9889; Immediate (1-2 Weeks)</option>
+        <option value="1-Month">&#128197; One-Month (July)</option>
+        <option value="Long-Term">&#127942; Long-Term (3-5 Years)</option>
       </select>
       <select id="scanFilter" onchange="filterTable()">
         <option value="all">All Scan Status</option>
@@ -379,8 +377,8 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     </div>
     <div class="tbl-wrap">
       <table><thead><tr>
-        <th>Company</th><th>NSE / BSE</th><th>Layer</th><th>Sector</th>
-        <th>CMP (&#8377;)</th><th>Change</th><th>Buy Score</th><th>P/E</th><th>ROCE</th><th>52W Range</th><th>Signal</th>
+        <th>Company</th><th>NSE / BSE</th><th>Category</th><th>Sector</th>
+        <th>CMP (&#8377;)</th><th>Change</th><th>Catalyst</th><th>P/E</th><th>ROCE</th><th>52W Range</th><th>Signal</th>
       </tr></thead><tbody id="stockBody"></tbody></table>
     </div>
   </div>
@@ -444,11 +442,10 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     <div class="val-filters">
       <input type="text" id="valSearch" placeholder="Search stocks..." oninput="renderValuation()" style="flex:1;min-width:200px">
       <select id="valLayerFilter" onchange="renderValuation()">
-        <option value="all">All Layers</option>
-        <option value="Layer 1">Layer 1 &mdash; Buffett Core</option>
-        <option value="Layer 2">Layer 2 &mdash; Geopolitical</option>
-        <option value="Layer 3">Layer 3 &mdash; Frontier</option>
-        <option value="Energy">Energy & Battery</option>
+        <option value="all">All Categories</option>
+        <option value="Immediate">&#9889; Immediate (1-2 Weeks)</option>
+        <option value="1-Month">&#128197; One-Month (July)</option>
+        <option value="Long-Term">&#127942; Long-Term (3-5 Years)</option>
       </select>
       <select id="valSortBy" onchange="renderValuation()">
         <option value="buyScore">Sort: Buy Score &#8595;</option>
@@ -677,6 +674,17 @@ tbody tr.flash-down{animation:flashRed .8s ease}
         <span id="newsCountBadge" style="font-size:11px;color:var(--muted)"></span>
         <button class="btn btn-outline btn-sm" onclick="newsIntLoaded=false;loadNewsIntelTab()">&#10227; Refresh</button>
       </div>
+    </div>
+
+    <!-- PRIMARY RESEARCH SIGNALS -->
+    <div id="primaryResearchPanel" style="margin-bottom:24px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:18px">&#128269;</span>
+        <h3 style="margin:0;font-size:16px;color:var(--green)">Primary Research Signals</h3>
+        <span style="font-size:10px;background:var(--green);color:#000;padding:2px 8px;border-radius:10px;font-weight:700">OUR EDGE</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Data sourced from BSE filings, SEBI bulk deals, VAHAN registrations, promoter transactions &mdash; NOT from news articles.</div>
+      <div id="primaryResearchGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px"></div>
     </div>
 
     <!-- STOCK TRIGGERS PANEL -->
@@ -925,73 +933,51 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 //  STOCK DATA &mdash; All 70 stocks with Yahoo Finance tickers
 // ============================================================
 const stocks = [
-  // Layer 1
-  {name:"Garware Technical Fibres",ticker:"GARFIBRES",scanStatus:"INTACT",yf:"GARFIBRES.NS",layer:"Layer 1",sector:"Specialty Materials",cmp:0,prevClose:0,change:0,changePct:0,mcap:4800,pe:32,roce:28,low52:2800,high52:4500,score:8.5,thesis:"Technical textiles monopoly, aquaculture nets, geo-synthetics.",vol:0,avgVol:0,loaded:false},
-  {name:"GMM Pfaudler",ticker:"GMMPFAUDL",scanStatus:"INTACT",yf:"GMMPFAUDL.NS",layer:"Layer 1",sector:"Capital Goods",cmp:0,prevClose:0,change:0,changePct:0,mcap:6000,pe:38,roce:22,low52:980,high52:1600,score:7.8,thesis:"Glass-lined equipment monopoly. 60%+ India share.",vol:0,avgVol:0,loaded:false},
-  {name:"Alkyl Amines",ticker:"ALKYLAMINE",scanStatus:"WEAKENING",yf:"ALKYLAMINE.NS",layer:"Layer 1",sector:"Specialty Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:5400,pe:45,roce:25,low52:1650,high52:2700,score:7.5,thesis:"Aliphatic amines near-monopoly. Key pharma/agrochem raw material.",vol:0,avgVol:0,loaded:false},
-  {name:"Balaji Amines",ticker:"BALAMINES",scanStatus:"STRENGTHENING",yf:"BALAMINES.NS",layer:"Layer 1",sector:"Specialty Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:6600,pe:28,roce:20,low52:1700,high52:2900,score:7.2,thesis:"DMF/NMP sole Indian manufacturer.",vol:0,avgVol:0,loaded:false},
-  {name:"Navin Fluorine",ticker:"NAVINFLUOR",scanStatus:"STRENGTHENING",yf:"NAVINFLUOR.NS",layer:"Layer 1",sector:"Specialty Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:15900,pe:55,roce:18,low52:2600,high52:4100,score:7.8,thesis:"Fluorine chemistry. Solvay JV. CDMO/CRAMS growth.",vol:0,avgVol:0,loaded:false},
-  {name:"Deepak Nitrite",ticker:"DEEPAKNTR",scanStatus:"INTACT",yf:"DEEPAKNTR.NS",layer:"Layer 1",sector:"Specialty Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:32700,pe:40,roce:22,low52:1900,high52:3100,score:7.5,thesis:"Phenolics value chain. Largest IPA maker.",vol:0,avgVol:0,loaded:false},
-  {name:"Jyoti Resins",ticker:"JYOTIRES",scanStatus:"INTACT",yf:"JYOTIRES.BO",layer:"Layer 1",sector:"Adhesives",cmp:0,prevClose:0,change:0,changePct:0,mcap:1114,pe:15.9,roce:36.5,low52:700,high52:1570,score:7.5,thesis:"Euro 7000 #2 adhesive. Zero debt. 54% promoter. 3.5K TPM.",vol:0,avgVol:0,loaded:false,customAlerts:[{price:850,dir:"below",label:"Strong buy zone"},{price:1000,dir:"above",label:"Breakout watch"},{price:1167,dir:"above",label:"50 DMA reclaim"}]},
-  {name:"Astral Ltd",ticker:"ASTRAL",scanStatus:"INTACT",yf:"ASTRAL.NS",layer:"Layer 1",sector:"Building Materials",cmp:0,prevClose:0,change:0,changePct:0,mcap:35000,pe:65,roce:22,low52:1350,high52:2300,score:8.0,thesis:"Pipes + adhesives. 50%+ CPVC share.",vol:0,avgVol:0,loaded:false},
-  {name:"Page Industries",ticker:"PAGEIND",scanStatus:"INTACT",yf:"PAGEIND.NS",layer:"Layer 1",sector:"Consumer",cmp:0,prevClose:0,change:0,changePct:0,mcap:42400,pe:65,roce:45,low52:32000,high52:49000,score:8.5,thesis:"Jockey India exclusive. 65%+ premium innerwear.",vol:0,avgVol:0,loaded:false},
-  {name:"Aarti Industries",ticker:"AARTIIND",scanStatus:"STRENGTHENING",yf:"AARTIIND.NS",layer:"Layer 1",sector:"Specialty Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:16200,pe:30,roce:12,low52:380,high52:650,score:7.0,thesis:"Benzene value chain. Multi-year MNC contracts.",vol:0,avgVol:0,loaded:false},
-  {name:"APL Apollo Tubes",ticker:"APLAPOLLO",scanStatus:"STRENGTHENING",yf:"APLAPOLLO.NS",layer:"Layer 1",sector:"Building Materials",cmp:0,prevClose:0,change:0,changePct:0,mcap:42000,pe:48,roce:30,low52:1200,high52:1800,score:8.2,thesis:"55%+ organized steel tubes market share.",vol:0,avgVol:0,loaded:false},
-  {name:"Ratnamani Metals",ticker:"RATNAMANI",scanStatus:"WEAKENING",yf:"RATNAMANI.NS",layer:"Layer 1",sector:"Capital Goods",cmp:0,prevClose:0,change:0,changePct:0,mcap:21700,pe:35,roce:28,low52:2500,high52:3900,score:8.0,thesis:"SS tubes. Oil/gas, nuclear, defence.",vol:0,avgVol:0,loaded:false},
-  {name:"KEI Industries",ticker:"KEI",scanStatus:"STRENGTHENING",yf:"KEI.NS",layer:"Layer 1",sector:"Capital Goods",cmp:0,prevClose:0,change:0,changePct:0,mcap:30600,pe:50,roce:25,low52:2600,high52:5000,score:7.8,thesis:"Cables & wires. EHV cables. Infra play.",vol:0,avgVol:0,loaded:false},
-  // Layer 2
-  {name:"Dixon Technologies",ticker:"DIXON",scanStatus:"INTACT",yf:"DIXON.NS",layer:"Layer 2",sector:"EMS/Technology",cmp:0,prevClose:0,change:0,changePct:0,mcap:87000,pe:95,roce:28,low52:10000,high52:19400,score:8.0,thesis:"India's #1 EMS. China+1 wave.",vol:0,avgVol:0,loaded:false},
-  {name:"Kaynes Technology",ticker:"KAYNES",scanStatus:"WEAKENING",yf:"KAYNES.NS",layer:"Layer 2",sector:"EMS/Technology",cmp:0,prevClose:0,change:0,changePct:0,mcap:22500,pe:85,roce:22,low52:3200,high52:7100,score:7.8,thesis:"ESDM across auto, industrial, aerospace.",vol:0,avgVol:0,loaded:false},
-  {name:"Syrma SGS",ticker:"SYRMA",scanStatus:"STRENGTHENING",yf:"SYRMA.NS",layer:"Layer 2",sector:"EMS/Technology",cmp:0,prevClose:0,change:0,changePct:0,mcap:8800,pe:55,roce:14,low52:340,high52:650,score:7.0,thesis:"PCBA + box build. Suzlon, Samsung clients.",vol:0,avgVol:0,loaded:false},
-  {name:"KPIT Technologies",ticker:"KPITTECH",scanStatus:"INTACT",yf:"KPITTECH.NS",layer:"Layer 2",sector:"Auto Tech/IT",cmp:0,prevClose:0,change:0,changePct:0,mcap:38200,pe:65,roce:35,low52:1000,high52:1900,score:8.0,thesis:"Automotive software. ADAS, EV platforms.",vol:0,avgVol:0,loaded:false},
-  {name:"Tata Elxsi",ticker:"TATAELXSI",scanStatus:"INTACT",yf:"TATAELXSI.NS",layer:"Layer 2",sector:"Design/Tech",cmp:0,prevClose:0,change:0,changePct:0,mcap:34200,pe:50,roce:40,low52:4200,high52:8500,score:7.5,thesis:"Design + engineering. 30%+ margin.",vol:0,avgVol:0,loaded:false},
-  {name:"Aether Industries",ticker:"AETHER",scanStatus:"INTACT",yf:"AETHER.NS",layer:"Layer 2",sector:"Specialty Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:11100,pe:48,roce:18,low52:650,high52:1100,score:7.5,thesis:"Continuous flow chemistry.",vol:0,avgVol:0,loaded:false},
-  {name:"E2E Networks",ticker:"E2ENET",scanStatus:"INTACT",yf:"E2ENET.NS",layer:"Layer 2",sector:"Cloud/AI Infra",cmp:0,prevClose:0,change:0,changePct:0,mcap:2600,pe:120,roce:15,low52:1200,high52:3500,score:7.0,thesis:"India's GPU cloud. Data sovereignty.",vol:0,avgVol:0,loaded:false},
-  // Layer 3
-  {name:"Waaree Energies",ticker:"WAAREE",scanStatus:"INTACT",yf:"WAAREE.NS",layer:"Layer 3",sector:"Solar/Energy",cmp:0,prevClose:0,change:0,changePct:0,mcap:69600,pe:30,roce:45,low52:1750,high52:3800,score:8.0,thesis:"India's #1 solar module maker. 12 GW.",vol:0,avgVol:0,loaded:false},
-  {name:"Premier Energies",ticker:"PREMIERENE",scanStatus:"STRENGTHENING",yf:"PREMIERENE.NS",layer:"Layer 3",sector:"Solar/Energy",cmp:0,prevClose:0,change:0,changePct:0,mcap:38300,pe:40,roce:35,low52:600,high52:1300,score:7.5,thesis:"Solar cells + modules. 4 GW expansion.",vol:0,avgVol:0,loaded:false},
-  {name:"Tata Power",ticker:"TATAPOWER",scanStatus:"INTACT",yf:"TATAPOWER.NS",layer:"Layer 3",sector:"Power/BESS",cmp:0,prevClose:0,change:0,changePct:0,mcap:123000,pe:35,roce:10,low52:340,high52:490,score:7.2,thesis:"Integrated power + solar + BESS.",vol:0,avgVol:0,loaded:false},
-  {name:"CDSL",ticker:"CDSL",scanStatus:"INTACT",yf:"CDSL.NS",layer:"Layer 3",sector:"Capital Markets",cmp:0,prevClose:0,change:0,changePct:0,mcap:31500,pe:55,roce:40,low52:1050,high52:1900,score:8.5,thesis:"Depository duopoly. 85 Cr+ demat.",vol:0,avgVol:0,loaded:false},
-  {name:"BSE Ltd",ticker:"BSE",scanStatus:"STRENGTHENING",yf:"BSE.NS",layer:"Layer 3",sector:"Capital Markets",cmp:0,prevClose:0,change:0,changePct:0,mcap:71000,pe:65,roce:15,low52:2000,high52:5950,score:7.5,thesis:"Options segment growing.",vol:0,avgVol:0,loaded:false},
-  {name:"Angel One",ticker:"ANGELONE",scanStatus:"INTACT",yf:"ANGELONE.NS",layer:"Layer 3",sector:"Capital Markets",cmp:0,prevClose:0,change:0,changePct:0,mcap:21700,pe:18,roce:42,low52:1800,high52:3400,score:7.8,thesis:"Discount broker. 25M+ clients.",vol:0,avgVol:0,loaded:false},
-  {name:"RACL Geartech",ticker:"RACLGEAR",scanStatus:"INTACT",yf:"RACLGEAR.NS",layer:"Layer 3",sector:"Auto Components",cmp:0,prevClose:0,change:0,changePct:0,mcap:1200,pe:28,roce:22,low52:500,high52:900,score:7.0,thesis:"Precision gears. BMW/Bosch supplier.",vol:0,avgVol:0,loaded:false},
-  {name:"Netweb Technologies",ticker:"NETWEB",scanStatus:"STRENGTHENING",yf:"NETWEB.NS",layer:"Layer 3",sector:"AI/HPC Infra",cmp:0,prevClose:0,change:0,changePct:0,mcap:14400,pe:75,roce:30,low52:1600,high52:3300,score:7.5,thesis:"India's HPC/AI server maker. NVIDIA.",vol:0,avgVol:0,loaded:false},
-  {name:"Newgen Software",ticker:"NEWGEN",scanStatus:"WEAKENING",yf:"NEWGEN.NS",layer:"Layer 3",sector:"Enterprise Software",cmp:0,prevClose:0,change:0,changePct:0,mcap:15400,pe:42,roce:30,low52:750,high52:1700,score:7.5,thesis:"Low-code platform. 80+ countries.",vol:0,avgVol:0,loaded:false},
-  {name:"Zaggle Prepaid",ticker:"ZAGGLE",scanStatus:"INTACT",yf:"ZAGGLE.NS",layer:"Layer 3",sector:"Fintech/SaaS",cmp:0,prevClose:0,change:0,changePct:0,mcap:6800,pe:55,roce:18,low52:250,high52:540,score:7.0,thesis:"B2B spend management.",vol:0,avgVol:0,loaded:false},
-  {name:"Jupiter Wagons",ticker:"JUPITERWAG",scanStatus:"WEAKENING",yf:"JWL.NS",layer:"Layer 3",sector:"Railways",cmp:0,prevClose:0,change:0,changePct:0,mcap:19400,pe:40,roce:22,low52:300,high52:700,score:7.2,thesis:"Railway wagons. EV bus chassis.",vol:0,avgVol:0,loaded:false},
-  {name:"Titagarh Rail",ticker:"TITAGARH",scanStatus:"INTACT",yf:"TITAGARH.NS",layer:"Layer 3",sector:"Railways",cmp:0,prevClose:0,change:0,changePct:0,mcap:25200,pe:50,roce:18,low52:650,high52:1700,score:7.0,thesis:"Metro coaches. Vande Bharat.",vol:0,avgVol:0,loaded:false},
-  // Energy & Battery
-  {name:"Exide Industries",ticker:"EXIDEIND",scanStatus:"INTACT",yf:"EXIDEIND.NS",layer:"Energy",sector:"Battery/Storage",cmp:0,prevClose:0,change:0,changePct:0,mcap:31131,pe:26.8,roce:10.2,low52:308,high52:431,score:7.5,thesis:"Lead-acid &rarr; Li-ion pivot. 6 GWh EESL plant. &#8377;4,352 Cr invested.",vol:0,avgVol:0,loaded:false},
-  {name:"Amara Raja Energy",ticker:"AMARAJABAT",scanStatus:"INTACT",yf:"AMARAJABAT.NS",layer:"Energy",sector:"Battery/Storage",cmp:0,prevClose:0,change:0,changePct:0,mcap:16168,pe:21.8,roce:18,low52:680,high52:1350,score:7.2,thesis:"#2 lead-acid. Giga-scale Li-ion planned.",vol:0,avgVol:0,loaded:false},
-  {name:"Himadri Speciality Chem",ticker:"HSCL",scanStatus:"STRENGTHENING",yf:"HSCL.NS",layer:"Energy",sector:"Battery Materials",cmp:0,prevClose:0,change:0,changePct:0,mcap:25200,pe:33,roce:28,low52:310,high52:680,score:8.0,thesis:"India's 1st anode producer. LFP cathode &#8377;1,125 Cr project.",vol:0,avgVol:0,loaded:false},
-  {name:"Bondada Engineering",ticker:"BONDADA",scanStatus:"STRENGTHENING",yf:"BONDADA.NS",layer:"Energy",sector:"BESS/EPC",cmp:0,prevClose:0,change:0,changePct:0,mcap:3800,pe:18.8,roce:35.7,low52:215,high52:510,score:7.5,thesis:"BESS EPC. Rev CAGR 41%. &#8377;7,147 Cr order book. ROE 36%.",vol:0,avgVol:0,loaded:false},
-  {name:"JSW Energy",ticker:"JSWENERGY",scanStatus:"STRENGTHENING",yf:"JSWENERGY.NS",layer:"Energy",sector:"Power/BESS",cmp:0,prevClose:0,change:0,changePct:0,mcap:91000,pe:42,roce:8,low52:430,high52:770,score:7.0,thesis:"500 MW/1 GWh BESS. Fluence JV $150M.",vol:0,avgVol:0,loaded:false},
-  // Turnaround / High-Risk Bets
-  {name:"Vodafone Idea",ticker:"IDEA",scanStatus:"STRENGTHENING",yf:"IDEA.NS",layer:"Layer 3",sector:"Telecom",cmp:0,prevClose:0,change:0,changePct:0,mcap:153522,pe:4.3,roce:-2,low52:6.12,high52:14.08,score:5.5,thesis:"Turnaround play. AGR dues cut to 64K Cr. ARPU &#8377;190 (+8.3% YoY). 19 qtrs consecutive ARPU growth. Bank debt down to &#8377;726 Cr. SBI &#8377;35K Cr loan in talks. ABG $500M equity infusion. ICRA upgrade to BBB+. 5G rollout underway.",vol:0,avgVol:0,loaded:false},
-  {name:"Ola Electric",ticker:"OLAELEC",scanStatus:"WEAKENING",yf:"OLAELEC.NS",layer:"Layer 3",sector:"EV/Battery",cmp:0,prevClose:0,change:0,changePct:0,mcap:16576,pe:-8.9,roce:-25,low52:22.25,high52:71.25,score:5.0,thesis:"India's only operational gigafactory for Li-ion cells. 6 GWh capacity, scaling to 12 GWh by mid-2027. 19.6% E2W market share. &#8377;2,000 Cr capex approved. Gross margin 38.5%. Battery cell supply to other OEMs in talks. High risk &mdash; still loss-making.",vol:0,avgVol:0,loaded:false},
-  // Cloud / AI / Quantum / Semiconductor
-  {name:"Persistent Systems",ticker:"PERSISTENT",scanStatus:"STRENGTHENING",yf:"PERSISTENT.NS",layer:"Layer 2",sector:"Cloud/AI",cmp:0,prevClose:0,change:0,changePct:0,mcap:50000,pe:43,roce:33,low52:3500,high52:6800,score:8.0,thesis:"India's #1 GenAI services play. Re(AI)magining approach embeds AI across workflows. 32.9% ROCE, debt-free. Revenue CAGR 30%+ over 3 years. Strong mid-cap IT compounder.",vol:0,avgVol:0,loaded:false},
-  {name:"HCL Technologies",ticker:"HCLTECH",scanStatus:"WEAKENING",yf:"HCLTECH.NS",layer:"Layer 2",sector:"Semi/Quantum",cmp:0,prevClose:0,change:0,changePct:0,mcap:315071,pe:19,roce:31,low52:1400,high52:2100,score:7.5,thesis:"Semiconductor engineering services expansion. Quantum computing via IBM partnership. Hybrid classical-quantum R&D. 60.9% promoter hold. Cheapest large-cap IT at 19x PE.",vol:0,avgVol:0,loaded:false},
-  {name:"Tech Mahindra",ticker:"TECHM",scanStatus:"STRENGTHENING",yf:"TECHM.NS",layer:"Layer 2",sector:"AI/Cloud",cmp:0,prevClose:0,change:0,changePct:0,mcap:147010,pe:32,roce:22,low52:1304,high52:1854,score:6.5,thesis:"AI turnaround under new CEO. Cloud & AI services across 90+ countries. Mahindra Group backing. 35% promoter hold. Margins expanding post restructuring.",vol:0,avgVol:0,loaded:false},
-  {name:"Infosys",ticker:"INFY",scanStatus:"WEAKENING",yf:"INFY.NS",layer:"Layer 2",sector:"AI/Quantum",cmp:0,prevClose:0,change:0,changePct:0,mcap:475278,pe:16,roce:31,low52:1089,high52:1728,score:7.0,thesis:"Quantum Living Labs (QLL) for enterprise quantum applications. AI-first strategy. 30.8% 3yr ROE. Attractive at 16x PE vs peer median 30x. FII-heavy ownership.",vol:0,avgVol:0,loaded:false},
-  {name:"L&T Technology Services",ticker:"LTTS",scanStatus:"INTACT",yf:"LTTS.NS",layer:"Layer 2",sector:"Semi ER&D",cmp:0,prevClose:0,change:0,changePct:0,mcap:37035,pe:28,roce:28,low52:3010,high52:4726,score:7.5,thesis:"Pure-play ER&D. Chip design & VLSI services for global semi companies. 73.6% promoter (L&T). Exposure to semiconductor, medtech, industrial IoT.",vol:0,avgVol:0,loaded:false},
-  {name:"Cyient",ticker:"CYIENT",scanStatus:"INTACT",yf:"CYIENT.NS",layer:"Layer 2",sector:"AI/Semi Design",cmp:0,prevClose:0,change:0,changePct:0,mcap:10225,pe:24,roce:20,low52:750,high52:1376,score:6.5,thesis:"Engineering AI + semiconductor design via 27.3% stake in Azimuth AI (ASIC chips for AI/IoT). Industry 4.0, smart networks. Digital engineering pivot underway.",vol:0,avgVol:0,loaded:false},
-  {name:"MapmyIndia",ticker:"MAPMYINDIA",scanStatus:"WEAKENING",yf:"MAPMYINDIA.NS",layer:"Layer 3",sector:"AI/Mapping",cmp:0,prevClose:0,change:0,changePct:0,mcap:5143,pe:38,roce:26,low52:795,high52:2064,score:6.0,thesis:"India's mapping & location AI monopoly. Autonomous driving data platform. mGIS, IoT, telematics. 51.4% promoter. Revenue declined 9% recently &mdash; correction opportunity.",vol:0,avgVol:0,loaded:false},
-  {name:"RailTel Corporation",ticker:"RAILTEL",scanStatus:"STRENGTHENING",yf:"RAILTEL.NS",layer:"Layer 3",sector:"Cloud Infra",cmp:0,prevClose:0,change:0,changePct:0,mcap:10785,pe:29,roce:21,low52:245,high52:479,score:6.5,thesis:"Navratna PSU. Govt cloud infra backbone. Data centres, smart city projects. 72.8% govt promoter. Record ROCE 21.4%. Targeting 20%+ FY27 revenue growth.",vol:0,avgVol:0,loaded:false},
-  {name:"Vedanta",ticker:"VEDL",scanStatus:"STRENGTHENING",yf:"VEDL.NS",layer:"Layer 3",sector:"Semiconductor Fab",cmp:0,prevClose:0,change:0,changePct:0,mcap:134677,pe:7.7,roce:13,low52:157,high52:358,score:5.5,thesis:"$8B semiconductor fab in Gujarat with Taiwanese foundry partner. Net profit +88% YoY. Diversified &mdash; metals, oil & gas, power. 56.4% promoter but 100% pledged. High risk-reward.",vol:0,avgVol:0,loaded:false},
-  // US-India Trade Deal Beneficiaries
-  {name:"Man Industries",ticker:"MANINDS",scanStatus:"STRENGTHENING",yf:"MANINDS.NS",layer:"Layer 3",sector:"Steel Pipes",cmp:0,prevClose:0,change:0,changePct:0,mcap:3000,pe:15,roce:22,low52:200,high52:500,score:7.0,thesis:"LSAW/HSAW steel pipes for oil & gas, water. International exports to US, Middle East. US-India trade deal beneficiary &mdash; infrastructure trade & reduced steel pipe tariffs boost order book.",vol:0,avgVol:0,loaded:false},
-  {name:"Gokaldas Exports",ticker:"GOKEX",scanStatus:"INTACT",yf:"GOKEX.NS",layer:"Layer 3",sector:"Textiles/Trade",cmp:0,prevClose:0,change:0,changePct:0,mcap:6000,pe:30,roce:25,low52:400,high52:1100,score:7.0,thesis:"India's largest listed garment exporter. Exports to 50+ countries. US-India trade deal beneficiary &mdash; garment export tariff reduction from 27.5% to ~15% massively boosts competitiveness vs Bangladesh & Vietnam.",vol:0,avgVol:0,loaded:false},
-  // PLI / EMS / Auto Tech / AI Platform
-  {name:"Affle India",ticker:"AFFLE",scanStatus:"INTACT",yf:"AFFLE.NS",layer:"Layer 2",sector:"AI/AdTech",cmp:0,prevClose:0,change:0,changePct:0,mcap:20800,pe:46,roce:15,low52:1050,high52:1900,score:6.5,thesis:"India's only listed AI-driven consumer intelligence platform. Revenue +20% YoY. Zero debt. AI monetization across 20+ countries &mdash; product company, not IT services.",vol:0,avgVol:0,loaded:false},
-  // High Momentum / Consumer / Infra / Real Estate
-  {name:"Polycab India",ticker:"POLYCAB",scanStatus:"STRENGTHENING",yf:"POLYCAB.NS",layer:"Layer 2",sector:"Electrical/Cables",cmp:0,prevClose:0,change:0,changePct:0,mcap:149500,pe:56,roce:33,low52:5787,high52:9988,score:8.2,thesis:"At 52-week high. FY26 revenue +28%, PAT +31%. Power grid expansion + data center buildout supercycle. Near debt-free, 33% ROCE.",vol:0,avgVol:0,loaded:false},
-  {name:"CG Power",ticker:"CGPOWER",scanStatus:"STRENGTHENING",yf:"CGPOWER.NS",layer:"Layer 2",sector:"Electrical/Power",cmp:0,prevClose:0,change:0,changePct:0,mcap:144000,pe:120,roce:37,low52:480,high52:960,score:7.5,thesis:"Murugappa Group. Transformers + switchgear. Q4 FY26 PAT +34%, sales +25%. 37% ROCE. Power transmission capex + semiconductor fab supply chain beneficiary.",vol:0,avgVol:0,loaded:false},
-  {name:"Suzlon Energy",ticker:"SUZLON",scanStatus:"STRENGTHENING",yf:"SUZLON.NS",layer:"Layer 2",sector:"Wind Energy",cmp:0,prevClose:0,change:0,changePct:0,mcap:80771,pe:19,roce:33,low52:38,high52:68,score:7.8,thesis:"India's #1 wind energy. FY26 revenue +54%, PAT +53%. Debt-free. PE 19x vs 33% ROCE = massive value gap. 500 GW renewable target tailwind.",vol:0,avgVol:0,loaded:false},
-  {name:"Titan Company",ticker:"TITAN",scanStatus:"INTACT",yf:"TITAN.NS",layer:"Layer 2",sector:"Consumer Luxury",cmp:0,prevClose:0,change:0,changePct:0,mcap:385257,pe:74,roce:29,low52:3303,high52:4605,score:7.6,thesis:"Tata Group luxury consumer. 29% ROCE. Tanishq expansion + gold price tailwinds. Near 52-week high. Strong Buy upgrade.",vol:0,avgVol:0,loaded:false},
-  {name:"DLF Ltd",ticker:"DLF",scanStatus:"STRENGTHENING",yf:"DLF.NS",layer:"Layer 2",sector:"Real Estate",cmp:0,prevClose:0,change:0,changePct:0,mcap:154435,pe:35,roce:4,low52:528,high52:891,score:7.0,thesis:"India's largest real estate co. Luxury projects sold out in 72 hrs. Nifty Realty surged 4%. Profit CAGR 29.5% over 5 years. Rate cut catalyst.",vol:0,avgVol:0,loaded:false},
-  {name:"IREDA",ticker:"IREDA",scanStatus:"WEAKENING",yf:"IREDA.NS",layer:"Layer 3",sector:"Green Finance",cmp:0,prevClose:0,change:0,changePct:0,mcap:35526,pe:18,roce:8,low52:109,high52:183,score:7.2,thesis:"India's sole pure-play green energy NBFC. Navaratna PSU. FY26 loan book +22%. International BBB+ rating = fresh re-rating catalyst. 500 GW renewables push.",vol:0,avgVol:0,loaded:false},
-  {name:"Godrej Properties",ticker:"GODREJPROP",scanStatus:"STRENGTHENING",yf:"GODREJPROP.NS",layer:"Layer 3",sector:"Real Estate",cmp:0,prevClose:0,change:0,changePct:0,mcap:53438,pe:35,roce:11,low52:1434,high52:2507,score:6.8,thesis:"Record FY26 bookings Rs 34,171 Cr (+16% YoY). Promoter stake up 47% to 51.66% = insider confidence. Realty rally on rate cut hopes.",vol:0,avgVol:0,loaded:false},
+  // ===== IMMEDIATE — 1-2 Week Catalysts (10 stocks) =====
+  {name:"Cyient",ticker:"CYIENT",scanStatus:"STRENGTHENING",yf:"CYIENT.NS",layer:"Immediate",sector:"AI/Semi Design",cmp:0,prevClose:0,change:0,changePct:0,mcap:10225,pe:24,roce:20,low52:750,high52:1376,score:8.5,thesis:"Buyback tender at ₹1,125 (32.8% premium to CMP). Window Jun 23-30. Azimuth AI ASIC stake.",catalyst:"BUYBACK TENDER Jun 23-30 @ ₹1,125",catalystDate:"2026-06-30",vol:0,avgVol:0,loaded:false},
+  {name:"Dixon Technologies",ticker:"DIXON",scanStatus:"STRENGTHENING",yf:"DIXON.NS",layer:"Immediate",sector:"EMS/Technology",cmp:0,prevClose:0,change:0,changePct:0,mcap:87000,pe:95,roce:28,low52:10000,high52:19400,score:8.0,thesis:"Govt approval of Dixon-Vivo JV imminent. ~22M handsets/yr shift. India #1 EMS.",catalyst:"GOVT JV APPROVAL imminent",catalystDate:"2026-06-30",vol:0,avgVol:0,loaded:false},
+  {name:"Welspun Living",ticker:"WELSPUNLIV",scanStatus:"STRENGTHENING",yf:"WELSPUNLIV.NS",layer:"Immediate",sector:"Textiles/Trade",cmp:0,prevClose:0,change:0,changePct:0,mcap:8500,pe:22,roce:18,low52:110,high52:195,score:7.5,thesis:"India-UK FTA effective Jul 15. Eliminates ~12% textile tariffs. Direct margin uplift.",catalyst:"INDIA-UK FTA effective Jul 15",catalystDate:"2026-07-15",vol:0,avgVol:0,loaded:false},
+  {name:"Tata Power",ticker:"TATAPOWER",scanStatus:"INTACT",yf:"TATAPOWER.NS",layer:"Immediate",sector:"Power/BESS",cmp:0,prevClose:0,change:0,changePct:0,mcap:123000,pe:35,roce:10,low52:340,high52:490,score:7.2,thesis:"Ex-dividend Jun 23 (₹2.50). Singapore investor meetings Jun 25. ₹521 Cr Ryapte LOI.",catalyst:"EX-DIVIDEND Jun 23 + Investor meets",catalystDate:"2026-06-25",vol:0,avgVol:0,loaded:false},
+  {name:"Ather Energy",ticker:"ATHERENERGY",scanStatus:"STRENGTHENING",yf:"ATHERENERGY.NS",layer:"Immediate",sector:"EV/Electric",cmp:0,prevClose:0,change:0,changePct:0,mcap:16000,pe:-15,roce:-10,low52:300,high52:1200,score:7.0,thesis:"PM E-Drive subsidy expiry Jul 31 driving pre-buy rush. Medium-prob MSCI India inclusion (Aug 12).",catalyst:"PM E-DRIVE RUSH + MSCI candidate",catalystDate:"2026-07-31",vol:0,avgVol:0,loaded:false},
+  {name:"GRM Overseas",ticker:"GRMOVER",scanStatus:"STRENGTHENING",yf:"GRMOVER.NS",layer:"Immediate",sector:"Agri/Rice",cmp:0,prevClose:0,change:0,changePct:0,mcap:600,pe:12,roce:15,low52:70,high52:130,score:7.0,thesis:"Promoter Atul Garg bought 2,38,281 shares on open market Jun 8-11 at ₹94-98. Creeping acquisition.",catalyst:"PROMOTER BUYING Jun 8-11",catalystDate:"2026-06-11",vol:0,avgVol:0,loaded:false},
+  {name:"Daikaffil Chemicals",ticker:"DAIKAFFIL",scanStatus:"STRENGTHENING",yf:"DAIKAFFIL.BO",layer:"Immediate",sector:"Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:200,pe:18,roce:14,low52:100,high52:210,score:6.5,thesis:"Promoter Mikusu India bought across 8 tranches Jun 4-16. Stake up 48.66%→49.62%, nearing 50% threshold.",catalyst:"PROMOTER STAKE 49.62% → 50%",catalystDate:"2026-06-30",vol:0,avgVol:0,loaded:false},
+  {name:"Knowledge Marine",ticker:"KMEW",scanStatus:"STRENGTHENING",yf:"KMEW.NS",layer:"Immediate",sector:"Marine/Shipping",cmp:0,prevClose:0,change:0,changePct:0,mcap:5600,pe:30,roce:18,low52:1200,high52:2200,score:7.5,thesis:"SBI Mutual Fund bought 4,00,036 shares via bulk deal Jun 19 (~₹78.5 Cr). Large MF entry.",catalyst:"SBI MF BULK DEAL ₹78.5 Cr",catalystDate:"2026-06-19",vol:0,avgVol:0,loaded:false},
+  {name:"NCC Ltd",ticker:"NCC",scanStatus:"STRENGTHENING",yf:"NCC.NS",layer:"Immediate",sector:"Infrastructure",cmp:0,prevClose:0,change:0,changePct:0,mcap:9200,pe:14,roce:12,low52:120,high52:220,score:7.0,thesis:"Promoter entity Sirisha Projects bought 5,44,721 shares (Jun 5 @₹149, Jun 17 @₹153). Rising price buying.",catalyst:"PROMOTER BUYING at rising prices",catalystDate:"2026-06-17",vol:0,avgVol:0,loaded:false},
+  {name:"Lenskart Solutions",ticker:"LENSKART",scanStatus:"INTACT",yf:"LENSKART.NS",layer:"Immediate",sector:"Consumer/Retail",cmp:0,prevClose:0,change:0,changePct:0,mcap:50000,pe:120,roce:8,low52:400,high52:650,score:6.5,thesis:"₹1,960 Cr block deal Jun 12. Kotak MF, NPS Trust, Canara Robeco bought from ADIA at ₹508.50. Overhang cleared.",catalyst:"BLOCK DEAL overhang cleared",catalystDate:"2026-06-12",vol:0,avgVol:0,loaded:false},
+
+  // ===== ONE-MONTH — July 2026 Catalysts (15 stocks) =====
+  {name:"Voltas",ticker:"VOLTAS",scanStatus:"STRENGTHENING",yf:"VOLTAS.NS",layer:"1-Month",sector:"Consumer Durables",cmp:0,prevClose:0,change:0,changePct:0,mcap:60000,pe:55,roce:14,low52:1200,high52:2100,score:8.0,thesis:"Sold 1M AC units in Q1 FY27 in record time. Blowout topline expected. Market leader.",catalyst:"Q1 RESULTS — record AC sales",catalystDate:"2026-07-20",vol:0,avgVol:0,loaded:false},
+  {name:"Titan Company",ticker:"TITAN",scanStatus:"INTACT",yf:"TITAN.NS",layer:"1-Month",sector:"Consumer Luxury",cmp:0,prevClose:0,change:0,changePct:0,mcap:385257,pe:74,roce:29,low52:3303,high52:4605,score:7.6,thesis:"Q4 FY26 jewellery revenue +46%. 10-12 new beYon stores in Q1. Premiumization intact. Tata Group.",catalyst:"Q1 RESULTS — jewellery surge",catalystDate:"2026-07-25",vol:0,avgVol:0,loaded:false},
+  {name:"Tata Motors",ticker:"TATAMOTORS",scanStatus:"STRENGTHENING",yf:"TATAMOTORS.NS",layer:"1-Month",sector:"Auto/EV",cmp:0,prevClose:0,change:0,changePct:0,mcap:170000,pe:8,roce:22,low52:380,high52:600,score:8.0,thesis:"3,400+ electric CV orders in Jun. 40% EV market share. SUV + EV volume momentum. JLR margin expansion.",catalyst:"Q1 RESULTS — EV + SUV surge",catalystDate:"2026-07-20",vol:0,avgVol:0,loaded:false},
+  {name:"Kaynes Technology",ticker:"KAYNES",scanStatus:"STRENGTHENING",yf:"KAYNES.NS",layer:"1-Month",sector:"Semiconductor/EMS",cmp:0,prevClose:0,change:0,changePct:0,mcap:22500,pe:85,roce:22,low52:3200,high52:7100,score:7.8,thesis:"OSAT semiconductor plant (Sanand) inaugurated Mar 31. 6M units/day. First revenue quarter = Q1 FY27.",catalyst:"OSAT FIRST REVENUE quarter",catalystDate:"2026-07-20",vol:0,avgVol:0,loaded:false},
+  {name:"CG Power",ticker:"CGPOWER",scanStatus:"STRENGTHENING",yf:"CGPOWER.NS",layer:"1-Month",sector:"Electrical/Semi",cmp:0,prevClose:0,change:0,changePct:0,mcap:144000,pe:120,roce:37,low52:480,high52:960,score:7.5,thesis:"G2 OSAT facility scaling to 14.5M chips/day (JV with Renesas). Transformers + switchgear. 37% ROCE.",catalyst:"SEMICONDUCTOR RAMP + Q1 results",catalystDate:"2026-07-20",vol:0,avgVol:0,loaded:false},
+  {name:"Waaree Energies",ticker:"WAAREE",scanStatus:"STRENGTHENING",yf:"WAAREE.NS",layer:"1-Month",sector:"Solar/Energy",cmp:0,prevClose:0,change:0,changePct:0,mcap:69600,pe:30,roce:45,low52:1750,high52:3800,score:8.0,thesis:"ALMM List-II enforcement (domestic solar cells mandatory). 800MW order Jun 15. US capacity 1.6→4.2 GW.",catalyst:"ALMM MANDATE demand surge",catalystDate:"2026-07-15",vol:0,avgVol:0,loaded:false},
+  {name:"Premier Energies",ticker:"PREMIERENE",scanStatus:"STRENGTHENING",yf:"PREMIERENE.NS",layer:"1-Month",sector:"Solar/Energy",cmp:0,prevClose:0,change:0,changePct:0,mcap:38300,pe:40,roce:35,low52:600,high52:1300,score:7.5,thesis:"Integrated solar cell manufacturer. PLI beneficiary. ALMM mandate tailwind. 4 GW expansion.",catalyst:"PLI + ALMM tailwind",catalystDate:"2026-07-15",vol:0,avgVol:0,loaded:false},
+  {name:"Shriram Finance",ticker:"SHRIRAMFIN",scanStatus:"STRENGTHENING",yf:"SHRIRAMFIN.NS",layer:"1-Month",sector:"NBFC/Finance",cmp:0,prevClose:0,change:0,changePct:0,mcap:103000,pe:16,roce:15,low52:2400,high52:3600,score:8.0,thesis:"Upgraded to AAA by ALL agencies (CRISIL/ICRA/India Ratings) Apr 9-10. MUFG 20% stake. Networth ₹1L Cr+.",catalyst:"AAA UPGRADE re-pricing",catalystDate:"2026-07-15",vol:0,avgVol:0,loaded:false},
+  {name:"Home First Finance",ticker:"HOMEFIRST",scanStatus:"STRENGTHENING",yf:"HOMEFIRST.NS",layer:"1-Month",sector:"Housing Finance",cmp:0,prevClose:0,change:0,changePct:0,mcap:10000,pe:30,roce:14,low52:750,high52:1350,score:7.0,thesis:"FY26 PAT grew 41.4%. FII holding jumped 4.9 ppts in one quarter to 49.16%. Housing finance tailwind.",catalyst:"FII BUYING SURGE + Q1 results",catalystDate:"2026-07-20",vol:0,avgVol:0,loaded:false},
+  {name:"JBM Auto",ticker:"JBMA",scanStatus:"STRENGTHENING",yf:"JBMA.NS",layer:"1-Month",sector:"EV/Electric Bus",cmp:0,prevClose:0,change:0,changePct:0,mcap:7500,pe:45,roce:12,low52:400,high52:750,score:7.5,thesis:"India's largest electric bus seller (Jan 2026). FAME III subsidy runway to Mar 2027. Order flow accelerating.",catalyst:"E-BUS ORDER FLOW through July",catalystDate:"2026-07-31",vol:0,avgVol:0,loaded:false},
+  {name:"Himadri Speciality Chem",ticker:"HSCL",scanStatus:"STRENGTHENING",yf:"HSCL.NS",layer:"1-Month",sector:"Battery Materials",cmp:0,prevClose:0,change:0,changePct:0,mcap:25200,pe:33,roce:28,low52:310,high52:680,score:8.0,thesis:"India's 1st anode producer. LFP cathode ₹1,125 Cr project. EV battery + China+1 tailwind. 409% 3yr return.",catalyst:"EV BATTERY MATERIALS + Q1",catalystDate:"2026-07-20",vol:0,avgVol:0,loaded:false},
+  {name:"Marico",ticker:"MARICO",scanStatus:"INTACT",yf:"MARICO.NS",layer:"1-Month",sector:"FMCG/Consumer",cmp:0,prevClose:0,change:0,changePct:0,mcap:90000,pe:55,roce:38,low52:550,high52:780,score:7.0,thesis:"Rural volume recovery 6-8% expected in FY27. Normal monsoon boosting agri incomes. Input costs benign.",catalyst:"MONSOON + RURAL RECOVERY",catalystDate:"2026-07-15",vol:0,avgVol:0,loaded:false},
+  {name:"Hyundai Motor India",ticker:"HYUNDAI",scanStatus:"WEAKENING",yf:"HYUNDAI.NS",layer:"1-Month",sector:"Auto/EV",cmp:0,prevClose:0,change:0,changePct:0,mcap:130000,pe:25,roce:20,low52:1500,high52:2100,score:6.5,thesis:"Trading 12% below IPO price ₹1,960. Lock-in expired Apr 20. Selling pressure absorbed. Re-rating potential.",catalyst:"LOCK-IN EXPIRED — recovery window",catalystDate:"2026-07-15",vol:0,avgVol:0,loaded:false},
+  {name:"Trent",ticker:"TRENT",scanStatus:"STRENGTHENING",yf:"TRENT.NS",layer:"1-Month",sector:"Retail/Consumer",cmp:0,prevClose:0,change:0,changePct:0,mcap:240000,pe:130,roce:31,low52:4500,high52:8200,score:8.0,thesis:"1:2 bonus record date Jun 4. Post-bonus liquidity attracting retail. Zudio rapid store expansion driving revenue.",catalyst:"POST-BONUS RE-RATING + Zudio",catalystDate:"2026-07-10",vol:0,avgVol:0,loaded:false},
+  {name:"Infosys",ticker:"INFY",scanStatus:"WEAKENING",yf:"INFY.NS",layer:"1-Month",sector:"IT/AI",cmp:0,prevClose:0,change:0,changePct:0,mcap:475278,pe:16,roce:31,low52:1089,high52:1728,score:7.0,thesis:"Q1 results Jul 23. Large-deal TCV and AI commentary as re-rating triggers. Trading below LT avg valuations.",catalyst:"Q1 RESULTS Jul 23 — AI re-rating",catalystDate:"2026-07-23",vol:0,avgVol:0,loaded:false},
+
+  // ===== LONG-TERM — 3-5 Year Compounders (15 stocks) =====
+  {name:"Pidilite Industries",ticker:"PIDILITIND",scanStatus:"INTACT",yf:"PIDILITIND.NS",layer:"Long-Term",sector:"Specialty Materials",cmp:0,prevClose:0,change:0,changePct:0,mcap:160000,pe:85,roce:30,low52:2500,high52:3400,score:8.5,thesis:"Adhesives monopoly (Fevicol, Dr. Fixit). 30% ROCE (10yr avg 33%). Near-zero debt. 69.3% promoter.",catalyst:"MONOPOLY — structural pricing power",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Grindwell Norton",ticker:"GRINDWELL",scanStatus:"INTACT",yf:"GRINDWELL.NS",layer:"Long-Term",sector:"Industrial Niche",cmp:0,prevClose:0,change:0,changePct:0,mcap:22000,pe:55,roce:23,low52:1500,high52:2400,score:8.0,thesis:"Industrial abrasives niche leader. 23% ROCE (never below 20% in 10yr). Zero debt. 58% promoter (Saint-Gobain).",catalyst:"NICHE MONOPOLY — steady compounder",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"INOX India",ticker:"INOXINDIA",scanStatus:"INTACT",yf:"INOXINDIA.NS",layer:"Long-Term",sector:"Cryogenic/LNG",cmp:0,prevClose:0,change:0,changePct:0,mcap:18000,pe:45,roce:38,low52:800,high52:1500,score:8.5,thesis:"Cryogenic equipment monopoly (70-75% domestic share). 38.2% ROCE. Zero debt. 75% promoter. ₹1,514 Cr order book.",catalyst:"CRYOGENIC MONOPOLY — LNG/space/aero",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"PI Industries",ticker:"PIIND",scanStatus:"INTACT",yf:"PIIND.NS",layer:"Long-Term",sector:"Specialty Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:63000,pe:35,roce:22,low52:3200,high52:5000,score:8.0,thesis:"Custom synthesis leader for global agrochem innovators. EBITDA >22%. CSM order book $1.8B. China+1.",catalyst:"CSM $1.8B ORDER BOOK",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Vinati Organics",ticker:"VINATIORGA",scanStatus:"INTACT",yf:"VINATIORGA.NS",layer:"Long-Term",sector:"Specialty Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:19000,pe:50,roce:20,low52:1400,high52:2200,score:8.0,thesis:"Global monopoly in IBB and ATBS monomers. EBITDA ~30%. Near-zero debt. 74.3% promoter. Extreme pricing power.",catalyst:"MONOMER MONOPOLY — pricing power",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Suzlon Energy",ticker:"SUZLON",scanStatus:"STRENGTHENING",yf:"SUZLON.NS",layer:"Long-Term",sector:"Wind Energy",cmp:0,prevClose:0,change:0,changePct:0,mcap:80771,pe:19,roce:33,low52:38,high52:68,score:7.8,thesis:"India's #1 wind energy. FY26 rev +54%, PAT +53%. Debt-free turnaround complete. 6.4 GW order book. 25% CAGR guide.",catalyst:"WIND TURNAROUND — debt-free",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Tata Communications",ticker:"TATACOMM",scanStatus:"INTACT",yf:"TATACOMM.NS",layer:"Long-Term",sector:"Data Center/Fiber",cmp:0,prevClose:0,change:0,changePct:0,mcap:56684,pe:32,roce:15,low52:1400,high52:2200,score:7.5,thesis:"Global fiber + data center infra across 190 countries. Rev ₹23,239 Cr. 58.9% promoter. AI/cloud compute demand.",catalyst:"DATA CENTER SUPERCYCLE",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"HG Infra Engineering",ticker:"HGINFRA",scanStatus:"INTACT",yf:"HGINFRA.NS",layer:"Long-Term",sector:"Infrastructure",cmp:0,prevClose:0,change:0,changePct:0,mcap:7500,pe:12,roce:22,low52:500,high52:900,score:7.5,thesis:"Highway EPC with highest promoter skin (71.8%, zero pledge). Order book ₹15,739 Cr. Low debt.",catalyst:"INFRA CAPEX CYCLE — highways",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"VA Tech Wabag",ticker:"WABAG",scanStatus:"STRENGTHENING",yf:"WABAG.NS",layer:"Long-Term",sector:"Water Treatment",cmp:0,prevClose:0,change:0,changePct:0,mcap:17000,pe:30,roce:24,low52:900,high52:1600,score:8.0,thesis:"India's largest water treatment company. 23.8% ROCE. Order book ₹17,200 Cr. Net cash 6 consecutive years.",catalyst:"WATER INFRA — ₹17,200 Cr orders",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Kalpataru Projects",ticker:"KPIL",scanStatus:"STRENGTHENING",yf:"KPIL.NS",layer:"Long-Term",sector:"Power T&D/Infra",cmp:0,prevClose:0,change:0,changePct:0,mcap:20000,pe:22,roce:17,low52:800,high52:1500,score:7.5,thesis:"Power T&D leader diversifying into railways & water. Q4 PAT surged 97%. Order book ₹65,457 Cr (2.4x book-to-bill).",catalyst:"T&D EXPANSION — ₹65K Cr book",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Eveready Industries",ticker:"EVEREADY",scanStatus:"STRENGTHENING",yf:"EVEREADY.NS",layer:"Long-Term",sector:"Battery/Consumer",cmp:0,prevClose:0,change:0,changePct:0,mcap:3500,pe:25,roce:30,low52:250,high52:450,score:7.0,thesis:"ROE 29.8%. Debt reducing ₹208→₹157 Cr. New alkaline battery plant May 2026 for import substitution. Promoter buying Jun 2026.",catalyst:"TURNAROUND — battery import sub",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Prataap Snacks",ticker:"DIAMONDYD",scanStatus:"STRENGTHENING",yf:"DIAMONDYD.NS",layer:"Long-Term",sector:"FMCG/Consumer",cmp:0,prevClose:0,change:0,changePct:0,mcap:3500,pe:35,roce:10,low52:700,high52:1400,score:6.5,thesis:"Near debt-free. 55.6% promoter (increasing stake). Q4 FY26 return to profit. Yellow Diamond brand with rural moat.",catalyst:"TURNAROUND — rural distribution",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Jayant Agro Organics",ticker:"JAYAGROGN",scanStatus:"STRENGTHENING",yf:"JAYAGROGN.BO",layer:"Long-Term",sector:"Castor/Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:1200,pe:15,roce:12,low52:150,high52:300,score:6.5,thesis:"Global castor derivatives leader. 67.1% promoter, zero pledge. PAT surged 155% QoQ in Q4 FY26. China+1 beneficiary.",catalyst:"CASTOR MONOPOLY — China+1",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"CDSL",ticker:"CDSL",scanStatus:"INTACT",yf:"CDSL.NS",layer:"Long-Term",sector:"Capital Markets",cmp:0,prevClose:0,change:0,changePct:0,mcap:31500,pe:55,roce:40,low52:1050,high52:1900,score:8.5,thesis:"Depository duopoly. 85 Cr+ demat accounts. Asset-light, 50%+ margins. Structural India financialization play.",catalyst:"DEMAT MONOPOLY — financialization",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Polycab India",ticker:"POLYCAB",scanStatus:"STRENGTHENING",yf:"POLYCAB.NS",layer:"Long-Term",sector:"Electrical/Cables",cmp:0,prevClose:0,change:0,changePct:0,mcap:149500,pe:56,roce:33,low52:5787,high52:9988,score:8.2,thesis:"FY26 revenue +28%, PAT +31%. Power grid + data center supercycle. Near debt-free, 33% ROCE. Cables/wires leader.",catalyst:"POWER GRID + DATA CENTER build",catalystDate:"",vol:0,avgVol:0,loaded:false},
 ];
 
 // ============================================================
@@ -1355,7 +1341,7 @@ function renderTable(data) {
     const chg = s.changePct;
     const cls = chg >= 0 ? 'up' : 'down';
     const sign = chg >= 0 ? '+' : '';
-    const layerCls = s.layer==='Layer 1'?'badge-l1':s.layer==='Layer 2'?'badge-l2':s.layer==='Energy'?'badge-energy':'badge-l3';
+    const layerCls = s.layer==='Immediate'?'badge-imm':s.layer==='1-Month'?'badge-1mo':'badge-lt';
     const cmpDisplay = s.loaded ? `&#8377;${s.cmp.toLocaleString('en-IN')}` : '<span class="spinner"></span>';
     const chgDisplay = s.loaded ? `${sign}${chg.toFixed(2)}%` : '--';
     const flashCls = s._flash === 'up' ? ' flash-up' : s._flash === 'down' ? ' flash-down' : '';
@@ -1377,6 +1363,8 @@ function renderTable(data) {
       : s.scanStatus === 'WEAKENING' ? '<span class="scan-badge scan-weak">WEAK ↓</span>'
       : s.scanStatus === 'INTACT' ? '<span class="scan-badge scan-intact">INTACT</span>' : '';
 
+    const catalystDisplay = s.catalyst ? '<span style="font-size:10px;font-weight:600;color:var(--amber);letter-spacing:0.3px">'+s.catalyst+'</span>' : '';
+
     return `<tr class="${alertRow}${flashCls}">
       <td><span class="ticker" onclick="showDetail('${s.ticker}')">${s.name}</span>${scanBadge}</td>
       <td style="color:var(--muted);font-size:12px">${s.ticker}</td>
@@ -1384,7 +1372,7 @@ function renderTable(data) {
       <td style="font-size:12px">${s.sector}</td>
       <td style="font-weight:600">${cmpDisplay}</td>
       <td class="${cls}" style="font-weight:500">${chgDisplay}</td>
-      <td style="font-size:12px">&#8377;${s.mcap.toLocaleString('en-IN')}</td>
+      <td style="max-width:200px;white-space:normal;line-height:1.3">${catalystDisplay}</td>
       <td>${s.pe}</td>
       <td style="font-weight:500;color:${s.roce>=25?'var(--green)':s.roce>=15?'var(--amber)':'var(--red)'}">${s.roce}%</td>
       <td style="font-size:11px;color:var(--muted)">&#8377;${s.low52.toLocaleString('en-IN')}&ndash;&#8377;${s.high52.toLocaleString('en-IN')}</td>
@@ -1811,73 +1799,49 @@ function setupAutoRefresh() {
 //  FINANCIAL RATIOS DATA &mdash; ROE, D/E, Promoter Holding, P/B
 // ============================================================
 const financials = {
-  // Layer 1 &mdash; Buffett Core
-  "GARFIBRES": {roe:22,debtEquity:0.15,promoterHold:62.3,pb:5.8,sectorAvgPE:35,epsgr:18},
-  "GMMPFAUDL": {roe:16,debtEquity:0.35,promoterHold:54.9,pb:4.2,sectorAvgPE:40,epsgr:15},
-  "ALKYLAMINE": {roe:18,debtEquity:0.05,promoterHold:60.2,pb:7.5,sectorAvgPE:38,epsgr:20},
-  "BALAMINES": {roe:16,debtEquity:0.12,promoterHold:53.8,pb:4.8,sectorAvgPE:38,epsgr:22},
-  "NAVINFLUOR": {roe:12,debtEquity:0.08,promoterHold:28.6,pb:6.2,sectorAvgPE:38,epsgr:25},
-  "DEEPAKNTR": {roe:18,debtEquity:0.10,promoterHold:44.9,pb:6.8,sectorAvgPE:38,epsgr:18},
-  "JYOTIRES": {roe:30,debtEquity:0.0,promoterHold:54.4,pb:3.8,sectorAvgPE:55,epsgr:28},
-  "ASTRAL": {roe:16,debtEquity:0.05,promoterHold:56.4,pb:12.5,sectorAvgPE:50,epsgr:20},
-  "PAGEIND": {roe:42,debtEquity:0.08,promoterHold:47.2,pb:28.0,sectorAvgPE:55,epsgr:15},
-  "AARTIIND": {roe:8,debtEquity:0.45,promoterHold:42.5,pb:3.2,sectorAvgPE:38,epsgr:25},
-  "APLAPOLLO": {roe:28,debtEquity:0.15,promoterHold:37.8,pb:14.0,sectorAvgPE:40,epsgr:22},
-  "RATNAMANI": {roe:22,debtEquity:0.05,promoterHold:65.8,pb:6.5,sectorAvgPE:40,epsgr:20},
-  "KEI": {roe:20,debtEquity:0.18,promoterHold:34.8,pb:9.0,sectorAvgPE:45,epsgr:22},
-  // Layer 2 &mdash; Geopolitical
+  // Immediate — 1-2 Week Catalysts
+  "CYIENT": {roe:13,debtEquity:0.15,promoterHold:23.3,pb:3.5,sectorAvgPE:35,epsgr:15},
   "DIXON": {roe:22,debtEquity:0.20,promoterHold:32.8,pb:18.0,sectorAvgPE:60,epsgr:35},
+  "WELSPUNLIV": {roe:15,debtEquity:0.30,promoterHold:67.0,pb:3.2,sectorAvgPE:25,epsgr:18},
+  "TATAPOWER": {roe:8,debtEquity:1.20,promoterHold:46.9,pb:3.5,sectorAvgPE:30,epsgr:15},
+  "ATHERENERGY": {roe:-12,debtEquity:0.30,promoterHold:35.0,pb:8.0,sectorAvgPE:0,epsgr:0},
+  "GRMOVER": {roe:14,debtEquity:0.25,promoterHold:52.0,pb:1.8,sectorAvgPE:15,epsgr:12},
+  "DAIKAFFIL": {roe:10,debtEquity:0.10,promoterHold:49.6,pb:2.0,sectorAvgPE:20,epsgr:10},
+  "KMEW": {roe:15,debtEquity:0.20,promoterHold:48.0,pb:5.0,sectorAvgPE:30,epsgr:20},
+  "NCC": {roe:10,debtEquity:0.50,promoterHold:22.0,pb:1.5,sectorAvgPE:18,epsgr:15},
+  "LENSKART": {roe:5,debtEquity:0.10,promoterHold:25.0,pb:15.0,sectorAvgPE:80,epsgr:30},
+  // 1-Month — July 2026 Catalysts
+  "VOLTAS": {roe:10,debtEquity:0.05,promoterHold:30.3,pb:6.5,sectorAvgPE:50,epsgr:20},
+  "TITAN": {roe:29,debtEquity:1.56,promoterHold:52.9,pb:19.5,sectorAvgPE:46,epsgr:22},
+  "TATAMOTORS": {roe:22,debtEquity:0.80,promoterHold:46.4,pb:2.5,sectorAvgPE:12,epsgr:25},
   "KAYNES": {roe:16,debtEquity:0.25,promoterHold:63.5,pb:12.0,sectorAvgPE:60,epsgr:30},
-  "SYRMA": {roe:10,debtEquity:0.15,promoterHold:32.4,pb:5.5,sectorAvgPE:60,epsgr:25},
-  "KPITTECH": {roe:28,debtEquity:0.10,promoterHold:40.2,pb:20.0,sectorAvgPE:50,epsgr:30},
-  "TATAELXSI": {roe:35,debtEquity:0.0,promoterHold:43.9,pb:16.0,sectorAvgPE:50,epsgr:18},
-  "AETHER": {roe:14,debtEquity:0.12,promoterHold:48.5,pb:6.0,sectorAvgPE:38,epsgr:25},
-  "E2ENET": {roe:10,debtEquity:0.08,promoterHold:50.5,pb:12.0,sectorAvgPE:80,epsgr:40},
-  // Layer 3 &mdash; Frontier
+  "CGPOWER": {roe:30,debtEquity:0.02,promoterHold:56.4,pb:35.0,sectorAvgPE:50,epsgr:34},
   "WAAREE": {roe:38,debtEquity:0.15,promoterHold:64.8,pb:8.5,sectorAvgPE:35,epsgr:35},
   "PREMIERENE": {roe:30,debtEquity:0.20,promoterHold:72.5,pb:10.0,sectorAvgPE:35,epsgr:40},
-  "TATAPOWER": {roe:8,debtEquity:1.20,promoterHold:46.9,pb:3.5,sectorAvgPE:30,epsgr:15},
-  "CDSL": {roe:35,debtEquity:0.0,promoterHold:20.0,pb:18.0,sectorAvgPE:45,epsgr:22},
-  "BSE": {roe:12,debtEquity:0.0,promoterHold:5.0,pb:8.5,sectorAvgPE:45,epsgr:30},
-  "ANGELONE": {roe:35,debtEquity:0.30,promoterHold:39.2,pb:5.5,sectorAvgPE:20,epsgr:18},
-  "RACLGEAR": {roe:18,debtEquity:0.25,promoterHold:62.5,pb:4.5,sectorAvgPE:30,epsgr:20},
-  "NETWEB": {roe:25,debtEquity:0.08,promoterHold:72.8,pb:15.0,sectorAvgPE:60,epsgr:35},
-  "NEWGEN": {roe:25,debtEquity:0.0,promoterHold:68.2,pb:10.0,sectorAvgPE:40,epsgr:25},
-  "ZAGGLE": {roe:14,debtEquity:0.05,promoterHold:42.5,pb:8.0,sectorAvgPE:50,epsgr:30},
-  "JUPITERWAG": {roe:18,debtEquity:0.20,promoterHold:51.0,pb:6.5,sectorAvgPE:35,epsgr:25},
-  "TITAGARH": {roe:14,debtEquity:0.35,promoterHold:42.0,pb:7.0,sectorAvgPE:35,epsgr:22},
-  // Energy & Battery
-  "EXIDEIND": {roe:8,debtEquity:0.12,promoterHold:45.8,pb:2.5,sectorAvgPE:28,epsgr:20},
-  "AMARAJABAT": {roe:14,debtEquity:0.05,promoterHold:28.0,pb:3.2,sectorAvgPE:28,epsgr:18},
+  "SHRIRAMFIN": {roe:16,debtEquity:4.50,promoterHold:25.4,pb:2.8,sectorAvgPE:18,epsgr:18},
+  "HOMEFIRST": {roe:15,debtEquity:3.00,promoterHold:30.0,pb:4.5,sectorAvgPE:30,epsgr:25},
+  "JBMA": {roe:10,debtEquity:0.35,promoterHold:56.0,pb:5.0,sectorAvgPE:40,epsgr:30},
   "HSCL": {roe:22,debtEquity:0.15,promoterHold:59.0,pb:6.5,sectorAvgPE:30,epsgr:28},
-  "BONDADA": {roe:36,debtEquity:0.25,promoterHold:53.0,pb:4.5,sectorAvgPE:25,epsgr:35},
-  "JSWENERGY": {roe:6,debtEquity:0.80,promoterHold:69.3,pb:3.5,sectorAvgPE:30,epsgr:20},
-  // Turnaround / High-Risk
-  "IDEA": {roe:39,debtEquity:8.0,promoterHold:25.6,pb:-4.2,sectorAvgPE:25,epsgr:50},
-  "OLAELEC": {roe:-44,debtEquity:2.5,promoterHold:34.6,pb:5.0,sectorAvgPE:0,epsgr:0},
-  // Cloud / AI / Quantum / Semiconductor
-  "PERSISTENT": {roe:26,debtEquity:0.0,promoterHold:30.3,pb:12.0,sectorAvgPE:50,epsgr:28},
-  "HCLTECH": {roe:25,debtEquity:0.05,promoterHold:60.9,pb:5.3,sectorAvgPE:30,epsgr:15},
-  "TECHM": {roe:16,debtEquity:0.10,promoterHold:35.0,pb:4.5,sectorAvgPE:30,epsgr:20},
+  "MARICO": {roe:38,debtEquity:0.10,promoterHold:59.6,pb:20.0,sectorAvgPE:50,epsgr:12},
+  "HYUNDAI": {roe:18,debtEquity:0.05,promoterHold:82.0,pb:4.5,sectorAvgPE:25,epsgr:15},
+  "TRENT": {roe:31,debtEquity:0.15,promoterHold:36.9,pb:40.0,sectorAvgPE:80,epsgr:35},
   "INFY": {roe:31,debtEquity:0.02,promoterHold:14.4,pb:5.1,sectorAvgPE:30,epsgr:12},
-  "LTTS": {roe:23,debtEquity:0.05,promoterHold:73.6,pb:8.0,sectorAvgPE:45,epsgr:18},
-  "CYIENT": {roe:13,debtEquity:0.15,promoterHold:23.3,pb:3.5,sectorAvgPE:35,epsgr:15},
-  "MAPMYINDIA": {roe:19,debtEquity:0.0,promoterHold:51.4,pb:5.5,sectorAvgPE:50,epsgr:20},
-  "RAILTEL": {roe:15,debtEquity:0.05,promoterHold:72.8,pb:4.5,sectorAvgPE:30,epsgr:20},
-  "VEDL": {roe:57,debtEquity:2.13,promoterHold:56.4,pb:1.8,sectorAvgPE:12,epsgr:25},
-  // US-India Trade Deal Beneficiaries
-  "MANINDS": {roe:18,debtEquity:0.35,promoterHold:52.0,pb:2.5,sectorAvgPE:18,epsgr:20},
-  "GOKEX": {roe:20,debtEquity:0.20,promoterHold:55.0,pb:5.0,sectorAvgPE:35,epsgr:22},
-  // PLI / EMS / Auto Tech / AI Platform
-  "AFFLE": {roe:12,debtEquity:0.0,promoterHold:56.0,pb:5.5,sectorAvgPE:17,epsgr:20},
-  // High Momentum / Consumer / Infra / Real Estate
-  "POLYCAB": {roe:23,debtEquity:0.02,promoterHold:61.5,pb:12.3,sectorAvgPE:50,epsgr:31},
-  "CGPOWER": {roe:30,debtEquity:0.02,promoterHold:56.4,pb:35.0,sectorAvgPE:50,epsgr:34},
+  // Long-Term — 3-5 Year Compounders
+  "PIDILITIND": {roe:25,debtEquity:0.05,promoterHold:69.3,pb:22.0,sectorAvgPE:70,epsgr:15},
+  "GRINDWELL": {roe:18,debtEquity:0.0,promoterHold:58.0,pb:10.0,sectorAvgPE:50,epsgr:14},
+  "INOXINDIA": {roe:30,debtEquity:0.0,promoterHold:75.0,pb:15.0,sectorAvgPE:45,epsgr:20},
+  "PIIND": {roe:18,debtEquity:0.05,promoterHold:46.1,pb:7.5,sectorAvgPE:40,epsgr:18},
+  "VINATIORGA": {roe:15,debtEquity:0.02,promoterHold:74.3,pb:8.0,sectorAvgPE:45,epsgr:16},
   "SUZLON": {roe:35,debtEquity:0.05,promoterHold:13.3,pb:7.5,sectorAvgPE:24,epsgr:53},
-  "TITAN": {roe:29,debtEquity:1.56,promoterHold:52.9,pb:19.5,sectorAvgPE:46,epsgr:22},
-  "DLF": {roe:11,debtEquity:0.10,promoterHold:74.1,pb:3.4,sectorAvgPE:30,epsgr:30},
-  "IREDA": {roe:18,debtEquity:7.5,promoterHold:71.8,pb:2.6,sectorAvgPE:20,epsgr:15},
-  "GODREJPROP": {roe:11,debtEquity:0.38,promoterHold:51.7,pb:4.5,sectorAvgPE:30,epsgr:40},
+  "TATACOMM": {roe:12,debtEquity:0.60,promoterHold:58.9,pb:4.0,sectorAvgPE:30,epsgr:15},
+  "HGINFRA": {roe:18,debtEquity:0.30,promoterHold:71.8,pb:2.2,sectorAvgPE:15,epsgr:20},
+  "WABAG": {roe:18,debtEquity:0.10,promoterHold:19.1,pb:6.0,sectorAvgPE:30,epsgr:22},
+  "KPIL": {roe:14,debtEquity:0.40,promoterHold:46.0,pb:3.0,sectorAvgPE:25,epsgr:20},
+  "EVEREADY": {roe:30,debtEquity:0.35,promoterHold:46.0,pb:7.0,sectorAvgPE:25,epsgr:15},
+  "DIAMONDYD": {roe:8,debtEquity:0.05,promoterHold:55.6,pb:3.5,sectorAvgPE:40,epsgr:20},
+  "JAYAGROGN": {roe:10,debtEquity:0.15,promoterHold:67.1,pb:1.5,sectorAvgPE:18,epsgr:25},
+  "CDSL": {roe:35,debtEquity:0.0,promoterHold:20.0,pb:18.0,sectorAvgPE:45,epsgr:22},
+  "POLYCAB": {roe:23,debtEquity:0.02,promoterHold:61.5,pb:12.3,sectorAvgPE:50,epsgr:31},
 };
 
 // Merge financials into stock objects
@@ -2950,79 +2914,113 @@ function renderNSEAnnouncements(announcements) {
 }
 
 // ============================================================
+//  PRIMARY RESEARCH SIGNALS — Our Intelligence Edge
+//  Sources: BSE filings, SEBI bulk deals, VAHAN, promoter txns
+// ============================================================
+const PRIMARY_SIGNALS = [
+  {type:"BUYBACK",company:"Cyient",ticker:"CYIENT",signal:"Buyback tender at ₹1,125/share (32.8% premium). Window: Jun 23-30.",source:"BSE Filing",date:"2026-06-20",severity:"HIGH",icon:"💰"},
+  {type:"BULK_DEAL",company:"Knowledge Marine",ticker:"KMEW",signal:"SBI Mutual Fund bought 4,00,036 shares via bulk deal (~₹78.5 Cr). Institutional entry at scale.",source:"SEBI Bulk Deal",date:"2026-06-19",severity:"HIGH",icon:"🏦"},
+  {type:"PROMOTER_BUY",company:"GRM Overseas",ticker:"GRMOVER",signal:"Promoter Atul Garg bought 2,38,281 shares on open market (Jun 8-11) at ₹94-98.",source:"SEBI Insider",date:"2026-06-11",severity:"MEDIUM",icon:"👤"},
+  {type:"PROMOTER_BUY",company:"Daikaffil Chemicals",ticker:"DAIKAFFIL",signal:"Promoter Mikusu India bought across 8 tranches (Jun 4-16). Stake 48.66%→49.62%, approaching 50%.",source:"SEBI Insider",date:"2026-06-16",severity:"HIGH",icon:"📈"},
+  {type:"PROMOTER_BUY",company:"NCC Ltd",ticker:"NCC",signal:"Promoter entity Sirisha Projects bought 5,44,721 shares (Jun 5 @₹149, Jun 17 @₹153). Buying at rising prices.",source:"SEBI Insider",date:"2026-06-17",severity:"MEDIUM",icon:"👤"},
+  {type:"PROMOTER_BUY",company:"Eveready Industries",ticker:"EVEREADY",signal:"Active promoter buying in June 2026 at market price. Alkaline battery plant commissioned May 2026.",source:"SEBI Insider",date:"2026-06-15",severity:"MEDIUM",icon:"🔋"},
+  {type:"BLOCK_DEAL",company:"Lenskart Solutions",ticker:"LENSKART",signal:"₹1,960 Cr block deal Jun 12: Kotak MF (₹591 Cr), NPS Trust (₹248 Cr), Canara Robeco bought from ADIA.",source:"SEBI Block Deal",date:"2026-06-12",severity:"HIGH",icon:"🏛️"},
+  {type:"CREDIT_UPGRADE",company:"Shriram Finance",ticker:"SHRIRAMFIN",signal:"Upgraded to AAA by ALL three agencies (CRISIL, ICRA, India Ratings) on Apr 9-10. MUFG 20% stake.",source:"Rating Agencies",date:"2026-04-10",severity:"HIGH",icon:"⭐"},
+  {type:"FII_SURGE",company:"Home First Finance",ticker:"HOMEFIRST",signal:"FII holding jumped 4.9 percentage points in ONE quarter to 49.16%. FY26 PAT grew 41.4%.",source:"Shareholding Pattern",date:"2026-06-15",severity:"HIGH",icon:"🌍"},
+  {type:"POLICY",company:"Waaree Energies",ticker:"WAAREE",signal:"ALMM List-II enforcement effective Jun 1 — domestic solar cells mandatory. Demand lock-in for Indian makers.",source:"MNRE Gazette",date:"2026-06-01",severity:"HIGH",icon:"🏛️"},
+  {type:"POLICY",company:"Ather Energy",ticker:"ATHERENERGY",signal:"PM E-Drive subsidy ~94% exhausted. Expiry Jul 31 could raise e-scooter prices ~₹5,000. Pre-buy rush underway.",source:"MHI Dashboard",date:"2026-06-20",severity:"HIGH",icon:"⚡"},
+  {type:"GOVT_APPROVAL",company:"Dixon Technologies",ticker:"DIXON",signal:"Government approval of Dixon-Vivo JV expected within days. JPMorgan estimates ~22M handsets/year shift.",source:"DPIIT Filing",date:"2026-06-18",severity:"HIGH",icon:"🏭"},
+  {type:"TRADE_DEAL",company:"Welspun Living",ticker:"WELSPUNLIV",signal:"India-UK FTA effective Jul 15. Eliminates ~12% textile tariffs. Stock +3-8% on Jun 18 announcement.",source:"Ministry of Commerce",date:"2026-06-18",severity:"HIGH",icon:"🤝"},
+  {type:"CAPACITY",company:"Kaynes Technology",ticker:"KAYNES",signal:"OSAT semiconductor plant (Sanand) inaugurated Mar 31. Capacity: 6M units/day. First revenue in Q1 FY27.",source:"Company Filing",date:"2026-03-31",severity:"HIGH",icon:"🔧"},
+  {type:"ORDER_WIN",company:"Suzlon Energy",ticker:"SUZLON",signal:"838 MW order from Tata Power. Record 6.4 GW total order book. FY26 revenue +54%. Now debt-free.",source:"BSE Announcement",date:"2026-06-16",severity:"MEDIUM",icon:"🌬️"},
+];
+
+function renderPrimaryResearch() {
+  const grid = document.getElementById('primaryResearchGrid');
+  if (!grid) return;
+  const typeColors = {BUYBACK:'#00c896',BULK_DEAL:'#6366f1',PROMOTER_BUY:'#f59e0b',BLOCK_DEAL:'#8b5cf6',CREDIT_UPGRADE:'#10b981',FII_SURGE:'#3b82f6',POLICY:'#ef4444',GOVT_APPROVAL:'#14b8a6',TRADE_DEAL:'#06b6d4',CAPACITY:'#a78bfa',ORDER_WIN:'#22c55e'};
+  const sevBg = {HIGH:'rgba(239,68,68,0.12)',MEDIUM:'rgba(245,158,11,0.12)',LOW:'rgba(100,116,139,0.08)'};
+  grid.innerHTML = PRIMARY_SIGNALS.map(s => {
+    const stock = stocks.find(st => st.ticker === s.ticker);
+    return '<div style="background:'+(sevBg[s.severity]||sevBg.LOW)+';border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer" onclick="showDetail(\''+s.ticker+'\')">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<span style="font-weight:700;font-size:13px">'+s.icon+' '+s.company+'</span>' +
+      '<span style="font-size:9px;font-weight:700;color:'+(typeColors[s.type]||'var(--muted)')+';background:rgba(0,0,0,0.3);padding:2px 8px;border-radius:8px;letter-spacing:0.5px">'+s.type.replace(/_/g,' ')+'</span>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--text);line-height:1.5;margin-bottom:6px">'+s.signal+'</div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">' +
+      '<span>'+s.source+'</span>' +
+      '<span style="color:'+(s.severity==='HIGH'?'var(--red)':'var(--amber)')+'">'+s.severity+'</span>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+// ============================================================
 //  AGENT-CURATED NEWS INTELLIGENCE (web-search powered)
 //  Last updated: 21 Jun 2026 by AI Research Agent
 // ============================================================
 const CURATED_NEWS = [
-  {title:"Jio Platforms files DRHP for India's largest-ever IPO; $4B raise at $133-180B valuation",
-   source:"Business Standard",link:"https://www.business-standard.com/markets/news/jio-ipo-may-unlock-value-and-trigger-ril-rerating-say-market-experts-126061901136_1.html",
-   pubDate:"2026-06-19",tag:"company",tagLabel:"Reliance",
-   impact:"bullish",impactText:"Massive Value Unlock",
-   stocks:["Reliance Industries"],
-   detail:"DRHP filed Jun 19. Fresh issue of 27cr shares. Will reduce RJIL debt, improve net margins. RIL up 6% in 4 days on IPO buzz."},
-
-  {title:"Brent crude at $110/bbl as Iran conflict creates largest supply disruption in history",
-   source:"Morgan Stanley",link:"https://www.morganstanley.com/insights/articles/iran-war-oil-shock-stock-market-impacts",
-   pubDate:"2026-06-20",tag:"macro",tagLabel:"Oil Crisis",
-   impact:"bearish",impactText:"Major Risk",
-   stocks:["BPCL","Indian Oil","HPCL"],
-   detail:"Strait of Hormuz closure. India imports 90% crude. Rupee at 96.88/USD record low."},
-
-  {title:"Sensex, Nifty likely to extend rally Jun 22-26; FIIs return as net buyers with Rs 3,386cr inflow",
-   source:"GoodReturns",link:"https://www.goodreturns.in/",
-   pubDate:"2026-06-21",tag:"india",tagLabel:"Market Outlook",
-   impact:"bullish",impactText:"FII Buying",
-   stocks:[],
-   detail:"BSE Sensex gained 1.7% to 76,803. Nifty Midcap +2.9%, Smallcap +3.2%. FIIs turned net buyers."},
-
-  {title:"Infosys crashes 9% to 52-week low Rs 1,030; Accenture guidance cut sparks IT sell-off",
-   source:"TradingKey",link:"https://www.tradingkey.com/",
-   pubDate:"2026-06-20",tag:"company",tagLabel:"IT Sector",
-   impact:"bearish",impactText:"Sector Crash",
-   stocks:["Infosys","TCS","HCL Tech"],
-   detail:"Wiped Rs 40,000cr market cap. FY27 revenue guidance weak at 1.5-3.5%."},
-
-  {title:"Dixon Technologies rises 4.5%; signs 60:40 JV with Gemtek for optical transceivers",
-   source:"Yahoo Finance",link:"https://finance.yahoo.com/quote/DIXON.NS/",
-   pubDate:"2026-06-09",tag:"company",tagLabel:"Dixon Tech",
+  {title:"Cyient announces buyback at ₹1,125/share — 32.8% premium to CMP. Tender window Jun 23-30.",
+   source:"BSE Filing",link:"https://www.bseindia.com/corporates/ann.html",
+   pubDate:"2026-06-20",tag:"company",tagLabel:"Cyient",
+   impact:"bullish",impactText:"Buyback Premium",
+   stocks:["Cyient"],
+   detail:"Record date Jun 17. ₹1,125 buyback price vs ~₹847 CMP. Massive arbitrage-driven buying expected."},
+  {title:"Dixon-Vivo JV gets government green light; ~22M handsets/year production shift to India",
+   source:"DPIIT / JPMorgan",link:"https://www.bseindia.com/corporates/ann.html",
+   pubDate:"2026-06-21",tag:"company",tagLabel:"Dixon",
    impact:"bullish",impactText:"JV Catalyst",
    stocks:["Dixon Technologies"],
-   detail:"Binding term sheet for BOSA & optical transceiver manufacturing."},
-
-  {title:"Suzlon Energy retains Buy rating (target Rs 65); wins 838 MW order from Tata Power",
-   source:"BusinessToday",link:"https://www.businesstoday.in/",
+   detail:"Massive order book expansion. India's #1 EMS. Stock up 12% in one week."},
+  {title:"India-UK FTA signed — effective July 15. Textile tariffs eliminated (~12% boost for Indian exporters)",
+   source:"Ministry of Commerce",link:"https://commerce.gov.in",
+   pubDate:"2026-06-18",tag:"macro",tagLabel:"Trade Deal",
+   impact:"bullish",impactText:"FTA Catalyst",
+   stocks:["Welspun Living"],
+   detail:"Direct margin and volume uplift for textile exporters. Welspun Living rallied 3-8% on announcement."},
+  {title:"SBI Mutual Fund enters Knowledge Marine with ₹78.5 Cr bulk deal — 4 lakh shares purchased",
+   source:"SEBI Bulk Deal",link:"https://www.nseindia.com/market-data/bulk-deal-data",
+   pubDate:"2026-06-19",tag:"company",tagLabel:"KMEW",
+   impact:"bullish",impactText:"Institutional Entry",
+   stocks:["Knowledge Marine"],
+   detail:"Large mutual fund entry signals institutional re-rating thesis. SBI MF known for conviction bets."},
+  {title:"Shriram Finance upgraded to AAA by all three agencies — first NBFC outside top 5 to achieve this",
+   source:"CRISIL / ICRA / India Ratings",link:"https://www.crisil.com",
+   pubDate:"2026-04-10",tag:"company",tagLabel:"Shriram",
+   impact:"bullish",impactText:"AAA Upgrade",
+   stocks:["Shriram Finance"],
+   detail:"MUFG 20% stake. Networth crossed ₹1L Cr. Lower borrowing costs = margin expansion."},
+  {title:"ALMM List-II enforcement effective June 1 — domestic solar cells now mandatory for all projects",
+   source:"MNRE Gazette",link:"https://mnre.gov.in",
+   pubDate:"2026-06-01",tag:"macro",tagLabel:"Solar Policy",
+   impact:"bullish",impactText:"Policy Tailwind",
+   stocks:["Waaree Energies","Premier Energies"],
+   detail:"Chinese solar cell imports effectively blocked. Demand lock-in for Waaree (12 GW) and Premier Energies (4 GW)."},
+  {title:"Kaynes Technology OSAT semiconductor plant inaugurated at Sanand — 6M units/day capacity",
+   source:"Company Filing",link:"https://www.bseindia.com/corporates/ann.html",
+   pubDate:"2026-03-31",tag:"company",tagLabel:"Kaynes",
+   impact:"bullish",impactText:"Semiconductor Revenue",
+   stocks:["Kaynes Technology"],
+   detail:"India Semiconductor Mission approved. First revenue in Q1 FY27. Game-changer for Indian semi ecosystem."},
+  {title:"PM E-Drive subsidy 94% exhausted — e-scooter prices to rise ₹5,000 post Jul 31 expiry",
+   source:"MHI Dashboard",link:"https://pmemobility.in",
+   pubDate:"2026-06-20",tag:"macro",tagLabel:"EV Policy",
+   impact:"bullish",impactText:"Demand Rush",
+   stocks:["Ather Energy","JBM Auto"],
+   detail:"Pre-buy rush underway. 24.79 lakh target nearly met. Near-term demand surge then potential dip."},
+  {title:"Suzlon Energy wins 838 MW order from Tata Power; total order book at record 6.4 GW",
+   source:"BSE Announcement",link:"https://www.bseindia.com/corporates/ann.html",
    pubDate:"2026-06-16",tag:"company",tagLabel:"Suzlon",
    impact:"bullish",impactText:"Order Win",
    stocks:["Suzlon Energy"],
-   detail:"FY26 revenue grew 54%. Stock dipped 8% creating buying opportunity."},
-
-  {title:"Waaree Energies wins 800MW solar module order; stock at Rs 3,064",
-   source:"Screener",link:"https://www.screener.in/company/WAAREEENER/",
-   pubDate:"2026-06-15",tag:"company",tagLabel:"Waaree",
-   impact:"bullish",impactText:"Order Win",
-   stocks:["Waaree Energies"],
-   detail:"India's largest solar module maker. 300MW wind PPA with SECI."},
-
-  {title:"Polycab India on track for Rs 20,000cr revenue in FY26; management confident",
-   source:"Screener",link:"https://www.screener.in/company/POLYCAB/",
-   pubDate:"2026-06-12",tag:"company",tagLabel:"Polycab",
-   impact:"bullish",impactText:"Revenue Beat",
-   stocks:["Polycab India"],
-   detail:"Infrastructure capex cycle beneficiary. Strong wires & cables position."},
-
-  {title:"KPIT Technologies: ROE 28-34% driven by EV & ADAS embedded software",
-   source:"TradeBrains",link:"https://tradebrains.in/",
-   pubDate:"2026-06-14",tag:"company",tagLabel:"KPIT Tech",
-   impact:"bullish",impactText:"Quality Play",
-   stocks:["KPIT Technologies"],
-   detail:"EV/ADAS software commands structural premium. Electric vehicle megatrend beneficiary."},
-
-  {title:"RBI likely to hike rates amid Iran war oil shock; inflation concerns mount",
-   source:"Outlook Money",link:"https://www.outlookmoney.com/",
-   pubDate:"2026-06-18",tag:"macro",tagLabel:"RBI Policy",
-   impact:"bearish",impactText:"Rate Hike Risk",
-   stocks:["HDFC Bank","SBI","Bajaj Finance"],
-   detail:"Crude above $100/bbl forcing RBI hand. Higher rates negative for banks, NBFCs."},
+   detail:"FY26 revenue +54%. Now debt-free. PE 19x vs 33% ROCE = massive value gap."},
+  {title:"S&P upgrades India to BBB — first rating upgrade in 18 years. FII inflows expected to surge",
+   source:"S&P Global",link:"https://www.spglobal.com/ratings",
+   pubDate:"2026-06-15",tag:"india",tagLabel:"Rating Upgrade",
+   impact:"bullish",impactText:"Macro Catalyst",
+   stocks:[],
+   detail:"DIIs bought record ₹4.3 trillion in H1 CY2026. FII ownership at 15-year low (16.9%). Reversal = significant upside."},
 ];
 
 // ---- MASTER LOAD: News Intelligence Tab ----
@@ -3031,6 +3029,9 @@ async function loadNewsIntelTab() {
   newsIntLoaded = true;
   const grid = document.getElementById('newsIntGrid');
   grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1"><span class="spinner"></span> Fetching multi-source news intelligence...</div>';
+
+  // Phase -1: Render Primary Research Signals (our edge)
+  renderPrimaryResearch();
 
   // Phase 0: Show curated agent-researched news immediately
   const curatedItems = CURATED_NEWS.map(n => ({
