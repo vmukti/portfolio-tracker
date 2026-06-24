@@ -947,8 +947,8 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <!-- ══════════════════════ PAPER TRADE TAB ══════════════════════ -->
   <div id="tab-papertrade" style="display:none">
     <div style="text-align:center;padding:20px 0 10px">
-      <h2 style="margin:0;font-size:22px">&#128176; Paper Trading Simulator</h2>
-      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">Virtual &#8377;1,00,000 wallet &mdash; AI auto-trades based on portfolio signals &mdash; Track daily P&amp;L</p>
+      <h2 style="margin:0;font-size:22px">&#128176; AI Quant Paper Trading v2.0</h2>
+      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">Multi-factor AI scoring (100-pt) &mdash; Conviction-based sizing &mdash; Trailing stops &mdash; Sector diversification &mdash; Aggressive rebalancing</p>
     </div>
 
     <!-- Wallet Summary Cards -->
@@ -960,9 +960,12 @@ tbody tr.flash-down{animation:flashRed .8s ease}
       <div class="metric-card"><div class="metric-label">TOTAL RETURN</div><div class="metric-value" id="ptReturn" style="color:#22c55e">0.00%</div></div>
     </div>
 
+    <!-- AI Analytics -->
+    <div id="ptAIStats" style="margin-bottom:12px"></div>
+
     <!-- Action buttons -->
     <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
-      <button onclick="runAIAutoTrade()" style="padding:10px 24px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">&#129302; Run AI Auto-Trade</button>
+      <button onclick="runAIAutoTrade()" style="padding:10px 24px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">&#129302; Run AI Auto-Trade v2.0</button>
       <button onclick="resetPaperWallet()" style="padding:10px 18px;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128260; Reset Wallet</button>
       <span id="ptLastTrade" style="color:var(--muted);font-size:12px;margin-left:auto">No trades yet</span>
     </div>
@@ -1824,9 +1827,9 @@ function renderBessChart() {
 }
 
 // ============================================================
-//  PAPER TRADING SIMULATOR
+//  PAPER TRADING SIMULATOR v2.0 — AI QUANT ENGINE
 // ============================================================
-const PT_KEY = 'paperTradeWallet_v1';
+const PT_KEY = 'paperTradeWallet_v2';
 const PT_START = 100000;
 
 function getPT() {
@@ -1834,7 +1837,7 @@ function getPT() {
     const d = JSON.parse(localStorage.getItem(PT_KEY));
     if (d && d.cash !== undefined) return d;
   } catch(e) {}
-  return { cash: PT_START, positions: [], trades: [], startDate: new Date().toISOString(), dailySnap: {} };
+  return { cash: PT_START, positions: [], trades: [], startDate: new Date().toISOString(), dailySnap: {}, peakValue: PT_START };
 }
 function savePT(w) { localStorage.setItem(PT_KEY, JSON.stringify(w)); }
 
@@ -1844,15 +1847,127 @@ function resetPaperWallet() {
   loadPaperTrade();
 }
 
+// ═══════════════════════════════════════════════════════════
+//  MULTI-FACTOR AI SCORING ENGINE (0-100)
+// ═══════════════════════════════════════════════════════════
+function aiScore(s) {
+  if (!s || !s.cmp || s.cmp <= 0) return { total: 0, momentum: 0, value: 0, quality: 0, signal: 0, factors: [] };
+  const factors = [];
+  let momentum = 0, value = 0, quality = 0, signal = 0;
+
+  // ── MOMENTUM (0-25): price action + volume ──
+  // 52W position: closer to low = more upside (contrarian)
+  if (s.low52 && s.high52 && s.high52 > s.low52) {
+    const pos52 = (s.cmp - s.low52) / (s.high52 - s.low52); // 0=at low, 1=at high
+    if (pos52 < 0.3) { momentum += 10; factors.push('Near 52W low — deep value zone'); }
+    else if (pos52 < 0.5) { momentum += 7; factors.push('Lower half of 52W range'); }
+    else if (pos52 < 0.7) { momentum += 4; factors.push('Mid 52W range'); }
+    else { momentum += 1; factors.push('Near 52W high — stretched'); }
+  }
+  // Today's momentum
+  if (s.changePct > 3) { momentum += 8; factors.push('Strong momentum +' + s.changePct.toFixed(1) + '%'); }
+  else if (s.changePct > 1) { momentum += 6; factors.push('Positive day +' + s.changePct.toFixed(1) + '%'); }
+  else if (s.changePct > 0) { momentum += 4; }
+  else if (s.changePct > -1) { momentum += 2; }
+  else { momentum += 0; factors.push('Weak day ' + s.changePct.toFixed(1) + '%'); }
+  // Volume spike = institutional interest
+  if (s.vol && s.avgVol && s.avgVol > 0) {
+    const volRatio = s.vol / s.avgVol;
+    if (volRatio > 2) { momentum += 7; factors.push('Volume spike ' + volRatio.toFixed(1) + 'x avg'); }
+    else if (volRatio > 1.3) { momentum += 5; factors.push('Above-avg volume'); }
+    else { momentum += 2; }
+  } else { momentum += 3; }
+
+  // ── VALUE (0-25): PE, PB, EPS growth, sector comparison ──
+  // PE vs sector average
+  if (s.pe && s.sectorAvgPE && s.sectorAvgPE > 0) {
+    const peDiscount = (s.sectorAvgPE - s.pe) / s.sectorAvgPE;
+    if (peDiscount > 0.4) { value += 8; factors.push('PE ' + s.pe + ' vs sector ' + s.sectorAvgPE + ' — deep discount'); }
+    else if (peDiscount > 0.2) { value += 6; factors.push('PE below sector avg'); }
+    else if (peDiscount > 0) { value += 4; }
+    else { value += 1; factors.push('PE above sector avg — premium'); }
+  } else { value += 3; }
+  // PB ratio
+  if (s.pb) {
+    if (s.pb < 2) { value += 6; factors.push('PB ' + s.pb + ' — asset-light value'); }
+    else if (s.pb < 5) { value += 4; }
+    else { value += 1; }
+  } else { value += 3; }
+  // EPS growth
+  if (s.epsgr) {
+    if (s.epsgr > 30) { value += 7; factors.push('EPS growth ' + s.epsgr + '% — hypergrowth'); }
+    else if (s.epsgr > 15) { value += 5; factors.push('EPS growth ' + s.epsgr + '%'); }
+    else if (s.epsgr > 0) { value += 3; }
+    else { value += 0; factors.push('Negative EPS growth'); }
+  } else { value += 2; }
+  // Market cap preference (mid-caps have more alpha)
+  if (s.mcap) {
+    if (s.mcap > 5000 && s.mcap < 50000) { value += 4; factors.push('Mid-cap sweet spot'); }
+    else if (s.mcap >= 50000) { value += 2; }
+    else { value += 3; }
+  }
+
+  // ── QUALITY (0-25): ROCE, ROE, debt, promoter ──
+  if (s.roce) {
+    if (s.roce > 25) { quality += 8; factors.push('ROCE ' + s.roce + '% — superior returns'); }
+    else if (s.roce > 15) { quality += 6; }
+    else if (s.roce > 10) { quality += 3; }
+    else { quality += 1; }
+  } else { quality += 2; }
+  if (s.roe) {
+    if (s.roe > 20) { quality += 6; factors.push('ROE ' + s.roe + '%'); }
+    else if (s.roe > 12) { quality += 4; }
+    else { quality += 2; }
+  } else { quality += 2; }
+  if (s.debtEquity !== undefined) {
+    if (s.debtEquity < 0.3) { quality += 6; factors.push('Almost debt-free D/E ' + s.debtEquity); }
+    else if (s.debtEquity < 1) { quality += 4; }
+    else { quality += 1; factors.push('High debt D/E ' + s.debtEquity); }
+  } else { quality += 3; }
+  if (s.promoterHold) {
+    if (s.promoterHold > 60) { quality += 5; factors.push('Promoter ' + s.promoterHold + '% — high skin in game'); }
+    else if (s.promoterHold > 40) { quality += 3; }
+    else { quality += 1; }
+  } else { quality += 2; }
+
+  // ── SIGNAL (0-25): scan status, catalyst, layer ──
+  if (s.scanStatus === 'STRENGTHENING') { signal += 10; factors.push('STRONG signal active'); }
+  else if (s.scanStatus === 'INTACT') { signal += 5; }
+  else { signal += 0; }
+  // Catalyst urgency
+  if (s.catalyst && s.catalyst.length > 5) {
+    const catUpper = s.catalyst.toUpperCase();
+    if (catUpper.includes('BUYBACK') || catUpper.includes('SPLIT') || catUpper.includes('BONUS') || catUpper.includes('DEMERGER')) {
+      signal += 8; factors.push('Corporate action catalyst');
+    } else if (catUpper.includes('RESULTS') || catUpper.includes('ORDER WIN') || catUpper.includes('APPROVAL')) {
+      signal += 6; factors.push('Near-term catalyst');
+    } else { signal += 4; }
+  }
+  // Layer (Immediate > 1-Month > Long-Term for short-term trading)
+  if (s.layer === 'Immediate') { signal += 7; factors.push('Immediate-action layer'); }
+  else if (s.layer === '1-Month') { signal += 5; }
+  else { signal += 3; }
+
+  const total = Math.min(25, momentum) + Math.min(25, value) + Math.min(25, quality) + Math.min(25, signal);
+  return { total: Math.round(total), momentum: Math.min(25, momentum), value: Math.min(25, value), quality: Math.min(25, quality), signal: Math.min(25, signal), factors };
+}
+
+function aiScoreGrade(score) {
+  if (score >= 80) return { grade: 'A+', color: '#22c55e', label: 'STRONG BUY' };
+  if (score >= 65) return { grade: 'A', color: '#4ade80', label: 'BUY' };
+  if (score >= 50) return { grade: 'B', color: '#f59e0b', label: 'HOLD' };
+  if (score >= 35) return { grade: 'C', color: '#f97316', label: 'WEAK' };
+  return { grade: 'D', color: '#ef4444', label: 'AVOID' };
+}
+
+// ═══════════════════════════════════════════════════════════
 function loadPaperTrade() {
   const w = getPT();
   updatePTDisplay(w);
 }
 
 function updatePTDisplay(w) {
-  // Calculate holdings value from live prices
-  let holdingsVal = 0;
-  let todayPnl = 0;
+  let holdingsVal = 0, todayPnl = 0;
   w.positions.forEach(p => {
     const stock = stocks.find(s => s.ticker === p.ticker);
     const livePrice = stock ? (stock.cmp || p.avgPrice) : p.avgPrice;
@@ -1861,12 +1976,15 @@ function updatePTDisplay(w) {
     p.marketValue = livePrice * p.qty;
     p.pnl = (livePrice - p.avgPrice) * p.qty;
     p.dayPnl = (livePrice - prevClose) * p.qty;
+    p.aiScoreNow = stock ? aiScore(stock).total : 0;
     holdingsVal += p.marketValue;
     todayPnl += p.dayPnl;
   });
 
   const totalVal = w.cash + holdingsVal;
   const totalReturn = ((totalVal - PT_START) / PT_START * 100);
+  const peak = Math.max(w.peakValue || PT_START, totalVal);
+  const drawdown = ((totalVal - peak) / peak * 100);
 
   document.getElementById('ptCash').textContent = '₹' + w.cash.toLocaleString('en-IN', {maximumFractionDigits:0});
   document.getElementById('ptHoldings').textContent = '₹' + holdingsVal.toLocaleString('en-IN', {maximumFractionDigits:0});
@@ -1880,32 +1998,58 @@ function updatePTDisplay(w) {
   retEl.textContent = (totalReturn >= 0 ? '+' : '') + totalReturn.toFixed(2) + '%';
   retEl.style.color = totalReturn >= 0 ? '#22c55e' : '#ef4444';
 
-  // Render holdings table
+  // ── AI Analytics panel ──
+  const wins = w.trades.filter(t => t.type === 'SELL' && t.pnl > 0).length;
+  const losses = w.trades.filter(t => t.type === 'SELL' && t.pnl <= 0).length;
+  const totalSells = wins + losses;
+  const winRate = totalSells > 0 ? (wins / totalSells * 100).toFixed(0) : '--';
+  const totalRealPnl = w.trades.filter(t => t.type === 'SELL').reduce((s, t) => s + (t.pnl || 0), 0);
+  const bestTrade = w.trades.filter(t => t.type === 'SELL').sort((a, b) => (b.pnl || 0) - (a.pnl || 0))[0];
+  const worstTrade = w.trades.filter(t => t.type === 'SELL').sort((a, b) => (a.pnl || 0) - (b.pnl || 0))[0];
+  const sectorCount = new Set(w.positions.map(p => { const s = stocks.find(st => st.ticker === p.ticker); return s ? s.sector : 'Unknown'; })).size;
+
+  const statsEl = document.getElementById('ptAIStats');
+  if (statsEl) {
+    statsEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;font-size:12px">' +
+      '<div style="background:var(--card2);padding:8px 10px;border-radius:6px"><div style="color:var(--muted)">WIN RATE</div><div style="font-size:18px;font-weight:700;color:#22c55e">' + winRate + '%</div><div style="color:var(--muted);font-size:10px">' + wins + 'W / ' + losses + 'L</div></div>' +
+      '<div style="background:var(--card2);padding:8px 10px;border-radius:6px"><div style="color:var(--muted)">REALIZED P&L</div><div style="font-size:18px;font-weight:700;color:' + (totalRealPnl>=0?'#22c55e':'#ef4444') + '">' + (totalRealPnl>=0?'+':'') + '₹' + totalRealPnl.toLocaleString('en-IN',{maximumFractionDigits:0}) + '</div></div>' +
+      '<div style="background:var(--card2);padding:8px 10px;border-radius:6px"><div style="color:var(--muted)">BEST TRADE</div><div style="font-size:14px;font-weight:700;color:#22c55e">' + (bestTrade ? bestTrade.ticker + ' +₹' + (bestTrade.pnl||0).toLocaleString('en-IN') : '--') + '</div></div>' +
+      '<div style="background:var(--card2);padding:8px 10px;border-radius:6px"><div style="color:var(--muted)">WORST TRADE</div><div style="font-size:14px;font-weight:700;color:#ef4444">' + (worstTrade && worstTrade.pnl < 0 ? worstTrade.ticker + ' ₹' + (worstTrade.pnl||0).toLocaleString('en-IN') : '--') + '</div></div>' +
+      '<div style="background:var(--card2);padding:8px 10px;border-radius:6px"><div style="color:var(--muted)">DRAWDOWN</div><div style="font-size:18px;font-weight:700;color:' + (drawdown<-5?'#ef4444':'#f59e0b') + '">' + drawdown.toFixed(1) + '%</div></div>' +
+      '<div style="background:var(--card2);padding:8px 10px;border-radius:6px"><div style="color:var(--muted)">SECTORS</div><div style="font-size:18px;font-weight:700">' + sectorCount + '</div><div style="color:var(--muted);font-size:10px">' + w.positions.length + ' positions</div></div>' +
+    '</div>';
+  }
+
+  // ── Holdings table with AI Score ──
   const htEl = document.getElementById('ptHoldingsTable');
   if (w.positions.length === 0) {
     htEl.innerHTML = '<div style="color:var(--muted);text-align:center;padding:30px">No positions yet. Click "Run AI Auto-Trade" to start.</div>';
   } else {
     let html = '<table style="width:100%;border-collapse:collapse"><thead><tr style="color:var(--muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border)">';
-    html += '<th style="text-align:left;padding:8px">Stock</th><th>Qty</th><th>Avg Price</th><th>CMP</th><th>Value</th><th>P&L</th><th>Return</th><th>Action</th></tr></thead><tbody>';
-    w.positions.forEach((p, i) => {
+    html += '<th style="text-align:left;padding:8px">Stock</th><th>AI Score</th><th>Qty</th><th>Avg Price</th><th>CMP</th><th>Value</th><th>P&L</th><th>Return</th><th>Action</th></tr></thead><tbody>';
+    // Sort by AI score descending
+    const sorted = w.positions.map((p, i) => ({...p, idx: i})).sort((a, b) => (b.aiScoreNow||0) - (a.aiScoreNow||0));
+    sorted.forEach(p => {
       const ret = ((p.currentPrice - p.avgPrice) / p.avgPrice * 100);
       const pnlColor = p.pnl >= 0 ? '#22c55e' : '#ef4444';
+      const grade = aiScoreGrade(p.aiScoreNow || 0);
       html += '<tr style="border-bottom:1px solid var(--border)22">';
       html += '<td style="padding:8px;font-weight:600">' + p.ticker + '</td>';
+      html += '<td style="text-align:center"><span style="background:' + grade.color + '22;color:' + grade.color + ';padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px">' + (p.aiScoreNow||0) + ' ' + grade.grade + '</span></td>';
       html += '<td style="text-align:center">' + p.qty + '</td>';
       html += '<td style="text-align:center">₹' + p.avgPrice.toLocaleString('en-IN',{maximumFractionDigits:1}) + '</td>';
       html += '<td style="text-align:center">₹' + (p.currentPrice||0).toLocaleString('en-IN',{maximumFractionDigits:1}) + '</td>';
       html += '<td style="text-align:center">₹' + (p.marketValue||0).toLocaleString('en-IN',{maximumFractionDigits:0}) + '</td>';
       html += '<td style="text-align:center;color:' + pnlColor + '">' + (p.pnl>=0?'+':'') + '₹' + (p.pnl||0).toLocaleString('en-IN',{maximumFractionDigits:0}) + '</td>';
       html += '<td style="text-align:center;color:' + pnlColor + '">' + (ret>=0?'+':'') + ret.toFixed(1) + '%</td>';
-      html += '<td style="text-align:center"><button onclick="paperSell(' + i + ')" style="padding:3px 10px;background:#ef444422;color:#fca5a5;border:1px solid #ef444444;border-radius:6px;cursor:pointer;font-size:11px">Sell</button></td>';
+      html += '<td style="text-align:center"><button onclick="paperSell(' + p.idx + ')" style="padding:3px 10px;background:#ef444422;color:#fca5a5;border:1px solid #ef444444;border-radius:6px;cursor:pointer;font-size:11px">Sell</button></td>';
       html += '</tr>';
     });
     html += '</tbody></table>';
     htEl.innerHTML = html;
   }
 
-  // Render trade log
+  // ── Trade log ──
   const tlEl = document.getElementById('ptTradeLog');
   document.getElementById('ptTradeCount').textContent = '(' + w.trades.length + ' trades)';
   if (w.trades.length === 0) {
@@ -1917,10 +2061,11 @@ function updatePTDisplay(w) {
       const color = isBuy ? '#22c55e' : '#ef4444';
       const icon = isBuy ? '⬆' : '⬇';
       const pnlStr = t.pnl !== undefined ? (' | P&L: ' + (t.pnl>=0?'+':'') + '₹' + t.pnl.toLocaleString('en-IN',{maximumFractionDigits:0})) : '';
+      const scoreStr = t.aiScore ? ' [AI:' + t.aiScore + ']' : '';
       thtml += '<div style="padding:6px 8px;border-bottom:1px solid var(--border)22;display:flex;align-items:center;gap:8px">';
       thtml += '<span style="color:' + color + ';font-weight:700;min-width:40px">' + icon + ' ' + t.type + '</span>';
-      thtml += '<span style="font-weight:600;min-width:100px">' + t.ticker + '</span>';
-      thtml += '<span>' + t.qty + ' shares @ ₹' + t.price.toLocaleString('en-IN',{maximumFractionDigits:1}) + '</span>';
+      thtml += '<span style="font-weight:600;min-width:80px">' + t.ticker + scoreStr + '</span>';
+      thtml += '<span>' + t.qty + ' @ ₹' + t.price.toLocaleString('en-IN',{maximumFractionDigits:1}) + '</span>';
       thtml += '<span style="color:var(--muted)"> = ₹' + (t.qty*t.price).toLocaleString('en-IN',{maximumFractionDigits:0}) + pnlStr + '</span>';
       thtml += '<span style="color:var(--muted);margin-left:auto;font-size:11px">' + t.reason + ' | ' + new Date(t.time).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '</span>';
       thtml += '</div>';
@@ -1928,10 +2073,9 @@ function updatePTDisplay(w) {
     tlEl.innerHTML = thtml;
   }
 
-  // Update last trade time
   if (w.trades.length > 0) {
     const last = w.trades[w.trades.length - 1];
-    document.getElementById('ptLastTrade').textContent = 'Last trade: ' + last.type + ' ' + last.ticker + ' @ ' + new Date(last.time).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    document.getElementById('ptLastTrade').textContent = 'Last: ' + last.type + ' ' + last.ticker + ' @ ' + new Date(last.time).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
   }
 }
 
@@ -1943,103 +2087,156 @@ function paperSell(posIdx) {
   const sellPrice = stock ? (stock.cmp || pos.avgPrice) : pos.avgPrice;
   const proceeds = sellPrice * pos.qty;
   const pnl = (sellPrice - pos.avgPrice) * pos.qty;
-
   w.cash += proceeds;
-  w.trades.push({
-    type: 'SELL', ticker: pos.ticker, qty: pos.qty, price: sellPrice,
-    pnl: Math.round(pnl), reason: 'Manual sell', time: new Date().toISOString()
-  });
+  w.trades.push({ type: 'SELL', ticker: pos.ticker, qty: pos.qty, price: sellPrice, pnl: Math.round(pnl), reason: 'Manual sell', time: new Date().toISOString() });
   w.positions.splice(posIdx, 1);
   savePT(w);
   updatePTDisplay(w);
 }
 
+// ═══════════════════════════════════════════════════════════
+//  AI QUANT AUTO-TRADE ENGINE v2.0
+// ═══════════════════════════════════════════════════════════
 function runAIAutoTrade() {
   const w = getPT();
   const now = new Date();
   let tradesMade = 0;
+  const log = [];
 
-  // ── SELL LOGIC: exit WEAK stocks or stocks with breakdown signals ──
+  // ═══ PHASE 1: SMART EXIT — multi-factor sell decisions ═══
   for (let i = w.positions.length - 1; i >= 0; i--) {
     const pos = w.positions[i];
     const stock = stocks.find(s => s.ticker === pos.ticker);
-    if (!stock) continue;
-    const sellPrice = stock.cmp || pos.avgPrice;
+    if (!stock || !stock.cmp) continue;
+    const sellPrice = stock.cmp;
+    const returnPct = (sellPrice - pos.avgPrice) / pos.avgPrice * 100;
+    const sc = aiScore(stock);
 
-    // Sell if stock turned WEAKENING
-    let shouldSell = false;
-    let reason = '';
-    if (stock.scanStatus === 'WEAKENING') { shouldSell = true; reason = 'AI: WEAK signal detected'; }
-    // Sell if down > 10% from buy price (stop loss)
-    else if (sellPrice < pos.avgPrice * 0.90) { shouldSell = true; reason = 'AI: Stop-loss 10% triggered'; }
-    // Sell if up > 20% (profit booking)
-    else if (sellPrice > pos.avgPrice * 1.20) { shouldSell = true; reason = 'AI: Profit booking 20%+'; }
+    let shouldSell = false, reason = '';
+
+    // Rule 1: AI Score collapsed below 30 — fundamentals broken
+    if (sc.total < 30) { shouldSell = true; reason = 'AI EXIT: Score collapsed to ' + sc.total + '/100'; }
+    // Rule 2: WEAKENING signal + negative momentum
+    else if (stock.scanStatus === 'WEAKENING' && stock.changePct < -1) { shouldSell = true; reason = 'AI EXIT: WEAK + falling -' + Math.abs(stock.changePct).toFixed(1) + '%'; }
+    // Rule 3: Trailing stop-loss (tighter for profitable positions)
+    else if (returnPct > 10 && sellPrice < pos.peakPrice * 0.93) { shouldSell = true; reason = 'AI EXIT: Trailing stop 7% from peak'; }
+    else if (returnPct <= 0 && returnPct < -7) { shouldSell = true; reason = 'AI EXIT: Stop-loss 7% triggered'; }
+    // Rule 4: Profit booking — graduated
+    else if (returnPct > 25) { shouldSell = true; reason = 'AI EXIT: Profit booking 25%+ return'; }
+    // Rule 5: Rebalance — swap weakest holding for much stronger candidate
+    // (handled in Phase 3 below)
 
     if (shouldSell) {
       const proceeds = sellPrice * pos.qty;
       const pnl = (sellPrice - pos.avgPrice) * pos.qty;
       w.cash += proceeds;
-      w.trades.push({
-        type: 'SELL', ticker: pos.ticker, qty: pos.qty, price: sellPrice,
-        pnl: Math.round(pnl), reason, time: now.toISOString()
-      });
+      w.trades.push({ type: 'SELL', ticker: pos.ticker, qty: pos.qty, price: sellPrice, pnl: Math.round(pnl), aiScore: sc.total, reason, time: now.toISOString() });
       w.positions.splice(i, 1);
       tradesMade++;
+      log.push('SELL ' + pos.ticker + ' @ ₹' + sellPrice.toFixed(0) + ' (' + reason + ')');
+    } else {
+      // Track peak price for trailing stop
+      if (!pos.peakPrice || sellPrice > pos.peakPrice) pos.peakPrice = sellPrice;
     }
   }
 
-  // ── BUY LOGIC: buy STRONG stocks from portfolio ──
+  // ═══ PHASE 2: SCORE ALL CANDIDATES ═══
   const heldTickers = new Set(w.positions.map(p => p.ticker));
-  const maxPositions = 10; // max 10 stocks at a time
-  const positionSize = PT_START * 0.10; // 10% per position = ~₹10,000
+  const heldSectors = {};
+  w.positions.forEach(p => {
+    const s = stocks.find(st => st.ticker === p.ticker);
+    if (s) heldSectors[s.sector] = (heldSectors[s.sector] || 0) + 1;
+  });
 
-  // Sort stocks: STRONG first, then by buy score descending
-  const candidates = stocks
-    .filter(s => s.scanStatus === 'STRENGTHENING' && s.cmp && s.cmp > 0 && !heldTickers.has(s.ticker))
-    .sort((a, b) => (b.score || 0) - (a.score || 0));
+  const scored = stocks
+    .filter(s => s.cmp && s.cmp > 0 && !heldTickers.has(s.ticker))
+    .map(s => ({ stock: s, sc: aiScore(s) }))
+    .filter(x => x.sc.total >= 50) // minimum score 50 to consider
+    .sort((a, b) => b.sc.total - a.sc.total);
 
-  for (const stock of candidates) {
+  // ═══ PHASE 3: AGGRESSIVE REBALANCE — swap weak for strong ═══
+  if (w.positions.length >= 8 && scored.length > 0) {
+    // Find weakest current holding by AI score
+    let weakestIdx = -1, weakestScore = 999;
+    w.positions.forEach((p, i) => {
+      const s = stocks.find(st => st.ticker === p.ticker);
+      if (s) {
+        const sc = aiScore(s);
+        if (sc.total < weakestScore) { weakestScore = sc.total; weakestIdx = i; }
+      }
+    });
+
+    // If best candidate scores 20+ points higher than weakest, swap
+    if (weakestIdx >= 0 && scored[0].sc.total - weakestScore >= 20) {
+      const weakPos = w.positions[weakestIdx];
+      const weakStock = stocks.find(s => s.ticker === weakPos.ticker);
+      const sellPrice = weakStock ? weakStock.cmp : weakPos.avgPrice;
+      const pnl = (sellPrice - weakPos.avgPrice) * weakPos.qty;
+      w.cash += sellPrice * weakPos.qty;
+      w.trades.push({ type: 'SELL', ticker: weakPos.ticker, qty: weakPos.qty, price: sellPrice, pnl: Math.round(pnl), aiScore: weakestScore, reason: 'AI REBALANCE: Score ' + weakestScore + ' → swapped for ' + scored[0].stock.ticker + ' (' + scored[0].sc.total + ')', time: now.toISOString() });
+      w.positions.splice(weakestIdx, 1);
+      tradesMade++;
+      heldTickers.delete(weakPos.ticker);
+      log.push('REBALANCE: sold ' + weakPos.ticker + '(' + weakestScore + ') for ' + scored[0].stock.ticker + '(' + scored[0].sc.total + ')');
+    }
+  }
+
+  // ═══ PHASE 4: CONVICTION-BASED BUY with sector diversification ═══
+  const maxPositions = 12;
+
+  for (const { stock, sc } of scored) {
     if (w.positions.length >= maxPositions) break;
-    if (w.cash < 1000) break; // need at least ₹1000 to trade
+    if (w.cash < 500) break;
+    if (heldTickers.has(stock.ticker)) continue;
 
+    // Sector diversification: max 3 per sector
+    const sectorCount = heldSectors[stock.sector] || 0;
+    if (sectorCount >= 3) continue;
+
+    // Conviction-based position sizing
+    let allocPct;
+    if (sc.total >= 80) { allocPct = 0.15; } // A+ → 15% of starting capital
+    else if (sc.total >= 65) { allocPct = 0.10; } // A → 10%
+    else { allocPct = 0.07; } // B → 7%
+
+    const targetSize = Math.min(PT_START * allocPct, w.cash * 0.30); // never more than 30% of remaining cash
     const buyPrice = stock.cmp;
-    const qty = Math.max(1, Math.floor(Math.min(positionSize, w.cash * 0.25) / buyPrice));
+    const qty = Math.max(1, Math.floor(targetSize / buyPrice));
     const cost = qty * buyPrice;
-    if (cost > w.cash || qty === 0) continue;
+    if (cost > w.cash) continue;
 
-    // Determine buy reason from catalyst
-    let reason = 'AI: STRONG signal';
-    if (stock.catalyst) reason = 'AI: ' + stock.catalyst.substring(0, 40);
+    // Build reason string
+    let reason = 'AI BUY [' + sc.total + '/100]: ';
+    const topFactors = sc.factors.slice(0, 2).join(' + ');
+    reason += topFactors || stock.catalyst || 'Multi-factor strong';
 
     w.cash -= cost;
-    w.positions.push({
-      ticker: stock.ticker, qty, avgPrice: buyPrice, buyDate: now.toISOString()
-    });
-    w.trades.push({
-      type: 'BUY', ticker: stock.ticker, qty, price: buyPrice,
-      reason, time: now.toISOString()
-    });
+    w.positions.push({ ticker: stock.ticker, qty, avgPrice: buyPrice, buyDate: now.toISOString(), peakPrice: buyPrice, entryScore: sc.total });
+    w.trades.push({ type: 'BUY', ticker: stock.ticker, qty, price: buyPrice, aiScore: sc.total, reason, time: now.toISOString() });
+    heldTickers.add(stock.ticker);
+    heldSectors[stock.sector] = (heldSectors[stock.sector] || 0) + 1;
     tradesMade++;
+    log.push('BUY ' + stock.ticker + ' [AI:' + sc.total + '] ' + qty + ' @ ₹' + buyPrice.toFixed(0));
   }
 
-  savePT(w);
-  updatePTDisplay(w);
-
-  // Show result
-  if (tradesMade === 0) {
-    document.getElementById('ptLastTrade').textContent = 'No new trades — portfolio is optimal. Checked ' + stocks.filter(s=>s.cmp>0).length + ' stocks.';
-  } else {
-    document.getElementById('ptLastTrade').textContent = tradesMade + ' trade(s) executed just now. Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0});
-  }
-
-  // Save daily snapshot for P&L tracking
-  const dateKey = now.toISOString().split('T')[0];
+  // ═══ SAVE & UPDATE ═══
   const holdingsVal = w.positions.reduce((sum, p) => {
     const s = stocks.find(st => st.ticker === p.ticker);
     return sum + ((s ? s.cmp : p.avgPrice) * p.qty);
   }, 0);
-  w.dailySnap[dateKey] = { total: w.cash + holdingsVal, cash: w.cash, holdings: holdingsVal };
+  const totalVal = w.cash + holdingsVal;
+  w.peakValue = Math.max(w.peakValue || PT_START, totalVal);
+
+  const dateKey = now.toISOString().split('T')[0];
+  w.dailySnap[dateKey] = { total: totalVal, cash: w.cash, holdings: holdingsVal, positions: w.positions.length };
   savePT(w);
+  updatePTDisplay(w);
+
+  if (tradesMade === 0) {
+    document.getElementById('ptLastTrade').textContent = 'Portfolio optimal — ' + w.positions.length + ' positions, ' + stocks.filter(s=>s.cmp>0).length + ' stocks scanned.';
+  } else {
+    document.getElementById('ptLastTrade').textContent = tradesMade + ' AI trades executed. Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0});
+  }
 }
 
 // ============================================================
