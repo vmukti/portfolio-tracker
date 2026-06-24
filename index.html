@@ -3951,56 +3951,62 @@ async function runDeepAnalysis() {
 
 // ── Multi-source intelligence fetcher ──
 async function fetchAllIntelligence(ticker, companyName) {
-  const allItems = [];
+  // ── Multi-source intelligence: all queries via Google News RSS ──
+  // Specialty sources (X, Reddit, YouTube, BSE, forums) fetched FIRST
+  // so they win dedup over generic news
 
-  // Source 1: Google News — 6 targeted query angles
+  const specialtyQueries = [
+    // X / Twitter — IMPACT activity (not generic news)
+    // Query 1: Breaking announcements, insider info, SEBI regulatory actions
+    {q: '"' + ticker + '" site:x.com breaking OR announcement OR SEBI OR insider OR exclusive', src: 'x', n: 4},
+    // Query 2: Analyst calls, buy/sell signals, target price changes
+    {q: '"' + ticker + '" site:x.com buy OR sell OR target OR upgrade OR downgrade OR accumulate', src: 'x', n: 4},
+    // Query 3: Management/promoter activity, board decisions, stake changes
+    {q: '"' + companyName + '" site:x.com promoter OR CEO OR MD OR chairman OR board OR stake', src: 'x', n: 4},
+    // Reddit discussions (via Google indexing — Reddit RSS blocked by proxy)
+    {q: ticker + ' site:reddit.com IndianStreetBets OR IndiaInvestments', src: 'reddit', n: 5},
+    // YouTube deep-dive analysis videos
+    {q: companyName + ' stock analysis review site:youtube.com', src: 'youtube', n: 4},
+    // BSE / NSE regulatory filings
+    {q: ticker + ' site:bseindia.com OR site:nseindia.com filing OR disclosure OR announcement', src: 'filing', n: 4},
+    // Financial portals (MoneyControl, Screener, Trendlyne)
+    {q: ticker + ' site:moneycontrol.com OR site:screener.in OR site:trendlyne.com', src: 'forum', n: 4},
+  ];
+
   const newsQueries = [
-    {q: companyName + ' share price news India', angle: 'general'},
-    {q: ticker + ' quarterly results earnings profit revenue', angle: 'results'},
-    {q: ticker + ' promoter stake bulk deal block deal insider', angle: 'promoter'},
-    {q: ticker + ' analyst target price upgrade downgrade broker', angle: 'analyst'},
-    {q: companyName + ' order win contract expansion capex', angle: 'corporate'},
-    {q: ticker + ' SEBI board meeting AGM filing annual report', angle: 'regulatory'}
+    {q: companyName + ' share price news India', src: 'news', n: 6},
+    {q: ticker + ' quarterly results earnings profit revenue', src: 'news', n: 6},
+    {q: ticker + ' promoter stake bulk deal block deal insider', src: 'news', n: 6},
+    {q: ticker + ' analyst target price upgrade downgrade broker', src: 'news', n: 6},
+    {q: companyName + ' order win contract expansion capex', src: 'news', n: 6},
+    {q: ticker + ' SEBI board meeting AGM filing annual report', src: 'news', n: 6}
   ];
 
-  // Source 2: Reddit — Indian investing communities
-  const redditFeeds = [
-    'https://www.reddit.com/r/IndianStreetBets/search.rss?q=' + encodeURIComponent(ticker) + '&sort=new&t=month&restrict_sr=1',
-    'https://www.reddit.com/r/IndiaInvestments/search.rss?q=' + encodeURIComponent(ticker + ' OR ' + companyName) + '&sort=new&t=month&restrict_sr=1'
-  ];
+  // Fire ALL queries in parallel — specialty first in array so they win dedup
+  const allQueries = [...specialtyQueries, ...newsQueries];
+  const results = await Promise.allSettled(
+    allQueries.map(q => fetchGNewsRSS(q.q, q.src, q.n))
+  );
 
-  // Source 3: X/Twitter via Google search
-  const xQuery = ticker + ' stock site:twitter.com OR site:x.com';
-
-  // Source 4: YouTube analysis videos via Google
-  const ytQuery = companyName + ' stock analysis site:youtube.com';
-
-  // Source 5: MoneyControl / financial portals
-  const portalQuery = ticker + ' site:moneycontrol.com OR site:screener.in OR site:trendlyne.com';
-
-  // Fire ALL queries in parallel
-  const promises = [
-    ...newsQueries.map(nq => fetchGNewsRSS(nq.q, 'news', 6)),
-    ...redditFeeds.map(url => fetchRedditRSS(url)),
-    fetchGNewsRSS(xQuery, 'x', 5),
-    fetchGNewsRSS(ytQuery, 'youtube', 4),
-    fetchGNewsRSS(portalQuery, 'news', 4)
-  ];
-
-  const results = await Promise.allSettled(promises);
+  // Collect items — specialty queries are at indices 0..4, news at 5..10
+  const allItems = [];
   results.forEach(r => {
     if (r.status === 'fulfilled' && Array.isArray(r.value)) allItems.push(...r.value);
   });
 
-  // Deduplicate by normalized title
-  const seen = new Set();
-  const unique = [];
+  // Smart dedup: prefer specialty sources over generic 'news'
+  const seen = new Map(); // key → item
   allItems.forEach(item => {
     const key = item.title.toLowerCase().replace(/[^a-z0-9]/g,'').substring(0, 60);
-    if (!seen.has(key)) { seen.add(key); unique.push(item); }
+    if (!seen.has(key)) {
+      seen.set(key, item);
+    } else if (item.srcType !== 'news' && seen.get(key).srcType === 'news') {
+      // Specialty source wins over generic news
+      seen.set(key, item);
+    }
   });
 
-  return unique;
+  return Array.from(seen.values());
 }
 
 async function fetchGNewsRSS(query, srcType, limit) {
@@ -4012,37 +4018,22 @@ async function fetchGNewsRSS(query, srcType, limit) {
     if (data.status !== 'ok' || !data.items) return [];
     return data.items.slice(0, limit || 6).map(item => {
       const title = item.title || '';
-      // Detect if source is YouTube or X from the link
+      // Detect actual source from title suffix (Google News format: "Headline - Source")
       let detectedSrc = srcType;
-      const link = (item.link || '').toLowerCase();
-      if (link.includes('youtube.com') || link.includes('youtu.be')) detectedSrc = 'youtube';
-      else if (link.includes('twitter.com') || link.includes('x.com')) detectedSrc = 'x';
-      else if (link.includes('moneycontrol.com') || link.includes('screener.in') || link.includes('trendlyne.com')) detectedSrc = 'forum';
+      const titleLower = title.toLowerCase();
+      const sourceName = (item.author || extractSource(title) || '').toLowerCase();
+      // Override srcType based on actual content source
+      if (titleLower.includes('reddit') || titleLower.includes('r/india') || sourceName.includes('reddit')) detectedSrc = 'reddit';
+      else if (titleLower.includes('youtube') || sourceName.includes('youtube')) detectedSrc = 'youtube';
+      else if (titleLower.includes('x.com') || titleLower.includes('twitter') || sourceName.includes('twitter') || sourceName.includes('x.com')) detectedSrc = 'x';
+      else if (sourceName.includes('bse') || sourceName.includes('nse') || titleLower.includes('bseindia') || titleLower.includes('nseindia')) detectedSrc = 'filing';
+      else if (sourceName.includes('moneycontrol') || sourceName.includes('screener') || sourceName.includes('trendlyne')) detectedSrc = 'forum';
       return {
         title, link: item.link || '#', pubDate: item.pubDate || '',
         source: item.author || extractSource(title),
         srcType: detectedSrc,
         signals: detectSignals(title),
         signalCat: classifySignalCategory(title)
-      };
-    });
-  } catch(e) { return []; }
-}
-
-async function fetchRedditRSS(feedUrl) {
-  try {
-    const resp = await fetch(RSS2JSON + encodeURIComponent(feedUrl), {signal: AbortSignal.timeout(6000)});
-    if (!resp.ok) return [];
-    const data = await resp.json();
-    if (data.status !== 'ok' || !data.items) return [];
-    return data.items.slice(0, 5).map(item => {
-      const title = (item.title || '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
-      return {
-        title, link: item.link || '#', pubDate: item.pubDate || '',
-        source: 'Reddit',
-        srcType: 'reddit',
-        signals: detectSignals(title),
-        signalCat: classifySignalCategory(title) || 'community'
       };
     });
   } catch(e) { return []; }
