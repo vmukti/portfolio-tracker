@@ -411,6 +411,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <div class="tab" onclick="switchTab('ranking',this)">&#127942; Rankings</div>
   <div class="tab" onclick="switchTab('sentiment',this)">&#127757; Sentiment & News</div>
   <div class="tab" onclick="switchTab('scorer',this)">&#128270; Stock Scorer</div>
+  <div class="tab" onclick="switchTab('portfolioai',this)">&#129302; Portfolio AI</div>
   <div class="tab" onclick="switchTab('papertrade',this)">&#128176; Paper Trade</div>
   <div class="tab" onclick="switchTab('config',this)">&#9881;&#65039; Alert Settings</div>
 </div>
@@ -940,6 +941,47 @@ tbody tr.flash-down{animation:flashRed .8s ease}
         <span class="scorer-chip" onclick="document.getElementById('scorerInput').value='ITC';runScorer()">ITC</span>
         <span class="scorer-chip" onclick="document.getElementById('scorerInput').value='SBIN';runScorer()">SBIN</span>
         <span class="scorer-chip" onclick="document.getElementById('scorerInput').value='WIPRO';runScorer()">WIPRO</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ PORTFOLIO AI TAB ══════════════════════ -->
+  <div id="tab-portfolioai" style="display:none">
+    <div style="text-align:center;padding:20px 0 10px">
+      <h2 style="margin:0;font-size:22px">&#129302; AI Portfolio Manager</h2>
+      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">Health monitor &mdash; Smart recommendations &mdash; Auto-discovery &mdash; Sector analysis</p>
+    </div>
+
+    <!-- AI Action Buttons -->
+    <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+      <button onclick="runPortfolioAI()" style="padding:10px 24px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">&#129302; Run Full AI Scan</button>
+      <button onclick="runSectorAnalysis()" style="padding:10px 18px;background:var(--card2);color:var(--accent);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128202; Sector Analysis</button>
+      <button onclick="runAutoDiscover()" style="padding:10px 18px;background:var(--card2);color:#22c55e;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128270; Auto-Discover</button>
+      <span id="aiScanTime" style="color:var(--muted);font-size:12px;margin-left:auto">Not scanned yet</span>
+    </div>
+
+    <!-- Portfolio Health Score -->
+    <div id="aiHealthScore" style="margin-bottom:16px"></div>
+
+    <!-- AI Recommendations Grid -->
+    <div id="aiRecommendations" style="margin-bottom:16px"></div>
+
+    <!-- Sector Diversification -->
+    <div id="aiSectorMap" style="margin-bottom:16px"></div>
+
+    <!-- Stock-by-Stock Health -->
+    <div id="aiStockHealth" style="margin-bottom:16px"></div>
+
+    <!-- Auto-Discovery Results -->
+    <div id="aiDiscovery" style="margin-bottom:16px"></div>
+
+    <div style="text-align:center;padding:40px;color:var(--muted)" id="aiDefault">
+      <div style="font-size:48px;margin-bottom:16px">&#129302;</div>
+      <div style="font-size:16px;font-weight:500;margin-bottom:8px;color:var(--text)">AI Portfolio Intelligence</div>
+      <div style="font-size:13px;line-height:1.8;max-width:600px;margin:0 auto">
+        Click <strong style="color:#8b5cf6">"Run Full AI Scan"</strong> to analyze your entire portfolio.<br>
+        The AI engine will score every stock, identify weak holdings, suggest removals,<br>
+        recommend layer changes, and discover sector gaps &mdash; all automatically.
       </div>
     </div>
   </div>
@@ -1626,7 +1668,7 @@ function switchTab(tab, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   if (tab === 'papertrade') loadPaperTrade();
-  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','papertrade','config'].forEach(t => {
+  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','config'].forEach(t => {
     const d = document.getElementById('tab-'+t);
     if(d) d.style.display = t===tab ? 'block' : 'none';
   });
@@ -1824,6 +1866,556 @@ function renderBessChart() {
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
     scales:{x:{ticks:{color:'#94a3b8'},grid:{display:false}},y:{ticks:{color:'#94a3b8',callback:v=>'$'+v+'B'},grid:{color:'#2d314822'}}}}
   });
+}
+
+// ============================================================
+//  AI PORTFOLIO MANAGER — Intelligence Engine
+// ============================================================
+
+// ── Ethical exclusion filters (MUST PRESERVE) ──
+const EXCLUDED_SECTORS = ['defence','defense','pharma','pharmaceutical','non-veg','meat','poultry','seafood','leather'];
+function isEthicallyExcluded(sectorOrName) {
+  const t = (sectorOrName || '').toLowerCase();
+  return EXCLUDED_SECTORS.some(ex => t.includes(ex));
+}
+
+// ── Portfolio Fit Analysis (called when adding a stock) ──
+function analyzePortfolioFit(stockData, ticker, yfTicker) {
+  const report = { score: 0, maxScore: 100, grade: '', factors: [], warnings: [], recommendation: '', suggestedLayer: '', sectorOverlap: 0 };
+
+  // 1. ETHICAL FILTER (instant reject)
+  const sectorGuess = stockData.sector || stockData.industry || '';
+  const nameGuess = stockData.name || ticker;
+  if (isEthicallyExcluded(sectorGuess) || isEthicallyExcluded(nameGuess)) {
+    report.recommendation = 'REJECT';
+    report.grade = 'X';
+    report.warnings.push('EXCLUDED: Portfolio policy prohibits Defence / Non-Veg Food / Pharma stocks');
+    return report;
+  }
+
+  let fitScore = 0;
+
+  // 2. FUNDAMENTALS (0-30)
+  const pe = stockData.pe || 0;
+  const roce = stockData.roce || 0;
+  const roe = stockData.roe || 0;
+  const debtEq = stockData.debtEquity !== undefined ? stockData.debtEquity : -1;
+
+  if (roce >= 20) { fitScore += 10; report.factors.push('ROCE ' + roce + '% — excellent capital efficiency'); }
+  else if (roce >= 12) { fitScore += 6; report.factors.push('ROCE ' + roce + '% — decent'); }
+  else if (roce > 0) { fitScore += 2; report.warnings.push('ROCE ' + roce + '% — below 12% threshold'); }
+
+  if (roe >= 15) { fitScore += 5; } else if (roe > 0) { fitScore += 2; }
+
+  if (pe > 0 && pe < 25) { fitScore += 8; report.factors.push('P/E ' + pe + ' — reasonable valuation'); }
+  else if (pe >= 25 && pe < 50) { fitScore += 4; report.factors.push('P/E ' + pe + ' — growth premium'); }
+  else if (pe >= 50) { fitScore += 1; report.warnings.push('P/E ' + pe + ' — expensive, needs strong growth to justify'); }
+
+  if (debtEq >= 0 && debtEq < 0.5) { fitScore += 7; report.factors.push('Debt/Equity ' + debtEq.toFixed(2) + ' — low leverage'); }
+  else if (debtEq >= 0.5 && debtEq < 1.5) { fitScore += 3; }
+  else if (debtEq >= 1.5) { fitScore += 0; report.warnings.push('Debt/Equity ' + debtEq.toFixed(2) + ' — high leverage risk'); }
+
+  // 3. MOMENTUM & TECHNICALS (0-25)
+  const price = stockData.price || stockData.cmp || 0;
+  const high52 = stockData.high52 || 0;
+  const low52 = stockData.low52 || 0;
+  const changePct = stockData.changePct || ((price && stockData.prevClose) ? ((price - stockData.prevClose) / stockData.prevClose * 100) : 0);
+
+  if (high52 > 0 && low52 > 0 && high52 > low52) {
+    const pos = (price - low52) / (high52 - low52);
+    if (pos < 0.35) { fitScore += 10; report.factors.push('Near 52W low — deep value entry zone'); }
+    else if (pos < 0.55) { fitScore += 8; report.factors.push('Lower half of 52W range — good entry'); }
+    else if (pos < 0.75) { fitScore += 5; report.factors.push('Mid-range — wait for dip if possible'); }
+    else { fitScore += 2; report.warnings.push('Near 52W high — stretched, risky entry'); }
+  }
+  if (changePct > 2) { fitScore += 5; report.factors.push('Strong intraday momentum +' + changePct.toFixed(1) + '%'); }
+  else if (changePct > 0) { fitScore += 3; }
+  else if (changePct < -3) { fitScore += 0; report.warnings.push('Weak day ' + changePct.toFixed(1) + '%'); }
+  else { fitScore += 1; }
+
+  // Volume
+  const vol = stockData.volume || stockData.vol || 0;
+  if (vol > 500000) { fitScore += 5; report.factors.push('Good liquidity — volume ' + (vol/100000).toFixed(1) + 'L'); }
+  else if (vol > 100000) { fitScore += 3; }
+  else if (vol > 0) { fitScore += 1; report.warnings.push('Low volume ' + vol.toLocaleString() + ' — liquidity risk'); }
+  else { fitScore += 5; } // no data, neutral
+
+  // 4. PORTFOLIO OVERLAP (0-20)
+  const existingTickers = stocks.filter(s => !s._watchlist).map(s => s.ticker);
+  if (existingTickers.includes(ticker)) {
+    fitScore += 0;
+    report.warnings.push('Already in portfolio — duplicate');
+    report.recommendation = 'SKIP';
+    report.grade = 'D';
+    report.score = fitScore;
+    report.maxScore = 100;
+    return report;
+  }
+
+  // Sector overlap check
+  const matchedSector = sectorGuess || 'Unknown';
+  const sameSectorStocks = stocks.filter(s => !s._watchlist && s.sector && s.sector.toLowerCase().includes(matchedSector.toLowerCase().split('/')[0].substring(0, 6)));
+  report.sectorOverlap = sameSectorStocks.length;
+  if (sameSectorStocks.length === 0) { fitScore += 20; report.factors.push('NEW sector — improves diversification'); }
+  else if (sameSectorStocks.length <= 2) { fitScore += 14; report.factors.push(sameSectorStocks.length + ' existing in sector — acceptable'); }
+  else if (sameSectorStocks.length <= 4) { fitScore += 8; report.warnings.push(sameSectorStocks.length + ' stocks already in this sector — getting concentrated'); }
+  else { fitScore += 2; report.warnings.push(sameSectorStocks.length + ' stocks in sector — over-concentrated!'); }
+
+  // 5. MARKET CAP & SIZE (0-15)
+  const mcap = stockData.mcap || stockData.marketCap || 0;
+  if (mcap >= 50000) { fitScore += 10; report.factors.push('Large-cap — low risk'); }
+  else if (mcap >= 10000) { fitScore += 15; report.factors.push('Mid-cap sweet spot — growth + stability'); }
+  else if (mcap >= 3000) { fitScore += 12; report.factors.push('Small-cap — high alpha potential'); }
+  else if (mcap > 0) { fitScore += 6; report.warnings.push('Micro-cap — high risk'); }
+  else { fitScore += 8; }
+
+  // 6. CATALYST CHECK (0-10)
+  const portfolioStock = stocks.find(s => s.ticker === ticker);
+  if (portfolioStock && portfolioStock.catalyst) {
+    fitScore += 10; report.factors.push('Active catalyst: ' + portfolioStock.catalyst);
+  } else {
+    fitScore += 3; report.warnings.push('No identified catalyst — needs thesis');
+  }
+
+  report.score = Math.min(100, fitScore);
+
+  // Grade and recommendation
+  if (report.score >= 80) { report.grade = 'A+'; report.recommendation = 'STRONG ADD'; }
+  else if (report.score >= 65) { report.grade = 'A'; report.recommendation = 'ADD'; }
+  else if (report.score >= 50) { report.grade = 'B'; report.recommendation = 'WATCHLIST'; }
+  else if (report.score >= 35) { report.grade = 'C'; report.recommendation = 'WAIT'; }
+  else { report.grade = 'D'; report.recommendation = 'SKIP'; }
+
+  // Suggest layer
+  if (report.score >= 75 && changePct > 0) report.suggestedLayer = 'Immediate';
+  else if (report.score >= 55) report.suggestedLayer = '1-Month';
+  else report.suggestedLayer = 'Long-Term';
+
+  return report;
+}
+
+// ── Render AI Fit Panel inside Stock Scorer ──
+function renderAIFitPanel(report, ticker, companyName) {
+  const colors = { 'STRONG ADD': '#22c55e', 'ADD': '#4ade80', 'WATCHLIST': '#f59e0b', 'WAIT': '#f97316', 'SKIP': '#ef4444', 'REJECT': '#ef4444' };
+  const recColor = colors[report.recommendation] || '#64748b';
+
+  let html = '<div style="background:linear-gradient(135deg, var(--card2), #1a1a3e);border:2px solid ' + recColor + '44;border-radius:12px;padding:20px;margin-top:20px">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
+  html += '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">AI PORTFOLIO FIT ANALYSIS</div>';
+  html += '<div style="font-size:18px;font-weight:700;margin-top:4px">' + companyName + ' (' + ticker + ')</div></div>';
+  html += '<div style="text-align:center"><div style="font-size:36px;font-weight:800;color:' + recColor + '">' + report.score + '</div>';
+  html += '<div style="font-size:11px;color:var(--muted)">FIT SCORE /100</div>';
+  html += '<div style="background:' + recColor + '22;color:' + recColor + ';padding:4px 12px;border-radius:6px;font-weight:700;font-size:13px;margin-top:4px">' + report.recommendation + '</div></div></div>';
+
+  // Factors
+  if (report.factors.length > 0) {
+    html += '<div style="margin-bottom:12px"><div style="font-size:11px;color:#22c55e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">&#9989; Strengths</div>';
+    report.factors.forEach(f => { html += '<div style="font-size:12px;color:var(--text);padding:3px 0;border-bottom:1px solid var(--border)22">' + f + '</div>'; });
+    html += '</div>';
+  }
+
+  // Warnings
+  if (report.warnings.length > 0) {
+    html += '<div style="margin-bottom:12px"><div style="font-size:11px;color:#f59e0b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">&#9888;&#65039; Concerns</div>';
+    report.warnings.forEach(w => { html += '<div style="font-size:12px;color:var(--text);padding:3px 0;border-bottom:1px solid var(--border)22">' + w + '</div>'; });
+    html += '</div>';
+  }
+
+  // Sector overlap
+  if (report.sectorOverlap > 0) {
+    html += '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Sector overlap: ' + report.sectorOverlap + ' existing stocks in similar sector</div>';
+  }
+
+  // Suggested layer
+  if (report.suggestedLayer) {
+    const layerColors = { 'Immediate': '#22c55e', '1-Month': '#3b82f6', 'Long-Term': '#8b5cf6' };
+    html += '<div style="font-size:12px;margin-bottom:16px">Suggested layer: <span style="background:' + (layerColors[report.suggestedLayer]||'#64748b') + '33;color:' + (layerColors[report.suggestedLayer]||'#64748b') + ';padding:2px 10px;border-radius:4px;font-weight:600">' + report.suggestedLayer + '</span></div>';
+  }
+
+  // Action buttons (only if recommendation is ADD or STRONG ADD)
+  if (report.recommendation === 'STRONG ADD' || report.recommendation === 'ADD' || report.recommendation === 'WATCHLIST') {
+    html += '<div style="display:flex;gap:8px">';
+    html += '<button onclick="confirmSmartAdd(\'' + ticker + '\',\'' + companyName.replace(/'/g, "\\'") + '\',\'Immediate\')" style="padding:8px 16px;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px">Add as Immediate</button>';
+    html += '<button onclick="confirmSmartAdd(\'' + ticker + '\',\'' + companyName.replace(/'/g, "\\'") + '\',\'1-Month\')" style="padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px">Add as 1-Month</button>';
+    html += '<button onclick="confirmSmartAdd(\'' + ticker + '\',\'' + companyName.replace(/'/g, "\\'") + '\',\'Long-Term\')" style="padding:8px 16px;background:#8b5cf6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px">Add as Long-Term</button>';
+    html += '</div>';
+  } else {
+    html += '<div style="font-size:12px;color:' + recColor + ';font-weight:600">AI recommends NOT adding this stock to portfolio</div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function confirmSmartAdd(ticker, name, layer) {
+  const yfTicker = ticker + '.NS';
+  // Add to stocks array directly with proper layer
+  if (stocks.find(s => s.ticker === ticker && !s._watchlist)) {
+    alert(ticker + ' is already in the portfolio!');
+    return;
+  }
+  // Remove from watchlist if present
+  const wl = getWatchlist().filter(w => w.ticker !== ticker);
+  saveWatchlist(wl);
+  // Remove watchlist version
+  for (let i = stocks.length - 1; i >= 0; i--) {
+    if (stocks[i].ticker === ticker && stocks[i]._watchlist) stocks.splice(i, 1);
+  }
+  // Add as portfolio stock
+  const existing = stocks.find(s => s.ticker === ticker);
+  if (existing) {
+    existing.layer = layer;
+    existing._watchlist = false;
+  } else {
+    stocks.push({
+      name: name, ticker: ticker, yf: yfTicker,
+      scanStatus: 'INTACT', layer: layer,
+      sector: 'User Added', cmp: 0, prevClose: 0,
+      change: 0, changePct: 0, mcap: 0, pe: 0, roce: 0,
+      low52: 0, high52: 0, score: 5,
+      thesis: 'Added via AI Portfolio Manager on ' + new Date().toLocaleDateString('en-IN'),
+      catalyst: 'AI-scored addition — verify thesis',
+      catalystDate: '', vol: 0, avgVol: 0, loaded: false,
+      roe: 0, debtEquity: 0, promoterHold: 0, pb: 0,
+      sectorAvgPE: 0, epsgr: 0
+    });
+  }
+  // Update counts
+  document.getElementById('sTotal').textContent = stocks.filter(s => !s._watchlist).length;
+  alert('Added ' + ticker + ' to ' + layer + ' layer! Prices will load on next refresh.');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PORTFOLIO HEALTH MONITOR
+// ═══════════════════════════════════════════════════════════
+
+function runPortfolioAI() {
+  const defaultEl = document.getElementById('aiDefault');
+  if (defaultEl) defaultEl.style.display = 'none';
+
+  const loadedStocks = stocks.filter(s => !s._watchlist && s.cmp > 0);
+  const allPortfolio = stocks.filter(s => !s._watchlist);
+
+  if (loadedStocks.length === 0) {
+    document.getElementById('aiHealthScore').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Waiting for prices to load. Click Refresh first, then run AI scan.</div>';
+    return;
+  }
+
+  // Score every stock
+  const scored = loadedStocks.map(s => {
+    const sc = aiScore(s);
+    return { stock: s, sc };
+  }).sort((a, b) => b.sc.total - a.sc.total);
+
+  // ── 1. PORTFOLIO HEALTH SCORE ──
+  const avgScore = scored.reduce((sum, x) => sum + x.sc.total, 0) / scored.length;
+  const strongCount = scored.filter(x => x.sc.total >= 65).length;
+  const weakCount = scored.filter(x => x.sc.total < 40).length;
+  const strengthPct = loadedStocks.filter(s => s.scanStatus === 'STRENGTHENING').length / loadedStocks.length * 100;
+
+  let healthGrade, healthColor, healthLabel;
+  if (avgScore >= 65 && weakCount <= 2) { healthGrade = 'A'; healthColor = '#22c55e'; healthLabel = 'EXCELLENT'; }
+  else if (avgScore >= 55 && weakCount <= 5) { healthGrade = 'B'; healthColor = '#4ade80'; healthLabel = 'GOOD'; }
+  else if (avgScore >= 45) { healthGrade = 'C'; healthColor = '#f59e0b'; healthLabel = 'NEEDS ATTENTION'; }
+  else { healthGrade = 'D'; healthColor = '#ef4444'; healthLabel = 'WEAK'; }
+
+  let healthHtml = '<div style="display:grid;grid-template-columns:200px 1fr;gap:20px;background:linear-gradient(135deg,var(--card2),#1a1a3e);border:2px solid ' + healthColor + '44;border-radius:12px;padding:24px">';
+  healthHtml += '<div style="text-align:center;border-right:1px solid var(--border)">';
+  healthHtml += '<div style="font-size:64px;font-weight:800;color:' + healthColor + '">' + avgScore.toFixed(0) + '</div>';
+  healthHtml += '<div style="font-size:12px;color:var(--muted)">AVG AI SCORE</div>';
+  healthHtml += '<div style="background:' + healthColor + '22;color:' + healthColor + ';padding:4px 16px;border-radius:6px;font-weight:700;font-size:14px;margin-top:8px;display:inline-block">' + healthLabel + '</div>';
+  healthHtml += '</div>';
+  healthHtml += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">';
+  healthHtml += '<div><div style="color:var(--muted);font-size:11px">TOTAL STOCKS</div><div style="font-size:24px;font-weight:700">' + allPortfolio.length + '</div><div style="font-size:11px;color:var(--muted)">' + loadedStocks.length + ' with prices</div></div>';
+  healthHtml += '<div><div style="color:var(--muted);font-size:11px">STRONG (65+)</div><div style="font-size:24px;font-weight:700;color:#22c55e">' + strongCount + '</div><div style="font-size:11px;color:var(--muted)">' + (strongCount/scored.length*100).toFixed(0) + '% of portfolio</div></div>';
+  healthHtml += '<div><div style="color:var(--muted);font-size:11px">WEAK (&lt;40)</div><div style="font-size:24px;font-weight:700;color:#ef4444">' + weakCount + '</div><div style="font-size:11px;color:var(--muted)">' + (weakCount > 0 ? 'Action needed' : 'Clean portfolio') + '</div></div>';
+  healthHtml += '<div><div style="color:var(--muted);font-size:11px">STRENGTHENING</div><div style="font-size:24px;font-weight:700;color:#22c55e">' + strengthPct.toFixed(0) + '%</div><div style="font-size:11px;color:var(--muted)">' + loadedStocks.filter(s=>s.scanStatus==='STRENGTHENING').length + ' of ' + loadedStocks.length + '</div></div>';
+  healthHtml += '</div></div>';
+  document.getElementById('aiHealthScore').innerHTML = healthHtml;
+
+  // ── 2. AI RECOMMENDATIONS ──
+  const removeList = scored.filter(x => x.sc.total < 35);
+  const upgradeList = scored.filter(x => x.sc.total >= 70 && x.stock.layer !== 'Immediate');
+  const downgradeList = scored.filter(x => x.sc.total < 45 && x.stock.layer === 'Immediate');
+
+  let recHtml = '<div style="font-size:16px;font-weight:700;margin-bottom:12px">&#128161; AI Recommendations</div>';
+  recHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
+
+  // Remove candidates
+  recHtml += '<div style="background:var(--card2);border:1px solid #ef444444;border-radius:10px;padding:16px">';
+  recHtml += '<div style="font-size:12px;color:#ef4444;font-weight:700;margin-bottom:8px">&#128308; CONSIDER REMOVING (' + removeList.length + ')</div>';
+  if (removeList.length === 0) {
+    recHtml += '<div style="font-size:12px;color:var(--muted)">No stocks flagged for removal</div>';
+  } else {
+    removeList.forEach(x => {
+      recHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)22;font-size:12px">';
+      recHtml += '<span style="font-weight:600">' + x.stock.ticker + '</span>';
+      recHtml += '<span style="color:#ef4444">Score: ' + x.sc.total + ' — ' + (x.sc.factors[0] || 'Weak fundamentals') + '</span>';
+      recHtml += '</div>';
+    });
+  }
+  recHtml += '</div>';
+
+  // Upgrade candidates
+  recHtml += '<div style="background:var(--card2);border:1px solid #22c55e44;border-radius:10px;padding:16px">';
+  recHtml += '<div style="font-size:12px;color:#22c55e;font-weight:700;margin-bottom:8px">&#128994; UPGRADE TO IMMEDIATE (' + upgradeList.length + ')</div>';
+  if (upgradeList.length === 0) {
+    recHtml += '<div style="font-size:12px;color:var(--muted)">No upgrades suggested</div>';
+  } else {
+    upgradeList.forEach(x => {
+      recHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)22;font-size:12px">';
+      recHtml += '<span style="font-weight:600">' + x.stock.ticker + ' <span style="color:var(--muted)">(' + x.stock.layer + ')</span></span>';
+      recHtml += '<span style="color:#22c55e">Score: ' + x.sc.total + ' — Ready to act</span>';
+      recHtml += '</div>';
+    });
+  }
+  recHtml += '</div>';
+
+  // Downgrade candidates
+  recHtml += '<div style="background:var(--card2);border:1px solid #f59e0b44;border-radius:10px;padding:16px">';
+  recHtml += '<div style="font-size:12px;color:#f59e0b;font-weight:700;margin-bottom:8px">&#128992; DOWNGRADE FROM IMMEDIATE (' + downgradeList.length + ')</div>';
+  if (downgradeList.length === 0) {
+    recHtml += '<div style="font-size:12px;color:var(--muted)">All Immediate stocks are holding strong</div>';
+  } else {
+    downgradeList.forEach(x => {
+      recHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)22;font-size:12px">';
+      recHtml += '<span style="font-weight:600">' + x.stock.ticker + '</span>';
+      recHtml += '<span style="color:#f59e0b">Score: ' + x.sc.total + ' — Move to 1-Month or Long-Term</span>';
+      recHtml += '</div>';
+    });
+  }
+  recHtml += '</div></div>';
+
+  document.getElementById('aiRecommendations').innerHTML = recHtml;
+
+  // ── 3. STOCK-BY-STOCK HEALTH TABLE ──
+  let tableHtml = '<div style="font-size:16px;font-weight:700;margin-bottom:12px">&#128202; Stock-by-Stock AI Health</div>';
+  tableHtml += '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="color:var(--muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border)">';
+  tableHtml += '<th style="text-align:left;padding:8px">Stock</th><th>Layer</th><th>AI Score</th><th>Momentum</th><th>Value</th><th>Quality</th><th>Signal</th><th>Status</th><th>AI Verdict</th><th>Action</th></tr></thead><tbody>';
+
+  scored.forEach(x => {
+    const s = x.stock, sc = x.sc;
+    const grade = aiScoreGrade(sc.total);
+    let verdict = '', verdictColor = '';
+    if (sc.total >= 70) { verdict = 'STRONG HOLD'; verdictColor = '#22c55e'; }
+    else if (sc.total >= 55) { verdict = 'HOLD'; verdictColor = '#4ade80'; }
+    else if (sc.total >= 40) { verdict = 'REVIEW'; verdictColor = '#f59e0b'; }
+    else { verdict = 'EXIT'; verdictColor = '#ef4444'; }
+
+    const layerColor = s.layer === 'Immediate' ? '#22c55e' : s.layer === '1-Month' ? '#3b82f6' : '#8b5cf6';
+    const statusColor = s.scanStatus === 'STRENGTHENING' ? '#22c55e' : s.scanStatus === 'WEAKENING' ? '#ef4444' : '#f59e0b';
+    const statusLabel = s.scanStatus === 'STRENGTHENING' ? 'STRONG' : s.scanStatus === 'WEAKENING' ? 'WEAK' : 'INTACT';
+
+    tableHtml += '<tr style="border-bottom:1px solid var(--border)22">';
+    tableHtml += '<td style="padding:8px;font-weight:600">' + s.ticker + '<div style="font-size:10px;color:var(--muted)">' + (s.sector || '') + '</div></td>';
+    tableHtml += '<td style="text-align:center"><span style="background:' + layerColor + '22;color:' + layerColor + ';padding:2px 8px;border-radius:4px;font-size:10px">' + s.layer + '</span></td>';
+    tableHtml += '<td style="text-align:center"><span style="background:' + grade.color + '22;color:' + grade.color + ';padding:2px 8px;border-radius:4px;font-weight:700">' + sc.total + ' ' + grade.grade + '</span></td>';
+    tableHtml += '<td style="text-align:center;color:' + (sc.momentum>=15?'#22c55e':sc.momentum>=10?'#f59e0b':'#ef4444') + '">' + sc.momentum + '/25</td>';
+    tableHtml += '<td style="text-align:center;color:' + (sc.value>=15?'#22c55e':sc.value>=10?'#f59e0b':'#ef4444') + '">' + sc.value + '/25</td>';
+    tableHtml += '<td style="text-align:center;color:' + (sc.quality>=15?'#22c55e':sc.quality>=10?'#f59e0b':'#ef4444') + '">' + sc.quality + '/25</td>';
+    tableHtml += '<td style="text-align:center;color:' + (sc.signal>=15?'#22c55e':sc.signal>=10?'#f59e0b':'#ef4444') + '">' + sc.signal + '/25</td>';
+    tableHtml += '<td style="text-align:center"><span style="color:' + statusColor + ';font-weight:600;font-size:10px">' + statusLabel + '</span></td>';
+    tableHtml += '<td style="text-align:center"><span style="color:' + verdictColor + ';font-weight:700;font-size:11px">' + verdict + '</span></td>';
+    tableHtml += '<td style="text-align:center">';
+    if (sc.total < 40) tableHtml += '<button onclick="aiRemoveStock(\'' + s.ticker + '\')" style="padding:2px 8px;background:#ef444422;color:#fca5a5;border:1px solid #ef444444;border-radius:4px;cursor:pointer;font-size:10px">Remove</button>';
+    else if (sc.total >= 70 && s.layer !== 'Immediate') tableHtml += '<button onclick="aiChangeLayer(\'' + s.ticker + '\',\'Immediate\')" style="padding:2px 8px;background:#22c55e22;color:#86efac;border:1px solid #22c55e44;border-radius:4px;cursor:pointer;font-size:10px">&#8593; Upgrade</button>';
+    else if (sc.total < 45 && s.layer === 'Immediate') tableHtml += '<button onclick="aiChangeLayer(\'' + s.ticker + '\',\'1-Month\')" style="padding:2px 8px;background:#f59e0b22;color:#fcd34d;border:1px solid #f59e0b44;border-radius:4px;cursor:pointer;font-size:10px">&#8595; Downgrade</button>';
+    tableHtml += '</td></tr>';
+  });
+
+  tableHtml += '</tbody></table>';
+  document.getElementById('aiStockHealth').innerHTML = tableHtml;
+
+  document.getElementById('aiScanTime').textContent = 'Last scan: ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'}) + ' | ' + scored.length + ' stocks analyzed';
+}
+
+// ── Sector Analysis ──
+function runSectorAnalysis() {
+  const defaultEl = document.getElementById('aiDefault');
+  if (defaultEl) defaultEl.style.display = 'none';
+
+  const portfolioStocks = stocks.filter(s => !s._watchlist && s.cmp > 0);
+  const sectorMap = {};
+  portfolioStocks.forEach(s => {
+    const sec = s.sector || 'Unknown';
+    if (!sectorMap[sec]) sectorMap[sec] = { stocks: [], totalScore: 0, avgChange: 0 };
+    const sc = aiScore(s);
+    sectorMap[sec].stocks.push({ ticker: s.ticker, score: sc.total, changePct: s.changePct || 0, layer: s.layer, scanStatus: s.scanStatus });
+    sectorMap[sec].totalScore += sc.total;
+    sectorMap[sec].avgChange += (s.changePct || 0);
+  });
+
+  // Calculate averages
+  Object.keys(sectorMap).forEach(sec => {
+    const d = sectorMap[sec];
+    d.avgScore = d.totalScore / d.stocks.length;
+    d.avgChange = d.avgChange / d.stocks.length;
+  });
+
+  // Sort by avg score
+  const sorted = Object.entries(sectorMap).sort((a, b) => b[1].avgScore - a[1].avgScore);
+
+  // Known Indian market sectors NOT in portfolio
+  const allSectors = ['Banking/NBFC', 'Insurance', 'Fintech', 'Digital Payments', 'Real Estate', 'FMCG', 'Hotels/Tourism', 'Aviation', 'Shipping/Ports', 'Textiles', 'Cement', 'Steel', 'Mining', 'Chemicals', 'Fertilizers', 'Sugar', 'Paper', 'Media/Entertainment', 'EdTech', 'HealthTech', 'AgriTech', 'Logistics', 'E-commerce', 'Cloud/SaaS', 'Cybersecurity', 'EV Infrastructure', 'Water Treatment', 'Waste Management', 'Railway', 'Smart Cities'];
+  const heldSectors = new Set(Object.keys(sectorMap).map(s => s.toLowerCase()));
+  const missingSectors = allSectors.filter(s => !heldSectors.has(s.toLowerCase()) && ![...heldSectors].some(h => h.includes(s.toLowerCase().substring(0, 4)) || s.toLowerCase().includes(h.substring(0, 4))));
+
+  let html = '<div style="font-size:16px;font-weight:700;margin-bottom:12px">&#128202; Sector Diversification Map</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">';
+
+  sorted.forEach(([sec, data]) => {
+    const scoreColor = data.avgScore >= 65 ? '#22c55e' : data.avgScore >= 50 ? '#f59e0b' : '#ef4444';
+    const changeColor = data.avgChange >= 0 ? '#22c55e' : '#ef4444';
+    html += '<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ' + scoreColor + '">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    html += '<div style="font-weight:700;font-size:13px">' + sec + '</div>';
+    html += '<div style="display:flex;gap:8px;align-items:center">';
+    html += '<span style="color:' + changeColor + ';font-size:12px">' + (data.avgChange>=0?'+':'') + data.avgChange.toFixed(1) + '%</span>';
+    html += '<span style="background:' + scoreColor + '22;color:' + scoreColor + ';padding:2px 8px;border-radius:4px;font-weight:700;font-size:12px">' + data.avgScore.toFixed(0) + '</span>';
+    html += '</div></div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
+    data.stocks.forEach(st => {
+      const stColor = st.score >= 65 ? '#22c55e' : st.score >= 50 ? '#f59e0b' : '#ef4444';
+      html += '<span style="background:' + stColor + '15;color:' + stColor + ';padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600">' + st.ticker + ' ' + st.score + '</span>';
+    });
+    html += '</div>';
+    html += '<div style="font-size:10px;color:var(--muted);margin-top:6px">' + data.stocks.length + ' stocks | Concentration: ' + (data.stocks.length >= 4 ? 'HIGH' : data.stocks.length >= 2 ? 'Medium' : 'Low') + '</div>';
+    html += '</div>';
+  });
+
+  html += '</div>';
+
+  // Missing sectors
+  if (missingSectors.length > 0) {
+    html += '<div style="margin-top:16px;background:var(--card2);border:1px solid #8b5cf644;border-radius:10px;padding:16px">';
+    html += '<div style="font-size:13px;color:#8b5cf6;font-weight:700;margin-bottom:8px">&#128270; Missing Sectors — Opportunity Gaps</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    missingSectors.forEach(s => {
+      html += '<span style="background:#8b5cf622;color:#c4b5fd;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer" onclick="document.getElementById(\'scorerInput\').value=\'' + s.split('/')[0] + '\';switchTab(\'scorer\',document.querySelector(\'.tab\'))" title="Search for ' + s + ' stocks">' + s + '</span>';
+    });
+    html += '</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px">Click a sector to search for stocks in the Stock Scorer</div>';
+    html += '</div>';
+  }
+
+  document.getElementById('aiSectorMap').innerHTML = html;
+  document.getElementById('aiScanTime').textContent = 'Sector analysis: ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+}
+
+// ── Auto-Discovery ──
+function runAutoDiscover() {
+  const defaultEl = document.getElementById('aiDefault');
+  if (defaultEl) defaultEl.style.display = 'none';
+
+  const portfolioStocks = stocks.filter(s => !s._watchlist && s.cmp > 0);
+  if (portfolioStocks.length === 0) {
+    document.getElementById('aiDiscovery').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Load prices first, then run discovery.</div>';
+    return;
+  }
+
+  // Find weakest stocks (removal candidates)
+  const scored = portfolioStocks.map(s => ({ stock: s, sc: aiScore(s) })).sort((a, b) => a.sc.total - b.sc.total);
+  const bottom5 = scored.slice(0, 5);
+  const top5 = scored.slice(-5).reverse();
+
+  // Watchlist stocks ranked
+  const watchlistStocks = stocks.filter(s => s._watchlist && s.cmp > 0);
+  const watchScored = watchlistStocks.map(s => ({ stock: s, sc: aiScore(s) })).sort((a, b) => b.sc.total - a.sc.total);
+
+  let html = '<div style="font-size:16px;font-weight:700;margin-bottom:12px">&#128270; Auto-Discovery & Rebalancing</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
+
+  // Top 5 (crown jewels)
+  html += '<div style="background:var(--card2);border:1px solid #22c55e44;border-radius:10px;padding:16px">';
+  html += '<div style="font-size:13px;color:#22c55e;font-weight:700;margin-bottom:10px">&#128081; Crown Jewels (Top 5)</div>';
+  top5.forEach(x => {
+    html += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)22;font-size:12px">';
+    html += '<span style="font-weight:600">' + x.stock.ticker + '</span>';
+    html += '<span style="color:#22c55e;font-weight:700">' + x.sc.total + '/100</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // Bottom 5 (weakest links)
+  html += '<div style="background:var(--card2);border:1px solid #ef444444;border-radius:10px;padding:16px">';
+  html += '<div style="font-size:13px;color:#ef4444;font-weight:700;margin-bottom:10px">&#9888;&#65039; Weakest Links (Bottom 5)</div>';
+  bottom5.forEach(x => {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)22;font-size:12px">';
+    html += '<span style="font-weight:600">' + x.stock.ticker + '</span>';
+    html += '<div><span style="color:#ef4444;font-weight:700;margin-right:8px">' + x.sc.total + '/100</span>';
+    html += '<button onclick="aiRemoveStock(\'' + x.stock.ticker + '\')" style="padding:1px 6px;background:#ef444422;color:#fca5a5;border:1px solid #ef444444;border-radius:3px;cursor:pointer;font-size:10px">Remove</button></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // Watchlist promotion candidates
+  html += '<div style="background:var(--card2);border:1px solid #8b5cf644;border-radius:10px;padding:16px">';
+  html += '<div style="font-size:13px;color:#8b5cf6;font-weight:700;margin-bottom:10px">&#11088; Watchlist Promotion Candidates</div>';
+  if (watchScored.length === 0) {
+    html += '<div style="font-size:12px;color:var(--muted)">No watchlist stocks. Use Stock Scorer to add candidates.</div>';
+  } else {
+    watchScored.slice(0, 5).forEach(x => {
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)22;font-size:12px">';
+      html += '<span style="font-weight:600">' + x.stock.ticker + '</span>';
+      html += '<div><span style="color:#8b5cf6;font-weight:700;margin-right:8px">' + x.sc.total + '/100</span>';
+      html += '<button onclick="confirmSmartAdd(\'' + x.stock.ticker + '\',\'' + (x.stock.name||x.stock.ticker).replace(/'/g, "\\'") + '\',\'1-Month\')" style="padding:1px 6px;background:#22c55e22;color:#86efac;border:1px solid #22c55e44;border-radius:3px;cursor:pointer;font-size:10px">Promote</button></div>';
+      html += '</div>';
+    });
+  }
+  html += '</div></div>';
+
+  // Swap recommendations
+  if (bottom5.length > 0 && watchScored.length > 0) {
+    const swapPairs = [];
+    for (let i = 0; i < Math.min(3, bottom5.length, watchScored.length); i++) {
+      if (watchScored[i].sc.total - bottom5[i].sc.total >= 15) {
+        swapPairs.push({ out: bottom5[i], in: watchScored[i] });
+      }
+    }
+    if (swapPairs.length > 0) {
+      html += '<div style="margin-top:12px;background:linear-gradient(135deg,#1a1a3e,var(--card2));border:1px solid #8b5cf644;border-radius:10px;padding:16px">';
+      html += '<div style="font-size:13px;color:#8b5cf6;font-weight:700;margin-bottom:10px">&#128260; AI Swap Recommendations</div>';
+      swapPairs.forEach(pair => {
+        html += '<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--border)22;font-size:13px">';
+        html += '<span style="color:#ef4444;font-weight:700">OUT: ' + pair.out.stock.ticker + ' (' + pair.out.sc.total + ')</span>';
+        html += '<span style="color:var(--muted)">&#8594;</span>';
+        html += '<span style="color:#22c55e;font-weight:700">IN: ' + pair.in.stock.ticker + ' (' + pair.in.sc.total + ')</span>';
+        html += '<span style="color:var(--muted);font-size:11px">+' + (pair.in.sc.total - pair.out.sc.total) + ' pts improvement</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+  }
+
+  document.getElementById('aiDiscovery').innerHTML = html;
+}
+
+// ── AI Actions ──
+function aiRemoveStock(ticker) {
+  if (!confirm('Remove ' + ticker + ' from portfolio?\n\nThe AI scored this stock low. It will be moved to your watchlist for monitoring.')) return;
+  const idx = stocks.findIndex(s => s.ticker === ticker && !s._watchlist);
+  if (idx >= 0) {
+    const removed = stocks[idx];
+    // Add to watchlist
+    const wl = getWatchlist();
+    if (!wl.find(w => w.ticker === ticker)) {
+      wl.push({ ticker, name: removed.name, yf: removed.yf, exchange: 'NSE', category: 'AI-Removed', score: 30, addedDate: new Date().toISOString().split('T')[0], notes: 'Removed by AI — low score' });
+      saveWatchlist(wl);
+    }
+    stocks.splice(idx, 1);
+    document.getElementById('sTotal').textContent = stocks.filter(s => !s._watchlist).length;
+    runPortfolioAI(); // Re-run analysis
+  }
+}
+
+function aiChangeLayer(ticker, newLayer) {
+  const stock = stocks.find(s => s.ticker === ticker && !s._watchlist);
+  if (stock) {
+    const oldLayer = stock.layer;
+    stock.layer = newLayer;
+    alert(ticker + ' moved from ' + oldLayer + ' to ' + newLayer);
+    runPortfolioAI();
+  }
 }
 
 // ============================================================
@@ -4246,6 +4838,19 @@ function renderScorerCard(data, yfTicker, portfolioStock) {
     '</div>' +
 
     '</div>';
+
+  // ── AI Portfolio Fit Analysis Panel ──
+  const fitData = {
+    price: s.price, prevClose: s.prevClose, changePct: s.changePct,
+    high52: s.high52, low52: s.low52, pe: s.pe, roce: s.roce,
+    mcap: s.mcap, volume: s.volume, name: companyName,
+    sector: portfolioStock ? portfolioStock.sector : '',
+    roe: portfolioStock ? portfolioStock.roe : 0,
+    debtEquity: portfolioStock ? portfolioStock.debtEquity : -1,
+    promoterHold: portfolioStock ? portfolioStock.promoterHold : 0
+  };
+  const fitReport = analyzePortfolioFit(fitData, ticker, yfTicker);
+  resultDiv.innerHTML += renderAIFitPanel(fitReport, ticker, companyName);
 }
 
 function scoreDimHtml(name, score, max, subText, color) {
@@ -4697,13 +5302,24 @@ function renderDeepCard(data, yfTicker, portfolioStock, intelItems, rawTicker) {
     '</div></div>';
 
   // ── Watchlist button ──
+  // ── AI Portfolio Fit Analysis ──
+  const deepFitData = {
+    price: s.price, prevClose: s.prevClose, changePct: s.changePct,
+    high52: s.high52, low52: s.low52, pe: s.pe, roce: s.roce,
+    mcap: s.mcap, volume: s.volume, name: companyName,
+    sector: portfolioStock ? portfolioStock.sector : '',
+    roe: portfolioStock ? portfolioStock.roe : 0,
+    debtEquity: portfolioStock ? (portfolioStock.debtEquity !== undefined ? portfolioStock.debtEquity : -1) : -1,
+    promoterHold: portfolioStock ? portfolioStock.promoterHold : 0
+  };
+  const deepFitReport = analyzePortfolioFit(deepFitData, rawTicker, yfTicker);
+
   let watchlistBtn = '';
   if (!isInPortfolio) {
+    // Show AI Fit Panel instead of simple button
+    watchlistBtn = renderAIFitPanel(deepFitReport, rawTicker, companyName);
     if (isInWatchlist) {
-      watchlistBtn = '<button class="remove-watchlist-btn" onclick="removeFromWatchlist(\'' + rawTicker + '\');runDeepAnalysis()">&#10006; Remove from Watchlist</button>';
-    } else {
-      watchlistBtn = '<button class="add-watchlist-btn" onclick="addToWatchlist(\'' + rawTicker + '\',\'' + companyName.replace(/'/g, "\\'") + '\',\'' + yfTicker + '\',\'' + exchange + '\',\'' + suggestedCategory + '\',' + s.totalScore + ')">&#10004; Add to My Watchlist</button>' +
-        '<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:6px">Stock will appear in your Portfolio tab with live prices</div>';
+      watchlistBtn += '<div style="text-align:center;margin-top:8px"><button class="remove-watchlist-btn" onclick="removeFromWatchlist(\'' + rawTicker + '\');runDeepAnalysis()">&#10006; Remove from Watchlist</button></div>';
     }
   } else {
     watchlistBtn = '<div style="text-align:center;padding:12px;background:var(--card2);border-radius:10px;color:var(--green);font-weight:600;margin-top:16px">&#10004; Already in your portfolio (' + portfolioStock.layer + ')</div>';
