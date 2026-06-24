@@ -411,6 +411,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <div class="tab" onclick="switchTab('ranking',this)">&#127942; Rankings</div>
   <div class="tab" onclick="switchTab('sentiment',this)">&#127757; Sentiment & News</div>
   <div class="tab" onclick="switchTab('scorer',this)">&#128270; Stock Scorer</div>
+  <div class="tab" onclick="switchTab('papertrade',this)">&#128176; Paper Trade</div>
   <div class="tab" onclick="switchTab('config',this)">&#9881;&#65039; Alert Settings</div>
 </div>
 
@@ -939,6 +940,46 @@ tbody tr.flash-down{animation:flashRed .8s ease}
         <span class="scorer-chip" onclick="document.getElementById('scorerInput').value='ITC';runScorer()">ITC</span>
         <span class="scorer-chip" onclick="document.getElementById('scorerInput').value='SBIN';runScorer()">SBIN</span>
         <span class="scorer-chip" onclick="document.getElementById('scorerInput').value='WIPRO';runScorer()">WIPRO</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ PAPER TRADE TAB ══════════════════════ -->
+  <div id="tab-papertrade" style="display:none">
+    <div style="text-align:center;padding:20px 0 10px">
+      <h2 style="margin:0;font-size:22px">&#128176; Paper Trading Simulator</h2>
+      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">Virtual &#8377;1,00,000 wallet &mdash; AI auto-trades based on portfolio signals &mdash; Track daily P&amp;L</p>
+    </div>
+
+    <!-- Wallet Summary Cards -->
+    <div id="ptWalletCards" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">
+      <div class="metric-card"><div class="metric-label">CASH BALANCE</div><div class="metric-value" id="ptCash">&#8377;1,00,000</div></div>
+      <div class="metric-card"><div class="metric-label">HOLDINGS VALUE</div><div class="metric-value" id="ptHoldings">&#8377;0</div></div>
+      <div class="metric-card"><div class="metric-label">TOTAL VALUE</div><div class="metric-value" id="ptTotal">&#8377;1,00,000</div></div>
+      <div class="metric-card"><div class="metric-label">TODAY'S P&amp;L</div><div class="metric-value" id="ptTodayPnl" style="color:#22c55e">&#8377;0</div></div>
+      <div class="metric-card"><div class="metric-label">TOTAL RETURN</div><div class="metric-value" id="ptReturn" style="color:#22c55e">0.00%</div></div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
+      <button onclick="runAIAutoTrade()" style="padding:10px 24px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">&#129302; Run AI Auto-Trade</button>
+      <button onclick="resetPaperWallet()" style="padding:10px 18px;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128260; Reset Wallet</button>
+      <span id="ptLastTrade" style="color:var(--muted);font-size:12px;margin-left:auto">No trades yet</span>
+    </div>
+
+    <!-- Holdings Table -->
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin:0 0 12px;font-size:16px">&#128188; Current Holdings</h3>
+      <div id="ptHoldingsTable" style="font-size:13px">
+        <div style="color:var(--muted);text-align:center;padding:30px">No positions yet. Click &quot;Run AI Auto-Trade&quot; to start.</div>
+      </div>
+    </div>
+
+    <!-- Trade Log -->
+    <div class="card">
+      <h3 style="margin:0 0 12px;font-size:16px">&#128220; Trade Log <span id="ptTradeCount" style="color:var(--muted);font-size:12px">(0 trades)</span></h3>
+      <div id="ptTradeLog" style="font-size:12px;max-height:300px;overflow-y:auto">
+        <div style="color:var(--muted);text-align:center;padding:20px">Trade history will appear here</div>
       </div>
     </div>
   </div>
@@ -1581,7 +1622,8 @@ function switchTab(tab, el) {
   if (tab === 'ranking') loadRankingTab();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','config'].forEach(t => {
+  if (tab === 'papertrade') loadPaperTrade();
+  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','papertrade','config'].forEach(t => {
     const d = document.getElementById('tab-'+t);
     if(d) d.style.display = t===tab ? 'block' : 'none';
   });
@@ -1779,6 +1821,225 @@ function renderBessChart() {
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
     scales:{x:{ticks:{color:'#94a3b8'},grid:{display:false}},y:{ticks:{color:'#94a3b8',callback:v=>'$'+v+'B'},grid:{color:'#2d314822'}}}}
   });
+}
+
+// ============================================================
+//  PAPER TRADING SIMULATOR
+// ============================================================
+const PT_KEY = 'paperTradeWallet_v1';
+const PT_START = 100000;
+
+function getPT() {
+  try {
+    const d = JSON.parse(localStorage.getItem(PT_KEY));
+    if (d && d.cash !== undefined) return d;
+  } catch(e) {}
+  return { cash: PT_START, positions: [], trades: [], startDate: new Date().toISOString(), dailySnap: {} };
+}
+function savePT(w) { localStorage.setItem(PT_KEY, JSON.stringify(w)); }
+
+function resetPaperWallet() {
+  if (!confirm('Reset paper wallet to ₹1,00,000? All positions & trade history will be cleared.')) return;
+  localStorage.removeItem(PT_KEY);
+  loadPaperTrade();
+}
+
+function loadPaperTrade() {
+  const w = getPT();
+  updatePTDisplay(w);
+}
+
+function updatePTDisplay(w) {
+  // Calculate holdings value from live prices
+  let holdingsVal = 0;
+  let todayPnl = 0;
+  w.positions.forEach(p => {
+    const stock = stocks.find(s => s.ticker === p.ticker);
+    const livePrice = stock ? (stock.price || p.avgPrice) : p.avgPrice;
+    const prevClose = stock ? (stock.prevClose || livePrice) : livePrice;
+    p.currentPrice = livePrice;
+    p.marketValue = livePrice * p.qty;
+    p.pnl = (livePrice - p.avgPrice) * p.qty;
+    p.dayPnl = (livePrice - prevClose) * p.qty;
+    holdingsVal += p.marketValue;
+    todayPnl += p.dayPnl;
+  });
+
+  const totalVal = w.cash + holdingsVal;
+  const totalReturn = ((totalVal - PT_START) / PT_START * 100);
+
+  document.getElementById('ptCash').textContent = '₹' + w.cash.toLocaleString('en-IN', {maximumFractionDigits:0});
+  document.getElementById('ptHoldings').textContent = '₹' + holdingsVal.toLocaleString('en-IN', {maximumFractionDigits:0});
+  document.getElementById('ptTotal').textContent = '₹' + totalVal.toLocaleString('en-IN', {maximumFractionDigits:0});
+
+  const pnlEl = document.getElementById('ptTodayPnl');
+  pnlEl.textContent = (todayPnl >= 0 ? '+' : '') + '₹' + todayPnl.toLocaleString('en-IN', {maximumFractionDigits:0});
+  pnlEl.style.color = todayPnl >= 0 ? '#22c55e' : '#ef4444';
+
+  const retEl = document.getElementById('ptReturn');
+  retEl.textContent = (totalReturn >= 0 ? '+' : '') + totalReturn.toFixed(2) + '%';
+  retEl.style.color = totalReturn >= 0 ? '#22c55e' : '#ef4444';
+
+  // Render holdings table
+  const htEl = document.getElementById('ptHoldingsTable');
+  if (w.positions.length === 0) {
+    htEl.innerHTML = '<div style="color:var(--muted);text-align:center;padding:30px">No positions yet. Click "Run AI Auto-Trade" to start.</div>';
+  } else {
+    let html = '<table style="width:100%;border-collapse:collapse"><thead><tr style="color:var(--muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border)">';
+    html += '<th style="text-align:left;padding:8px">Stock</th><th>Qty</th><th>Avg Price</th><th>CMP</th><th>Value</th><th>P&L</th><th>Return</th><th>Action</th></tr></thead><tbody>';
+    w.positions.forEach((p, i) => {
+      const ret = ((p.currentPrice - p.avgPrice) / p.avgPrice * 100);
+      const pnlColor = p.pnl >= 0 ? '#22c55e' : '#ef4444';
+      html += '<tr style="border-bottom:1px solid var(--border)22">';
+      html += '<td style="padding:8px;font-weight:600">' + p.ticker + '</td>';
+      html += '<td style="text-align:center">' + p.qty + '</td>';
+      html += '<td style="text-align:center">₹' + p.avgPrice.toLocaleString('en-IN',{maximumFractionDigits:1}) + '</td>';
+      html += '<td style="text-align:center">₹' + (p.currentPrice||0).toLocaleString('en-IN',{maximumFractionDigits:1}) + '</td>';
+      html += '<td style="text-align:center">₹' + (p.marketValue||0).toLocaleString('en-IN',{maximumFractionDigits:0}) + '</td>';
+      html += '<td style="text-align:center;color:' + pnlColor + '">' + (p.pnl>=0?'+':'') + '₹' + (p.pnl||0).toLocaleString('en-IN',{maximumFractionDigits:0}) + '</td>';
+      html += '<td style="text-align:center;color:' + pnlColor + '">' + (ret>=0?'+':'') + ret.toFixed(1) + '%</td>';
+      html += '<td style="text-align:center"><button onclick="paperSell(' + i + ')" style="padding:3px 10px;background:#ef444422;color:#fca5a5;border:1px solid #ef444444;border-radius:6px;cursor:pointer;font-size:11px">Sell</button></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    htEl.innerHTML = html;
+  }
+
+  // Render trade log
+  const tlEl = document.getElementById('ptTradeLog');
+  document.getElementById('ptTradeCount').textContent = '(' + w.trades.length + ' trades)';
+  if (w.trades.length === 0) {
+    tlEl.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">Trade history will appear here</div>';
+  } else {
+    let thtml = '';
+    w.trades.slice().reverse().forEach(t => {
+      const isBuy = t.type === 'BUY';
+      const color = isBuy ? '#22c55e' : '#ef4444';
+      const icon = isBuy ? '⬆' : '⬇';
+      const pnlStr = t.pnl !== undefined ? (' | P&L: ' + (t.pnl>=0?'+':'') + '₹' + t.pnl.toLocaleString('en-IN',{maximumFractionDigits:0})) : '';
+      thtml += '<div style="padding:6px 8px;border-bottom:1px solid var(--border)22;display:flex;align-items:center;gap:8px">';
+      thtml += '<span style="color:' + color + ';font-weight:700;min-width:40px">' + icon + ' ' + t.type + '</span>';
+      thtml += '<span style="font-weight:600;min-width:100px">' + t.ticker + '</span>';
+      thtml += '<span>' + t.qty + ' shares @ ₹' + t.price.toLocaleString('en-IN',{maximumFractionDigits:1}) + '</span>';
+      thtml += '<span style="color:var(--muted)"> = ₹' + (t.qty*t.price).toLocaleString('en-IN',{maximumFractionDigits:0}) + pnlStr + '</span>';
+      thtml += '<span style="color:var(--muted);margin-left:auto;font-size:11px">' + t.reason + ' | ' + new Date(t.time).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '</span>';
+      thtml += '</div>';
+    });
+    tlEl.innerHTML = thtml;
+  }
+
+  // Update last trade time
+  if (w.trades.length > 0) {
+    const last = w.trades[w.trades.length - 1];
+    document.getElementById('ptLastTrade').textContent = 'Last trade: ' + last.type + ' ' + last.ticker + ' @ ' + new Date(last.time).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  }
+}
+
+function paperSell(posIdx) {
+  const w = getPT();
+  const pos = w.positions[posIdx];
+  if (!pos) return;
+  const stock = stocks.find(s => s.ticker === pos.ticker);
+  const sellPrice = stock ? (stock.price || pos.avgPrice) : pos.avgPrice;
+  const proceeds = sellPrice * pos.qty;
+  const pnl = (sellPrice - pos.avgPrice) * pos.qty;
+
+  w.cash += proceeds;
+  w.trades.push({
+    type: 'SELL', ticker: pos.ticker, qty: pos.qty, price: sellPrice,
+    pnl: Math.round(pnl), reason: 'Manual sell', time: new Date().toISOString()
+  });
+  w.positions.splice(posIdx, 1);
+  savePT(w);
+  updatePTDisplay(w);
+}
+
+function runAIAutoTrade() {
+  const w = getPT();
+  const now = new Date();
+  let tradesMade = 0;
+
+  // ── SELL LOGIC: exit WEAK stocks or stocks with breakdown signals ──
+  for (let i = w.positions.length - 1; i >= 0; i--) {
+    const pos = w.positions[i];
+    const stock = stocks.find(s => s.ticker === pos.ticker);
+    if (!stock) continue;
+    const sellPrice = stock.price || pos.avgPrice;
+
+    // Sell if stock turned WEAK
+    let shouldSell = false;
+    let reason = '';
+    if (stock.scanStatus === 'WEAK') { shouldSell = true; reason = 'AI: WEAK signal detected'; }
+    // Sell if down > 10% from buy price (stop loss)
+    else if (sellPrice < pos.avgPrice * 0.90) { shouldSell = true; reason = 'AI: Stop-loss 10% triggered'; }
+    // Sell if up > 20% (profit booking)
+    else if (sellPrice > pos.avgPrice * 1.20) { shouldSell = true; reason = 'AI: Profit booking 20%+'; }
+
+    if (shouldSell) {
+      const proceeds = sellPrice * pos.qty;
+      const pnl = (sellPrice - pos.avgPrice) * pos.qty;
+      w.cash += proceeds;
+      w.trades.push({
+        type: 'SELL', ticker: pos.ticker, qty: pos.qty, price: sellPrice,
+        pnl: Math.round(pnl), reason, time: now.toISOString()
+      });
+      w.positions.splice(i, 1);
+      tradesMade++;
+    }
+  }
+
+  // ── BUY LOGIC: buy STRONG stocks from portfolio ──
+  const heldTickers = new Set(w.positions.map(p => p.ticker));
+  const maxPositions = 10; // max 10 stocks at a time
+  const positionSize = PT_START * 0.10; // 10% per position = ~₹10,000
+
+  // Sort stocks: STRONG first, then by buy score descending
+  const candidates = stocks
+    .filter(s => s.scanStatus === 'STRONG' && s.price && s.price > 0 && !heldTickers.has(s.ticker))
+    .sort((a, b) => (b.buyScore || 0) - (a.buyScore || 0));
+
+  for (const stock of candidates) {
+    if (w.positions.length >= maxPositions) break;
+    if (w.cash < 1000) break; // need at least ₹1000 to trade
+
+    const buyPrice = stock.price;
+    const qty = Math.max(1, Math.floor(Math.min(positionSize, w.cash * 0.25) / buyPrice));
+    const cost = qty * buyPrice;
+    if (cost > w.cash || qty === 0) continue;
+
+    // Determine buy reason from catalyst
+    let reason = 'AI: STRONG signal';
+    if (stock.catalyst) reason = 'AI: ' + stock.catalyst.substring(0, 40);
+
+    w.cash -= cost;
+    w.positions.push({
+      ticker: stock.ticker, qty, avgPrice: buyPrice, buyDate: now.toISOString()
+    });
+    w.trades.push({
+      type: 'BUY', ticker: stock.ticker, qty, price: buyPrice,
+      reason, time: now.toISOString()
+    });
+    tradesMade++;
+  }
+
+  savePT(w);
+  updatePTDisplay(w);
+
+  // Show result
+  if (tradesMade === 0) {
+    document.getElementById('ptLastTrade').textContent = 'No new trades — portfolio is optimal. Checked ' + stocks.filter(s=>s.price>0).length + ' stocks.';
+  } else {
+    document.getElementById('ptLastTrade').textContent = tradesMade + ' trade(s) executed just now. Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0});
+  }
+
+  // Save daily snapshot for P&L tracking
+  const dateKey = now.toISOString().split('T')[0];
+  const holdingsVal = w.positions.reduce((sum, p) => {
+    const s = stocks.find(st => st.ticker === p.ticker);
+    return sum + ((s ? s.price : p.avgPrice) * p.qty);
+  }, 0);
+  w.dailySnap[dateKey] = { total: w.cash + holdingsVal, cash: w.cash, holdings: holdingsVal };
+  savePT(w);
 }
 
 // ============================================================
