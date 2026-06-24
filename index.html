@@ -119,6 +119,21 @@ td{padding:10px 12px;white-space:nowrap}
 .news-item-deep:last-child{border-bottom:none}
 .news-item-deep a{color:var(--accent);text-decoration:none}
 .news-item-deep a:hover{text-decoration:underline}
+.src-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:600}
+.src-news{background:#3b82f622;color:#93c5fd;border:1px solid #3b82f644}
+.src-reddit{background:#ff450022;color:#ff8c69;border:1px solid #ff450044}
+.src-x{background:#1d9bf022;color:#7dd3fc;border:1px solid #1d9bf044}
+.src-youtube{background:#ff000022;color:#fca5a5;border:1px solid #ff000044}
+.src-filing{background:#f59e0b22;color:#fcd34d;border:1px solid #f59e0b44}
+.src-forum{background:#a78bfa22;color:#c4b5fd;border:1px solid #a78bfa44}
+.intel-summary-bar{background:linear-gradient(135deg,var(--card2),rgba(79,140,255,.08));border:1px solid var(--accent)44}
+.signal-cat-section{padding-left:20px;transition:all .2s}
+.signal-cat-section.collapsed .signal-cat-items{display:none}
+.signal-cat-section.collapsed .deep-section-title span:last-child{transform:rotate(-90deg)}
+.signal-cat-items{margin-top:8px}
+.intel-item{padding:8px 0;border-bottom:1px solid var(--border)22;display:flex;flex-wrap:wrap;align-items:flex-start;gap:4px}
+.intel-item:last-child{border-bottom:none}
+.intel-item a:hover{color:var(--accent)!important;text-decoration:underline}
 .news-item-deep .news-source{font-size:11px;color:var(--muted);margin-top:4px}
 .add-watchlist-btn{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:.2s;width:100%;margin-top:16px;letter-spacing:.5px}
 .add-watchlist-btn:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(34,197,94,.3)}
@@ -3841,6 +3856,21 @@ function renderScorerHistory() {
 //  DEEP ANALYSIS — Full research with news + signals + watchlist
 // ============================================================
 
+// ── Signal category definitions ──
+const SIGNAL_CATS = {
+  promoter: {icon:'&#127970;', title:'Promoter & Insider Activity', color:'#f59e0b', priority:1},
+  results:  {icon:'&#128202;', title:'Results & Financials', color:'#3b82f6', priority:2},
+  analyst:  {icon:'&#127919;', title:'Analyst & Broker Views', color:'#8b5cf6', priority:3},
+  momentum: {icon:'&#128200;', title:'Price & Momentum', color:'#22c55e', priority:4},
+  corporate:{icon:'&#127970;', title:'Corporate Actions', color:'#ec4899', priority:5},
+  regulatory:{icon:'&#128220;', title:'Regulatory & Filings', color:'#ef4444', priority:6},
+  policy:   {icon:'&#127760;', title:'Policy & Macro', color:'#06b6d4', priority:7},
+  community:{icon:'&#128172;', title:'Community & Sentiment', color:'#f97316', priority:8},
+  general:  {icon:'&#128240;', title:'Other News', color:'#64748b', priority:9}
+};
+const SRC_ICONS = {news:'&#128240;',reddit:'&#129302;',x:'&#120143;',youtube:'&#9654;',filing:'&#128220;',forum:'&#128172;'};
+const SRC_LABELS = {news:'News',reddit:'Reddit',x:'X / Twitter',youtube:'YouTube',filing:'BSE/NSE Filing',forum:'Forum'};
+
 async function runDeepAnalysis() {
   const input = document.getElementById('scorerInput').value.trim().toUpperCase();
   if (!input) { alert('Enter a stock ticker first'); return; }
@@ -3852,27 +3882,52 @@ async function runDeepAnalysis() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Deep Analyzing...';
   defaultDiv.style.display = 'none';
+
+  const loadSteps = [
+    'Scanning Google News (6 angles)...',
+    'Searching X / Twitter mentions...',
+    'Checking Reddit sentiment...',
+    'Finding YouTube analysis...',
+    'Looking up BSE/NSE filings...',
+    'Detecting primary signals...'
+  ];
+  let stepIdx = 0;
   resultDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">' +
-    '<span class="spinner"></span> Running deep analysis on <strong style="color:var(--green)">' + input + '</strong>...<br>' +
-    '<span style="font-size:12px">Fetching price data + scanning news + detecting signals</span></div>';
+    '<span class="spinner"></span> Running <strong style="color:var(--green)">Primary Research</strong> on <strong>' + input + '</strong><br>' +
+    '<div id="deepLoadStep" style="font-size:12px;margin-top:12px;color:var(--accent)">' + loadSteps[0] + '</div>' +
+    '<div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">' +
+      '<span class="src-tag src-news">Google News</span>' +
+      '<span class="src-tag src-x">X / Twitter</span>' +
+      '<span class="src-tag src-reddit">Reddit</span>' +
+      '<span class="src-tag src-youtube">YouTube</span>' +
+      '<span class="src-tag src-filing">BSE/NSE</span>' +
+    '</div></div>';
+
+  const loadTimer = setInterval(() => {
+    stepIdx++;
+    const el = document.getElementById('deepLoadStep');
+    if (el && stepIdx < loadSteps.length) el.textContent = loadSteps[stepIdx];
+  }, 1500);
 
   try {
     let yfTicker = input.includes('.') ? input : input + '.NS';
     const portfolioStock = stocks.find(s => s.ticker === input || s.yf === yfTicker || s.yf === input + '.BO');
     if (portfolioStock && portfolioStock.yf) yfTicker = portfolioStock.yf;
 
-    // Fetch price data + news in parallel
-    const [priceData, newsItems] = await Promise.all([
+    // Fetch price data + ALL intelligence in parallel
+    const [priceData, intelItems] = await Promise.all([
       fetchScorerData(yfTicker, input),
-      fetchStockNews(input, portfolioStock?.name || input)
+      fetchAllIntelligence(input, portfolioStock?.name || input)
     ]);
+
+    clearInterval(loadTimer);
 
     if (!priceData) {
       if (yfTicker.endsWith('.NS')) {
         const bseTicker = input + '.BO';
         const bseData = await fetchScorerData(bseTicker, input);
         if (bseData) {
-          renderDeepCard(bseData, bseTicker, portfolioStock, newsItems, input);
+          renderDeepCard(bseData, bseTicker, portfolioStock, intelItems, input);
           addToHistory(input);
           btn.disabled = false; btn.innerHTML = '&#128270; Deep Analyze';
           return;
@@ -3883,9 +3938,10 @@ async function runDeepAnalysis() {
       return;
     }
 
-    renderDeepCard(priceData, yfTicker, portfolioStock, newsItems, input);
+    renderDeepCard(priceData, yfTicker, portfolioStock, intelItems, input);
     addToHistory(input);
   } catch(e) {
+    clearInterval(loadTimer);
     resultDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Error: ' + e.message + '</div>';
   }
 
@@ -3893,57 +3949,168 @@ async function runDeepAnalysis() {
   btn.innerHTML = '&#128270; Deep Analyze';
 }
 
-async function fetchStockNews(ticker, companyName) {
-  const queries = [
-    companyName + ' share price news India',
-    ticker + ' NSE BSE promoter bulk deal'
+// ── Multi-source intelligence fetcher ──
+async function fetchAllIntelligence(ticker, companyName) {
+  const allItems = [];
+
+  // Source 1: Google News — 6 targeted query angles
+  const newsQueries = [
+    {q: companyName + ' share price news India', angle: 'general'},
+    {q: ticker + ' quarterly results earnings profit revenue', angle: 'results'},
+    {q: ticker + ' promoter stake bulk deal block deal insider', angle: 'promoter'},
+    {q: ticker + ' analyst target price upgrade downgrade broker', angle: 'analyst'},
+    {q: companyName + ' order win contract expansion capex', angle: 'corporate'},
+    {q: ticker + ' SEBI board meeting AGM filing annual report', angle: 'regulatory'}
   ];
-  const allNews = [];
-  for (const q of queries) {
-    try {
-      const rssUrl = 'https://news.google.com/rss/search?q=' + encodeURIComponent(q) + '&hl=en-IN&gl=IN&ceid=IN:en';
-      const resp = await fetch(RSS2JSON + encodeURIComponent(rssUrl), {signal: AbortSignal.timeout(8000)});
-      if (!resp.ok) continue;
-      const data = await resp.json();
-      if (data.status !== 'ok' || !data.items) continue;
-      data.items.slice(0, 8).forEach(item => {
-        const title = item.title || '';
-        if (!allNews.find(n => n.title === title)) {
-          allNews.push({
-            title,
-            link: item.link || '#',
-            pubDate: item.pubDate || '',
-            source: item.author || extractSource(title),
-            signals: detectSignals(title)
-          });
-        }
-      });
-    } catch(e) { continue; }
-  }
-  return allNews.slice(0, 12);
+
+  // Source 2: Reddit — Indian investing communities
+  const redditFeeds = [
+    'https://www.reddit.com/r/IndianStreetBets/search.rss?q=' + encodeURIComponent(ticker) + '&sort=new&t=month&restrict_sr=1',
+    'https://www.reddit.com/r/IndiaInvestments/search.rss?q=' + encodeURIComponent(ticker + ' OR ' + companyName) + '&sort=new&t=month&restrict_sr=1'
+  ];
+
+  // Source 3: X/Twitter via Google search
+  const xQuery = ticker + ' stock site:twitter.com OR site:x.com';
+
+  // Source 4: YouTube analysis videos via Google
+  const ytQuery = companyName + ' stock analysis site:youtube.com';
+
+  // Source 5: MoneyControl / financial portals
+  const portalQuery = ticker + ' site:moneycontrol.com OR site:screener.in OR site:trendlyne.com';
+
+  // Fire ALL queries in parallel
+  const promises = [
+    ...newsQueries.map(nq => fetchGNewsRSS(nq.q, 'news', 6)),
+    ...redditFeeds.map(url => fetchRedditRSS(url)),
+    fetchGNewsRSS(xQuery, 'x', 5),
+    fetchGNewsRSS(ytQuery, 'youtube', 4),
+    fetchGNewsRSS(portalQuery, 'news', 4)
+  ];
+
+  const results = await Promise.allSettled(promises);
+  results.forEach(r => {
+    if (r.status === 'fulfilled' && Array.isArray(r.value)) allItems.push(...r.value);
+  });
+
+  // Deduplicate by normalized title
+  const seen = new Set();
+  const unique = [];
+  allItems.forEach(item => {
+    const key = item.title.toLowerCase().replace(/[^a-z0-9]/g,'').substring(0, 60);
+    if (!seen.has(key)) { seen.add(key); unique.push(item); }
+  });
+
+  return unique;
 }
 
+async function fetchGNewsRSS(query, srcType, limit) {
+  try {
+    const rssUrl = 'https://news.google.com/rss/search?q=' + encodeURIComponent(query) + '&hl=en-IN&gl=IN&ceid=IN:en';
+    const resp = await fetch(RSS2JSON + encodeURIComponent(rssUrl), {signal: AbortSignal.timeout(8000)});
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    if (data.status !== 'ok' || !data.items) return [];
+    return data.items.slice(0, limit || 6).map(item => {
+      const title = item.title || '';
+      // Detect if source is YouTube or X from the link
+      let detectedSrc = srcType;
+      const link = (item.link || '').toLowerCase();
+      if (link.includes('youtube.com') || link.includes('youtu.be')) detectedSrc = 'youtube';
+      else if (link.includes('twitter.com') || link.includes('x.com')) detectedSrc = 'x';
+      else if (link.includes('moneycontrol.com') || link.includes('screener.in') || link.includes('trendlyne.com')) detectedSrc = 'forum';
+      return {
+        title, link: item.link || '#', pubDate: item.pubDate || '',
+        source: item.author || extractSource(title),
+        srcType: detectedSrc,
+        signals: detectSignals(title),
+        signalCat: classifySignalCategory(title)
+      };
+    });
+  } catch(e) { return []; }
+}
+
+async function fetchRedditRSS(feedUrl) {
+  try {
+    const resp = await fetch(RSS2JSON + encodeURIComponent(feedUrl), {signal: AbortSignal.timeout(6000)});
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    if (data.status !== 'ok' || !data.items) return [];
+    return data.items.slice(0, 5).map(item => {
+      const title = (item.title || '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+      return {
+        title, link: item.link || '#', pubDate: item.pubDate || '',
+        source: 'Reddit',
+        srcType: 'reddit',
+        signals: detectSignals(title),
+        signalCat: classifySignalCategory(title) || 'community'
+      };
+    });
+  } catch(e) { return []; }
+}
+
+// ── Enhanced signal detection ──
 function detectSignals(title) {
   const t = title.toLowerCase();
   const signals = [];
-  if (t.match(/promoter.*(buy|acqui|stake|increas|purchas)/)) signals.push({type:'promoter', label:'Promoter Buying'});
-  if (t.match(/promoter.*(sell|reduc|decreas|pledg)/)) signals.push({type:'downgrade', label:'Promoter Selling'});
+  // Promoter & insider
+  if (t.match(/promoter.*(buy|acqui|stake|increas|purchas|hik)/)) signals.push({type:'promoter', label:'Promoter Buying'});
+  if (t.match(/promoter.*(sell|reduc|decreas|pledg|offload)/)) signals.push({type:'downgrade', label:'Promoter Selling'});
+  if (t.match(/insider.*(buy|sell|trad)/)) signals.push({type:'promoter', label:'Insider Trade'});
+  if (t.match(/pledg/)) signals.push({type:'downgrade', label:'Share Pledge'});
+  // Deals
   if (t.match(/bulk.?deal|block.?deal/)) signals.push({type:'bulk', label:'Bulk/Block Deal'});
-  if (t.match(/sebi|regulator/)) signals.push({type:'sebi', label:'SEBI/Regulatory'});
-  if (t.match(/result|earning|quarter|q[1-4]|profit|revenue|pat |net.?profit/)) signals.push({type:'result', label:'Results/Earnings'});
-  if (t.match(/order.?win|order.?book|contract|award/)) signals.push({type:'order', label:'Order Win'});
-  if (t.match(/upgrade|target.*rais|outperform|overweight/)) signals.push({type:'upgrade', label:'Analyst Upgrade'});
-  if (t.match(/downgrad|target.*cut|underperform|underweight|sell.*rat/)) signals.push({type:'downgrade', label:'Analyst Downgrade'});
-  if (t.match(/buyback|bonus|split|dividend/)) signals.push({type:'promoter', label:'Corporate Action'});
-  if (t.match(/pli|subsid|policy|govt|government|cabinet|mnre|fame/)) signals.push({type:'policy', label:'Policy/Govt'});
+  if (t.match(/acqui|merger|takeover|demerger|amalgam/)) signals.push({type:'bulk', label:'M&A'});
+  // Results
+  if (t.match(/result|earning|quarter|q[1-4]|profit|revenue|pat |net.?profit|ebitda/)) signals.push({type:'result', label:'Results/Earnings'});
+  if (t.match(/annual.*report|balance.?sheet/)) signals.push({type:'result', label:'Annual Report'});
+  if (t.match(/guidance|outlook|forecast/)) signals.push({type:'result', label:'Guidance'});
+  // Analyst
+  if (t.match(/upgrade|target.*rais|outperform|overweight|buy.*rat/)) signals.push({type:'upgrade', label:'Analyst Upgrade'});
+  if (t.match(/downgrad|target.*cut|underperform|underweight|sell.*rat|reduce.*rat/)) signals.push({type:'downgrade', label:'Analyst Downgrade'});
+  if (t.match(/initiat.*coverage|new.*coverage/)) signals.push({type:'upgrade', label:'New Coverage'});
+  // Orders & business
+  if (t.match(/order.?win|order.?book|contract|award|new.*order/)) signals.push({type:'order', label:'Order Win'});
+  if (t.match(/expansion|capacity|new.*plant|capex|greenfield/)) signals.push({type:'order', label:'Expansion'});
+  if (t.match(/launch|new.*product|innovation/)) signals.push({type:'order', label:'Product Launch'});
+  // Corporate actions
+  if (t.match(/buyback/)) signals.push({type:'promoter', label:'Buyback'});
+  if (t.match(/bonus/)) signals.push({type:'promoter', label:'Bonus'});
+  if (t.match(/split/)) signals.push({type:'promoter', label:'Stock Split'});
+  if (t.match(/dividend/)) signals.push({type:'promoter', label:'Dividend'});
+  if (t.match(/right.*issue/)) signals.push({type:'promoter', label:'Rights Issue'});
+  // Regulatory
+  if (t.match(/sebi|regulator|compliance|penalty|fine/)) signals.push({type:'sebi', label:'SEBI/Regulatory'});
   if (t.match(/ipo|listing|drhp|offer.?for.?sale/)) signals.push({type:'sebi', label:'IPO/OFS'});
-  if (t.match(/acqui|merger|takeover|demerger/)) signals.push({type:'bulk', label:'M&A'});
-  if (t.match(/52.?week.*high|all.?time.*high|breakout|rally|surge|jump/)) signals.push({type:'upgrade', label:'Momentum'});
-  if (t.match(/52.?week.*low|crash|plunge|tank|slump/)) signals.push({type:'downgrade', label:'Breakdown'});
+  if (t.match(/board.*meet|agm|egm|shareholder/)) signals.push({type:'sebi', label:'Board Meeting'});
+  // Policy & govt
+  if (t.match(/pli|subsid|policy|govt|government|cabinet|budget|tariff|duty|ban|restrict/)) signals.push({type:'policy', label:'Policy/Govt'});
+  if (t.match(/mnre|fame|ev.?policy|green.*hydrogen|solar.*policy/)) signals.push({type:'policy', label:'Green Policy'});
+  if (t.match(/rbi|monetary|rate.*cut|interest.*rate/)) signals.push({type:'policy', label:'RBI/Monetary'});
+  // Momentum
+  if (t.match(/52.?week.*high|all.?time.*high|breakout|rally|surge|jump|soar/)) signals.push({type:'upgrade', label:'Momentum'});
+  if (t.match(/52.?week.*low|crash|plunge|tank|slump|tumble|fall/)) signals.push({type:'downgrade', label:'Breakdown'});
+  if (t.match(/volume.*spike|heavy.*volume|unusual.*volume/)) signals.push({type:'upgrade', label:'Volume Spike'});
+  // Management
+  if (t.match(/ceo|cfo|md.*appoint|resign|management.*change/)) signals.push({type:'sebi', label:'Management Change'});
   return signals;
 }
 
-function renderDeepCard(data, yfTicker, portfolioStock, newsItems, rawTicker) {
+// ── Classify into signal category for grouping ──
+function classifySignalCategory(title) {
+  const t = title.toLowerCase();
+  if (t.match(/promoter|insider|pledg|stake.*(buy|sell|increas|decreas)/)) return 'promoter';
+  if (t.match(/result|earning|quarter|q[1-4]|profit|revenue|pat |ebitda|annual.*report|guidance/)) return 'results';
+  if (t.match(/analyst|broker|target.*price|upgrade|downgrad|rating|coverage|brokerage/)) return 'analyst';
+  if (t.match(/52.?week|breakout|rally|surge|crash|plunge|momentum|volume.*spike|technical/)) return 'momentum';
+  if (t.match(/buyback|bonus|split|dividend|right.*issue|acqui|merger|takeover|demerger|ipo|ofs/)) return 'corporate';
+  if (t.match(/sebi|regulator|filing|board.*meet|agm|egm|compliance|penalty|management.*change/)) return 'regulatory';
+  if (t.match(/pli|subsid|policy|govt|government|budget|tariff|rbi|monetary|green.*hydrogen/)) return 'policy';
+  if (t.match(/reddit|sentiment|retail|community|discussion|opinion|review/)) return 'community';
+  if (t.match(/bulk.?deal|block.?deal|order.?win|contract|expansion|capex|launch/)) return 'corporate';
+  return 'general';
+}
+
+function renderDeepCard(data, yfTicker, portfolioStock, intelItems, rawTicker) {
   const resultDiv = document.getElementById('scorerResult');
   const s = computeScore(data, yfTicker, portfolioStock);
   const companyName = data.name || portfolioStock?.name || yfTicker.replace('.NS','').replace('.BO','');
@@ -3968,22 +4135,44 @@ function renderDeepCard(data, yfTicker, portfolioStock, newsItems, rawTicker) {
     portfolioBadge += '<span class="badge badge-watch" style="margin-left:8px">IN WATCHLIST</span>';
   }
 
-  // Detect signals from news
+  // Collect ALL unique signal labels
   const allSignals = [];
-  newsItems.forEach(n => n.signals.forEach(sig => {
+  intelItems.forEach(n => n.signals.forEach(sig => {
     if (!allSignals.find(s => s.label === sig.label)) allSignals.push(sig);
   }));
+
+  // Count sources
+  const srcCounts = {};
+  intelItems.forEach(item => {
+    const st = item.srcType || 'news';
+    srcCounts[st] = (srcCounts[st] || 0) + 1;
+  });
 
   // Auto-categorize based on signals
   let suggestedCategory = 'Long-Term';
   let suggestedReason = 'No immediate catalyst detected — long-term hold candidate';
-  if (allSignals.find(s => s.label.match(/Promoter Buying|Bulk|Corporate Action|Momentum/))) {
+  if (allSignals.find(s => s.label.match(/Promoter Buying|Bulk|Buyback|Momentum|Volume Spike/))) {
     suggestedCategory = 'Immediate'; suggestedReason = 'Active catalyst signals detected — potential immediate play';
-  } else if (allSignals.find(s => s.label.match(/Results|Order Win|Policy|Analyst Upgrade/))) {
+  } else if (allSignals.find(s => s.label.match(/Results|Order Win|Policy|Analyst Upgrade|Expansion/))) {
     suggestedCategory = '1-Month'; suggestedReason = 'Upcoming catalyst (results/order/policy) — 1-month horizon';
   }
 
-  // Catalyst from portfolio or auto-detected
+  // ── Intelligence summary bar ──
+  const totalItems = intelItems.length;
+  let intelSummary = '<div class="deep-section intel-summary-bar">' +
+    '<div class="deep-section-title">&#128161; Intelligence Summary <span style="font-size:10px;background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px">' + totalItems + ' items from ' + Object.keys(srcCounts).length + ' sources</span></div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">';
+  Object.entries(srcCounts).forEach(([src, count]) => {
+    intelSummary += '<span class="src-tag src-' + src + '">' + (SRC_ICONS[src]||'') + ' ' + (SRC_LABELS[src]||src) + ': ' + count + '</span>';
+  });
+  intelSummary += '</div>';
+  if (allSignals.length > 0) {
+    intelSummary += '<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">' +
+      allSignals.map(sig => '<span class="signal-pill signal-' + sig.type + '">' + sig.label + '</span>').join('') + '</div>';
+  }
+  intelSummary += '<div style="margin-top:8px;font-size:11px;color:var(--muted)">Primary research: multi-source signals auto-detected. Not investment advice.</div></div>';
+
+  // ── Catalyst from portfolio ──
   let catalystSection = '';
   if (isInPortfolio && portfolioStock.catalyst) {
     catalystSection = '<div class="deep-section"><div class="deep-section-title">&#127919; Active Catalyst (Primary Research)</div>' +
@@ -3991,36 +4180,74 @@ function renderDeepCard(data, yfTicker, portfolioStock, newsItems, rawTicker) {
       (portfolioStock.thesis ? '<div style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.6">' + portfolioStock.thesis + '</div>' : '') + '</div>';
   }
 
-  // Signals section
-  let signalsSection = '';
-  if (allSignals.length > 0) {
-    signalsSection = '<div class="deep-section"><div class="deep-section-title">&#128161; Detected Signals <span style="font-size:10px;background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px">' + allSignals.length + ' found</span></div>' +
-      '<div>' + allSignals.map(sig => '<span class="signal-pill signal-' + sig.type + '">' + sig.label + '</span>').join('') + '</div>' +
-      '<div style="margin-top:10px;font-size:12px;color:var(--muted)">Signals auto-detected from recent news headlines. Not investment advice.</div></div>';
-  }
-
-  // News section
-  let newsSection = '';
-  if (newsItems.length > 0) {
-    newsSection = '<div class="deep-section"><div class="deep-section-title">&#128240; Recent News & Research <span style="font-size:10px;color:var(--muted)">(' + newsItems.length + ' articles)</span></div>';
-    newsItems.forEach(n => {
-      const signalBadges = n.signals.map(sig => '<span class="signal-pill signal-' + sig.type + '">' + sig.label + '</span>').join('');
-      const timeAgo = formatTimeAgo(n.pubDate);
-      newsSection += '<div class="news-item-deep"><a href="' + n.link + '" target="_blank">' + n.title.replace(/ - [^-]+$/, '') + '</a>' +
-        (signalBadges ? ' ' + signalBadges : '') +
-        '<div class="news-source">' + n.source + ' &bull; ' + timeAgo + '</div></div>';
+  // ── SIGNAL-FIRST VIEW: Group items by signal category ──
+  const catGroups = {};
+  intelItems.forEach(item => {
+    const cat = item.signalCat || 'general';
+    if (!catGroups[cat]) catGroups[cat] = [];
+    catGroups[cat].push(item);
+  });
+  // Also put items with detected signals into those categories
+  intelItems.forEach(item => {
+    item.signals.forEach(sig => {
+      let mappedCat = 'general';
+      if (sig.label.match(/Promoter|Insider|Pledge|Buyback/)) mappedCat = 'promoter';
+      else if (sig.label.match(/Results|Earnings|Annual|Guidance/)) mappedCat = 'results';
+      else if (sig.label.match(/Analyst|Upgrade|Downgrade|Coverage/)) mappedCat = 'analyst';
+      else if (sig.label.match(/Momentum|Breakdown|Volume/)) mappedCat = 'momentum';
+      else if (sig.label.match(/M&A|Order|Expansion|Launch|Bulk|Block|Bonus|Split|Dividend|Rights|Corporate/)) mappedCat = 'corporate';
+      else if (sig.label.match(/SEBI|Board|Management|IPO|OFS/)) mappedCat = 'regulatory';
+      else if (sig.label.match(/Policy|Govt|Green|RBI|Monetary/)) mappedCat = 'policy';
+      if (mappedCat !== 'general' && mappedCat !== (item.signalCat || 'general')) {
+        if (!catGroups[mappedCat]) catGroups[mappedCat] = [];
+        if (!catGroups[mappedCat].find(x => x.title === item.title)) catGroups[mappedCat].push(item);
+      }
     });
-    newsSection += '</div>';
-  }
+  });
 
-  // Recommendation section
+  // Sort categories by priority and render
+  const sortedCats = Object.keys(catGroups).sort((a,b) => (SIGNAL_CATS[a]?.priority||99) - (SIGNAL_CATS[b]?.priority||99));
+
+  let signalSections = '';
+  sortedCats.forEach(cat => {
+    const items = catGroups[cat];
+    if (!items || items.length === 0) return;
+    const catDef = SIGNAL_CATS[cat] || SIGNAL_CATS.general;
+    signalSections += '<div class="deep-section signal-cat-section" style="border-left:3px solid ' + catDef.color + '">' +
+      '<div class="deep-section-title" style="cursor:pointer" onclick="this.parentElement.classList.toggle(\'collapsed\')">' +
+        catDef.icon + ' ' + catDef.title +
+        ' <span style="font-size:10px;background:' + catDef.color + '33;color:' + catDef.color + ';padding:2px 8px;border-radius:10px;margin-left:6px">' + items.length + ' items</span>' +
+        '<span style="float:right;font-size:12px;color:var(--muted)">&#9660;</span>' +
+      '</div>' +
+      '<div class="signal-cat-items">';
+    items.forEach(item => {
+      const srcIcon = SRC_ICONS[item.srcType] || SRC_ICONS.news;
+      const srcLabel = SRC_LABELS[item.srcType] || 'News';
+      const signalBadges = item.signals.map(sig => '<span class="signal-pill signal-' + sig.type + '" style="font-size:9px;padding:1px 6px">' + sig.label + '</span>').join('');
+      const timeAgo = formatTimeAgo(item.pubDate);
+      signalSections += '<div class="intel-item">' +
+        '<span class="src-tag src-' + (item.srcType||'news') + '" style="font-size:9px;padding:1px 6px;margin-right:6px">' + srcIcon + ' ' + srcLabel + '</span>' +
+        '<a href="' + item.link + '" target="_blank" style="color:var(--text);text-decoration:none;font-size:13px;line-height:1.4">' + item.title.replace(/ - [^-]+$/, '') + '</a>' +
+        (signalBadges ? ' ' + signalBadges : '') +
+        '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + item.source + ' &bull; ' + timeAgo + '</div>' +
+      '</div>';
+    });
+    signalSections += '</div></div>';
+  });
+
+  // ── Recommendation section ──
   let recoSection = '<div class="deep-section"><div class="deep-section-title">&#128202; AI Recommendation</div>' +
     '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">' +
       '<div style="font-size:14px"><strong>Suggested Category:</strong> <span class="badge ' + (suggestedCategory === 'Immediate' ? 'badge-imm' : suggestedCategory === '1-Month' ? 'badge-1mo' : 'badge-lt') + '">' + suggestedCategory + '</span></div>' +
       '<div style="font-size:12px;color:var(--muted)">' + suggestedReason + '</div>' +
+    '</div>' +
+    '<div style="margin-top:10px;font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap">' +
+      '<span>&#128202; Sources scanned: ' + Object.keys(srcCounts).length + '</span>' +
+      '<span>&#128240; Total items: ' + totalItems + '</span>' +
+      '<span>&#128161; Signals detected: ' + allSignals.length + '</span>' +
     '</div></div>';
 
-  // Watchlist button
+  // ── Watchlist button ──
   let watchlistBtn = '';
   if (!isInPortfolio) {
     if (isInWatchlist) {
@@ -4033,9 +4260,10 @@ function renderDeepCard(data, yfTicker, portfolioStock, newsItems, rawTicker) {
     watchlistBtn = '<div style="text-align:center;padding:12px;background:var(--card2);border-radius:10px;color:var(--green);font-weight:600;margin-top:16px">&#10004; Already in your portfolio (' + portfolioStock.layer + ')</div>';
   }
 
+  // ── ASSEMBLE FULL CARD ──
   resultDiv.innerHTML =
     '<div class="score-card ' + s.gradeClass + '">' +
-    // Header
+    // Header with price + score
     '<div class="score-header">' +
       '<div>' +
         '<div class="score-company">' + companyName + '<span>' + ticker + ' &bull; ' + exchange + '</span>' + portfolioBadge + '</div>' +
@@ -4050,8 +4278,8 @@ function renderDeepCard(data, yfTicker, portfolioStock, newsItems, rawTicker) {
     '</div>' +
     // Catalyst (if portfolio)
     catalystSection +
-    // Signals detected
-    signalsSection +
+    // Intelligence summary bar
+    intelSummary +
     // Score breakdown
     '<div class="deep-section"><div class="deep-section-title">&#128200; Score Breakdown</div>' +
     '<div class="score-breakdown">' +
@@ -4070,7 +4298,7 @@ function renderDeepCard(data, yfTicker, portfolioStock, newsItems, rawTicker) {
       metricCard('ROCE', s.roce > 0 ? s.roce + '%' : 'N/A', s.roce >= 20 ? 'Excellent' : s.roce >= 12 ? 'Good' : 'Average', s.roce >= 20 ? 'var(--green)' : s.roce >= 12 ? 'var(--accent)' : 'var(--muted)') +
       metricCard('Market Cap', s.mcap > 0 ? '&#8377;' + (s.mcap >= 1000 ? (s.mcap/1000).toFixed(1) + 'L Cr' : s.mcap + ' Cr') : 'N/A', s.mcap >= 100000 ? 'Large Cap' : s.mcap >= 20000 ? 'Mid Cap' : s.mcap >= 5000 ? 'Small Cap' : s.mcap > 0 ? 'Micro Cap' : '', 'var(--muted)') +
     '</div></div>' +
-    // 52W range
+    // 52W range visual
     '<div class="deep-section">' +
       '<div class="deep-section-title">52-Week Range Position</div>' +
       '<div style="display:flex;align-items:center;gap:12px">' +
@@ -4085,8 +4313,8 @@ function renderDeepCard(data, yfTicker, portfolioStock, newsItems, rawTicker) {
     '</div>' +
     // Recommendation
     recoSection +
-    // News
-    newsSection +
+    // SIGNAL-FIRST INTELLIGENCE SECTIONS
+    signalSections +
     // Explanation
     '<div class="deep-section"><div class="deep-section-title">What This Score Means</div>' +
       '<div style="font-size:13px;color:var(--text);line-height:1.8">' + getScoreExplanation(s) + '</div></div>' +
