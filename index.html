@@ -1855,7 +1855,7 @@ function updatePTDisplay(w) {
   let todayPnl = 0;
   w.positions.forEach(p => {
     const stock = stocks.find(s => s.ticker === p.ticker);
-    const livePrice = stock ? (stock.price || p.avgPrice) : p.avgPrice;
+    const livePrice = stock ? (stock.cmp || p.avgPrice) : p.avgPrice;
     const prevClose = stock ? (stock.prevClose || livePrice) : livePrice;
     p.currentPrice = livePrice;
     p.marketValue = livePrice * p.qty;
@@ -1940,7 +1940,7 @@ function paperSell(posIdx) {
   const pos = w.positions[posIdx];
   if (!pos) return;
   const stock = stocks.find(s => s.ticker === pos.ticker);
-  const sellPrice = stock ? (stock.price || pos.avgPrice) : pos.avgPrice;
+  const sellPrice = stock ? (stock.cmp || pos.avgPrice) : pos.avgPrice;
   const proceeds = sellPrice * pos.qty;
   const pnl = (sellPrice - pos.avgPrice) * pos.qty;
 
@@ -1964,12 +1964,12 @@ function runAIAutoTrade() {
     const pos = w.positions[i];
     const stock = stocks.find(s => s.ticker === pos.ticker);
     if (!stock) continue;
-    const sellPrice = stock.price || pos.avgPrice;
+    const sellPrice = stock.cmp || pos.avgPrice;
 
-    // Sell if stock turned WEAK
+    // Sell if stock turned WEAKENING
     let shouldSell = false;
     let reason = '';
-    if (stock.scanStatus === 'WEAK') { shouldSell = true; reason = 'AI: WEAK signal detected'; }
+    if (stock.scanStatus === 'WEAKENING') { shouldSell = true; reason = 'AI: WEAK signal detected'; }
     // Sell if down > 10% from buy price (stop loss)
     else if (sellPrice < pos.avgPrice * 0.90) { shouldSell = true; reason = 'AI: Stop-loss 10% triggered'; }
     // Sell if up > 20% (profit booking)
@@ -1995,14 +1995,14 @@ function runAIAutoTrade() {
 
   // Sort stocks: STRONG first, then by buy score descending
   const candidates = stocks
-    .filter(s => s.scanStatus === 'STRONG' && s.price && s.price > 0 && !heldTickers.has(s.ticker))
-    .sort((a, b) => (b.buyScore || 0) - (a.buyScore || 0));
+    .filter(s => s.scanStatus === 'STRENGTHENING' && s.cmp && s.cmp > 0 && !heldTickers.has(s.ticker))
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
 
   for (const stock of candidates) {
     if (w.positions.length >= maxPositions) break;
     if (w.cash < 1000) break; // need at least ₹1000 to trade
 
-    const buyPrice = stock.price;
+    const buyPrice = stock.cmp;
     const qty = Math.max(1, Math.floor(Math.min(positionSize, w.cash * 0.25) / buyPrice));
     const cost = qty * buyPrice;
     if (cost > w.cash || qty === 0) continue;
@@ -2027,7 +2027,7 @@ function runAIAutoTrade() {
 
   // Show result
   if (tradesMade === 0) {
-    document.getElementById('ptLastTrade').textContent = 'No new trades — portfolio is optimal. Checked ' + stocks.filter(s=>s.price>0).length + ' stocks.';
+    document.getElementById('ptLastTrade').textContent = 'No new trades — portfolio is optimal. Checked ' + stocks.filter(s=>s.cmp>0).length + ' stocks.';
   } else {
     document.getElementById('ptLastTrade').textContent = tradesMade + ' trade(s) executed just now. Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0});
   }
@@ -2036,7 +2036,7 @@ function runAIAutoTrade() {
   const dateKey = now.toISOString().split('T')[0];
   const holdingsVal = w.positions.reduce((sum, p) => {
     const s = stocks.find(st => st.ticker === p.ticker);
-    return sum + ((s ? s.price : p.avgPrice) * p.qty);
+    return sum + ((s ? s.cmp : p.avgPrice) * p.qty);
   }, 0);
   w.dailySnap[dateKey] = { total: w.cash + holdingsVal, cash: w.cash, holdings: holdingsVal };
   savePT(w);
