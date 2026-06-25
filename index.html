@@ -957,8 +957,12 @@ tbody tr.flash-down{animation:flashRed .8s ease}
       <button onclick="runPortfolioAI()" style="padding:10px 24px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">&#129302; Run Full AI Scan</button>
       <button onclick="runSectorAnalysis()" style="padding:10px 18px;background:var(--card2);color:var(--accent);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128202; Sector Analysis</button>
       <button onclick="runAutoDiscover()" style="padding:10px 18px;background:var(--card2);color:#22c55e;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128270; Auto-Discover</button>
+      <button onclick="predictDailyMovers()" style="padding:10px 18px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">&#128640; Predict Movers</button>
       <span id="aiScanTime" style="color:var(--muted);font-size:12px;margin-left:auto">Not scanned yet</span>
     </div>
+
+    <!-- Daily Mover Predictions -->
+    <div id="aiMovers" style="margin-bottom:16px"></div>
 
     <!-- Portfolio Health Score -->
     <div id="aiHealthScore" style="margin-bottom:16px"></div>
@@ -1866,6 +1870,344 @@ function renderBessChart() {
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
     scales:{x:{ticks:{color:'#94a3b8'},grid:{display:false}},y:{ticks:{color:'#94a3b8',callback:v=>'$'+v+'B'},grid:{color:'#2d314822'}}}}
   });
+}
+
+// ============================================================
+//  DAILY MOVER PREDICTOR — AI Momentum Scanner
+// ============================================================
+
+// Universe of 100 high-beta Indian stocks to scan for big moves
+const MOVER_UNIVERSE = [
+  // Auto & Auto Ancillary
+  {t:'MOTHERSON',n:'Motherson Sumi',s:'Auto Ancillary'},{t:'UNOMINDA',n:'UNO Minda',s:'Auto Ancillary'},
+  {t:'MARUTI',n:'Maruti Suzuki',s:'Automobile'},{t:'M%26M',n:'Mahindra & Mahindra',s:'Automobile'},
+  {t:'EICHERMOT',n:'Eicher Motors',s:'Automobile'},{t:'BAJAJ-AUTO',n:'Bajaj Auto',s:'Automobile'},
+  {t:'HEROMOTOCO',n:'Hero MotoCorp',s:'Automobile'},{t:'ASHOKLEY',n:'Ashok Leyland',s:'Auto CV'},
+  {t:'TVSMOTOR',n:'TVS Motor',s:'Automobile'},{t:'BHARATFORG',n:'Bharat Forge',s:'Auto Ancillary'},
+  // Aviation & Travel
+  {t:'INDIGO',n:'IndiGo',s:'Aviation'},{t:'SPICEJET',n:'SpiceJet',s:'Aviation'},
+  {t:'IRCTC',n:'IRCTC',s:'Travel/Railway'},
+  // Banking
+  {t:'SBIN',n:'SBI',s:'PSU Banking'},{t:'BANKBARODA',n:'Bank of Baroda',s:'PSU Banking'},
+  {t:'PNB',n:'PNB',s:'PSU Banking'},{t:'CANBK',n:'Canara Bank',s:'PSU Banking'},
+  {t:'IDFCFIRSTB',n:'IDFC First Bank',s:'Banking'},{t:'BANDHANBNK',n:'Bandhan Bank',s:'Banking'},
+  {t:'FEDERALBNK',n:'Federal Bank',s:'Banking'},{t:'INDIANB',n:'Indian Bank',s:'PSU Banking'},
+  // NBFC
+  {t:'BAJFINANCE',n:'Bajaj Finance',s:'NBFC'},{t:'MANAPPURAM',n:'Manappuram Finance',s:'NBFC Gold'},
+  {t:'MUTHOOTFIN',n:'Muthoot Finance',s:'NBFC Gold'},{t:'POONAWALLA',n:'Poonawalla Fincorp',s:'NBFC'},
+  // IT
+  {t:'WIPRO',n:'Wipro',s:'IT'},{t:'TECHM',n:'Tech Mahindra',s:'IT'},
+  {t:'LTIM',n:'LTIMindtree',s:'IT'},{t:'MPHASIS',n:'Mphasis',s:'IT'},
+  {t:'PERSISTENT',n:'Persistent Systems',s:'IT'},{t:'COFORGE',n:'Coforge',s:'IT'},
+  // Metals & Mining
+  {t:'TATASTEEL',n:'Tata Steel',s:'Steel'},{t:'JSWSTEEL',n:'JSW Steel',s:'Steel'},
+  {t:'HINDALCO',n:'Hindalco',s:'Metals'},{t:'VEDL',n:'Vedanta',s:'Mining/Metals'},
+  {t:'NATIONALUM',n:'NALCO',s:'Metals'},{t:'NMDC',n:'NMDC',s:'Mining'},
+  {t:'COALINDIA',n:'Coal India',s:'Mining'},
+  // Oil & Gas
+  {t:'ONGC',n:'ONGC',s:'Oil & Gas'},{t:'BPCL',n:'BPCL',s:'Oil & Gas'},
+  {t:'IOC',n:'Indian Oil',s:'Oil & Gas'},{t:'GAIL',n:'GAIL',s:'Gas'},
+  // Telecom
+  {t:'BHARTIARTL',n:'Bharti Airtel',s:'Telecom'},{t:'IDEA',n:'Vodafone Idea',s:'Telecom'},
+  // Real Estate
+  {t:'DLF',n:'DLF',s:'Real Estate'},{t:'GODREJPROP',n:'Godrej Properties',s:'Real Estate'},
+  {t:'OBEROIRLTY',n:'Oberoi Realty',s:'Real Estate'},{t:'PRESTIGE',n:'Prestige Estates',s:'Real Estate'},
+  // Infra & Railway
+  {t:'IRCON',n:'IRCON International',s:'Railway Infra'},{t:'RVNL',n:'RVNL',s:'Railway Infra'},
+  {t:'NBCC',n:'NBCC',s:'Construction'},{t:'IRB',n:'IRB Infra',s:'Road Infra'},
+  {t:'RAILTEL',n:'RailTel',s:'Railway IT'},
+  // Power & Energy
+  {t:'NTPC',n:'NTPC',s:'Power'},{t:'NHPC',n:'NHPC',s:'Hydro Power'},
+  {t:'SJVN',n:'SJVN',s:'Hydro Power'},{t:'ADANIGREEN',n:'Adani Green',s:'Renewable'},
+  {t:'ADANIPOWER',n:'Adani Power',s:'Power'},{t:'IREDA',n:'IREDA',s:'Green Finance'},
+  {t:'RECLTD',n:'REC',s:'Power Finance'},{t:'PFC',n:'PFC',s:'Power Finance'},
+  // Defence & Shipbuilding
+  {t:'HAL',n:'HAL',s:'Defence'},{t:'BEL',n:'BEL',s:'Defence'},
+  {t:'BHEL',n:'BHEL',s:'Capital Goods'},{t:'COCHINSHIP',n:'Cochin Shipyard',s:'Shipbuilding'},
+  {t:'MAZAGONDOCK',n:'Mazagon Dock',s:'Shipbuilding'},
+  // Pharma (tracking)
+  {t:'SUNPHARMA',n:'Sun Pharma',s:'Pharma'},{t:'DRREDDY',n:'Dr Reddys',s:'Pharma'},
+  {t:'CIPLA',n:'Cipla',s:'Pharma'},{t:'MANKIND',n:'Mankind Pharma',s:'Pharma'},
+  // Chemicals
+  {t:'DEEPAKNTR',n:'Deepak Nitrite',s:'Chemicals'},{t:'ATUL',n:'Atul',s:'Chemicals'},
+  // FMCG
+  {t:'ITC',n:'ITC',s:'FMCG'},{t:'TATACONSUM',n:'Tata Consumer',s:'FMCG'},
+  // Cement
+  {t:'ULTRACEMCO',n:'UltraTech Cement',s:'Cement'},{t:'AMBUJACEM',n:'Ambuja Cements',s:'Cement'},
+  // Insurance
+  {t:'SBILIFE',n:'SBI Life',s:'Insurance'},{t:'HDFCLIFE',n:'HDFC Life',s:'Insurance'},
+  // Logistics
+  {t:'DELHIVERY',n:'Delhivery',s:'Logistics'},{t:'CONCOR',n:'Container Corp',s:'Logistics'},
+  {t:'ADANIPORTS',n:'Adani Ports',s:'Ports/Logistics'},
+  // Fintech / New Age
+  {t:'ZOMATO',n:'Zomato',s:'Food Tech'},{t:'PAYTM',n:'One97/Paytm',s:'Fintech'},
+  {t:'NYKAA',n:'FSN E-Commerce',s:'E-commerce'},{t:'POLICYBZR',n:'PB Fintech',s:'Insurtech'},
+  // Conglomerate / High Beta
+  {t:'ADANIENT',n:'Adani Enterprises',s:'Conglomerate'},{t:'IRFC',n:'IRFC',s:'Railway Finance'},
+  {t:'HUDCO',n:'HUDCO',s:'Housing Finance'},
+  // Media
+  {t:'ZEEL',n:'Zee Entertainment',s:'Media'},{t:'PVRINOX',n:'PVR INOX',s:'Entertainment'},
+  // Textiles
+  {t:'PAGEIND',n:'Page Industries',s:'Textiles'},
+  // Sugar
+  {t:'BALRAMCHIN',n:'Balrampur Chini',s:'Sugar'},{t:'RENUKA',n:'Shree Renuka',s:'Sugar'},
+  // Misc high-beta
+  {t:'SUZLON',n:'Suzlon Energy',s:'Wind Energy'},{t:'YESBANK',n:'Yes Bank',s:'Banking'},
+  {t:'RPOWER',n:'Reliance Power',s:'Power'},{t:'ZYDUSLIFE',n:'Zydus Lifesciences',s:'Pharma'},
+  {t:'STLTECH',n:'Sterlite Technologies',s:'Telecom/Data'}
+];
+
+async function predictDailyMovers() {
+  const defaultEl = document.getElementById('aiDefault');
+  if (defaultEl) defaultEl.style.display = 'none';
+
+  const moversDiv = document.getElementById('aiMovers');
+  moversDiv.innerHTML = '<div style="text-align:center;padding:40px">' +
+    '<div style="font-size:40px;margin-bottom:12px">&#128640;</div>' +
+    '<div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">Scanning ' + MOVER_UNIVERSE.length + ' stocks across 25+ sectors...</div>' +
+    '<div style="background:var(--border);height:6px;border-radius:3px;max-width:400px;margin:12px auto">' +
+    '<div id="moverProgress" style="height:100%;background:linear-gradient(90deg,#f59e0b,#d97706);border-radius:3px;width:0%;transition:width 0.3s"></div></div>' +
+    '<div id="moverStatus" style="font-size:12px;color:var(--muted);margin-top:8px">Initializing AI scanner...</div></div>';
+
+  const PROXY = 'https://script.google.com/macros/s/AKfycby5PazxAw5pvDzI8om9qimkesKaasklCII19-5bUX5gAo0E92g4Zf67ynQscLkv1Q_OEw/exec';
+  const results = [];
+  const batchSize = 5;
+  const totalBatches = Math.ceil(MOVER_UNIVERSE.length / batchSize);
+
+  for (let i = 0; i < MOVER_UNIVERSE.length; i += batchSize) {
+    const batch = MOVER_UNIVERSE.slice(i, i + batchSize);
+    const batchNum = Math.floor(i / batchSize) + 1;
+    document.getElementById('moverStatus').textContent = 'Batch ' + batchNum + '/' + totalBatches + ': ' + batch.map(b=>b.t).join(', ');
+    document.getElementById('moverProgress').style.width = ((i + batchSize) / MOVER_UNIVERSE.length * 100).toFixed(0) + '%';
+
+    const promises = batch.map(stock => {
+      const yfTicker = stock.t + '.NS';
+      return fetch(PROXY + '?symbol=' + yfTicker)
+        .then(r => r.json())
+        .then(d => {
+          if (d && d.price) {
+            return {
+              ticker: stock.t, name: stock.n, sector: stock.s,
+              cmp: d.price || 0, prevClose: d.prevClose || 0,
+              changePct: d.changePct || 0, change: d.change || 0,
+              vol: d.volume || 0, avgVol: d.avgVolume || 0,
+              high52: d.high52 || 0, low52: d.low52 || 0,
+              pe: d.pe || 0, mcap: d.mcap || 0
+            };
+          }
+          return null;
+        })
+        .catch(() => null);
+    });
+
+    const batchResults = await Promise.all(promises);
+    batchResults.forEach(r => { if (r && r.cmp > 0) results.push(r); });
+
+    // Brief pause between batches
+    if (i + batchSize < MOVER_UNIVERSE.length) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  }
+
+  document.getElementById('moverProgress').style.width = '100%';
+  document.getElementById('moverStatus').textContent = 'Scoring ' + results.length + ' stocks...';
+
+  // ── SCORE EACH STOCK FOR "BIG MOVE PROBABILITY" ──
+  const scored = results.map(s => {
+    let score = 0;
+    const reasons = [];
+
+    // 1. VOLUME SURGE (0-30)
+    const volRatio = s.avgVol > 0 ? (s.vol / s.avgVol) : 1;
+    if (volRatio >= 5) { score += 30; reasons.push('VOLUME EXPLOSION ' + volRatio.toFixed(1) + 'x average'); }
+    else if (volRatio >= 3) { score += 25; reasons.push('Heavy volume ' + volRatio.toFixed(1) + 'x avg — institutional interest'); }
+    else if (volRatio >= 2) { score += 18; reasons.push('Above-avg volume ' + volRatio.toFixed(1) + 'x — accumulation'); }
+    else if (volRatio >= 1.5) { score += 10; reasons.push('Moderate volume uptick'); }
+    else { score += 3; }
+
+    // 2. INTRADAY MOMENTUM (0-25)
+    const absChange = Math.abs(s.changePct);
+    if (absChange >= 5) { score += 25; reasons.push('Already ' + (s.changePct>0?'+':'') + s.changePct.toFixed(1) + '% — RUNNING'); }
+    else if (absChange >= 3) { score += 20; reasons.push('Strong momentum ' + (s.changePct>0?'+':'') + s.changePct.toFixed(1) + '%'); }
+    else if (absChange >= 2) { score += 15; reasons.push('Building momentum ' + (s.changePct>0?'+':'') + s.changePct.toFixed(1) + '%'); }
+    else if (absChange >= 1) { score += 8; reasons.push('Early move ' + (s.changePct>0?'+':'') + s.changePct.toFixed(1) + '%'); }
+    else { score += 2; }
+
+    // 3. 52-WEEK BREAKOUT/BOUNCE (0-20)
+    if (s.high52 > 0 && s.low52 > 0 && s.high52 > s.low52) {
+      const range = s.high52 - s.low52;
+      const pos = (s.cmp - s.low52) / range;
+      if (pos >= 0.95) { score += 20; reasons.push('AT 52-WEEK HIGH — breakout in progress'); }
+      else if (pos >= 0.85) { score += 15; reasons.push('Near 52W high — breakout setup'); }
+      else if (pos <= 0.08) { score += 18; reasons.push('Near 52W LOW — dead cat bounce / reversal play'); }
+      else if (pos <= 0.15) { score += 12; reasons.push('Oversold zone — bounce candidate'); }
+      else if (pos <= 0.25) { score += 6; reasons.push('Deep value zone'); }
+      else { score += 3; }
+    }
+
+    // 4. VOLATILITY PROFILE — small/mid caps move more (0-15)
+    if (s.mcap > 0) {
+      if (s.mcap < 3000) { score += 15; reasons.push('Micro-cap — max volatility'); }
+      else if (s.mcap < 10000) { score += 12; reasons.push('Small-cap — high volatility'); }
+      else if (s.mcap < 30000) { score += 8; reasons.push('Mid-cap — good move potential'); }
+      else if (s.mcap < 80000) { score += 4; }
+      else { score += 2; }
+    } else { score += 5; }
+
+    // 5. VOLUME + MOMENTUM COMBO (0-10 bonus)
+    if (volRatio >= 2 && absChange >= 2) {
+      score += 10;
+      reasons.push('Volume + Momentum COMBO — high conviction signal');
+    } else if (volRatio >= 1.5 && absChange >= 1.5) {
+      score += 5;
+    }
+
+    // Direction prediction
+    let direction = s.changePct >= 0 ? 'UP' : 'DOWN';
+    let dirColor = s.changePct >= 0 ? '#22c55e' : '#ef4444';
+
+    // Check if in portfolio
+    const inPortfolio = stocks.some(ps => ps.ticker === s.ticker && !ps._watchlist);
+
+    return { ...s, moverScore: score, reasons, direction, dirColor, volRatio, inPortfolio };
+  });
+
+  // Sort by mover score
+  scored.sort((a, b) => b.moverScore - a.moverScore);
+
+  // Identify hot sectors (multiple stocks from same sector moving)
+  const sectorHeat = {};
+  scored.forEach(s => {
+    if (!sectorHeat[s.sector]) sectorHeat[s.sector] = { count: 0, totalChange: 0, stocks: [] };
+    sectorHeat[s.sector].count++;
+    sectorHeat[s.sector].totalChange += s.changePct;
+    sectorHeat[s.sector].stocks.push(s.ticker);
+  });
+  const hotSectors = Object.entries(sectorHeat)
+    .map(([sec, data]) => ({ sector: sec, avgChange: data.totalChange / data.count, count: data.count, stocks: data.stocks }))
+    .filter(s => Math.abs(s.avgChange) >= 1.5 || s.count >= 3)
+    .sort((a, b) => Math.abs(b.avgChange) - Math.abs(a.avgChange));
+
+  // ── RENDER RESULTS ──
+  const top10 = scored.slice(0, 10);
+  const alreadyMoving = scored.filter(s => Math.abs(s.changePct) >= 4);
+  const now = new Date();
+  const marketOpen = now.getHours() >= 9 && now.getHours() < 16;
+
+  let html = '<div style="font-size:18px;font-weight:700;margin-bottom:4px">&#128640; AI Daily Mover Predictions</div>';
+  html += '<div style="color:var(--muted);font-size:12px;margin-bottom:16px">Scanned ' + results.length + ' stocks | ' + now.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'}) + ' | Market ' + (marketOpen ? 'OPEN' : 'CLOSED') + '</div>';
+
+  // Hot Sectors Bar
+  if (hotSectors.length > 0) {
+    html += '<div style="background:linear-gradient(135deg,#1a1a3e,var(--card2));border:1px solid #f59e0b44;border-radius:10px;padding:14px;margin-bottom:16px">';
+    html += '<div style="font-size:12px;color:#f59e0b;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">&#128293; Hot Sectors Right Now</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    hotSectors.slice(0, 8).forEach(s => {
+      const c = s.avgChange >= 0 ? '#22c55e' : '#ef4444';
+      html += '<div style="background:' + c + '15;border:1px solid ' + c + '44;border-radius:8px;padding:6px 12px">';
+      html += '<div style="font-size:13px;font-weight:700;color:' + c + '">' + s.sector + ' ' + (s.avgChange>=0?'+':'') + s.avgChange.toFixed(1) + '%</div>';
+      html += '<div style="font-size:10px;color:var(--muted)">' + s.stocks.slice(0,3).join(', ') + (s.stocks.length>3?' +' + (s.stocks.length-3):'') + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // Already Moving Banner
+  if (alreadyMoving.length > 0) {
+    html += '<div style="background:#ef444415;border:1px solid #ef444444;border-radius:10px;padding:12px;margin-bottom:16px">';
+    html += '<div style="font-size:12px;color:#ef4444;font-weight:700;margin-bottom:6px">&#9889; ALREADY MOVING 4%+ TODAY (' + alreadyMoving.length + ' stocks)</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    alreadyMoving.forEach(s => {
+      const c = s.changePct >= 0 ? '#22c55e' : '#ef4444';
+      html += '<span style="background:' + c + '22;color:' + c + ';padding:3px 10px;border-radius:5px;font-size:12px;font-weight:600">' + s.ticker + ' ' + (s.changePct>0?'+':'') + s.changePct.toFixed(1) + '%</span>';
+    });
+    html += '</div></div>';
+  }
+
+  // Top 10 Predicted Movers Table
+  html += '<div style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--text)">&#127942; Top 10 Predicted Big Movers</div>';
+  html += '<div style="display:grid;gap:10px">';
+
+  top10.forEach((s, i) => {
+    const rank = i + 1;
+    const rankColors = ['#f59e0b','#f59e0b','#f59e0b','#d97706','#d97706','#92400e','#92400e','#78716c','#78716c','#78716c'];
+    const scoreColor = s.moverScore >= 70 ? '#ef4444' : s.moverScore >= 50 ? '#f59e0b' : s.moverScore >= 35 ? '#3b82f6' : '#64748b';
+    const changePctColor = s.changePct >= 0 ? '#22c55e' : '#ef4444';
+
+    html += '<div style="background:var(--card2);border:1px solid ' + (i<3 ? '#f59e0b44' : 'var(--border)') + ';border-radius:10px;padding:14px;display:grid;grid-template-columns:40px 1fr 120px 100px 1fr 100px;align-items:center;gap:12px' + (i<3?';box-shadow:0 0 12px ' + rankColors[i] + '22':'') + '">';
+
+    // Rank
+    html += '<div style="text-align:center"><div style="font-size:24px;font-weight:800;color:' + rankColors[i] + '">#' + rank + '</div></div>';
+
+    // Stock info
+    html += '<div>';
+    html += '<div style="font-size:14px;font-weight:700;color:var(--text)">' + s.name;
+    if (s.inPortfolio) html += ' <span style="background:#8b5cf622;color:#c4b5fd;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600">IN PORTFOLIO</span>';
+    html += '</div>';
+    html += '<div style="font-size:11px;color:var(--muted)">' + s.ticker + ' &bull; ' + s.sector + '</div>';
+    html += '</div>';
+
+    // Price & Change
+    html += '<div style="text-align:right">';
+    html += '<div style="font-size:14px;font-weight:600">&#8377;' + s.cmp.toLocaleString('en-IN',{maximumFractionDigits:1}) + '</div>';
+    html += '<div style="font-size:13px;font-weight:700;color:' + changePctColor + '">' + (s.changePct>0?'+':'') + s.changePct.toFixed(2) + '%</div>';
+    html += '</div>';
+
+    // AI Mover Score
+    html += '<div style="text-align:center">';
+    html += '<div style="font-size:22px;font-weight:800;color:' + scoreColor + '">' + s.moverScore + '</div>';
+    html += '<div style="font-size:9px;color:var(--muted);text-transform:uppercase">MOVER SCORE</div>';
+    html += '</div>';
+
+    // Reasons
+    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6">';
+    s.reasons.slice(0, 3).forEach(r => {
+      const rColor = r.includes('EXPLOSION') || r.includes('COMBO') || r.includes('RUNNING') || r.includes('HIGH') ? '#f59e0b' : r.includes('Heavy') || r.includes('Strong') || r.includes('breakout') ? '#22c55e' : 'var(--muted)';
+      html += '<div style="color:' + rColor + '">&bull; ' + r + '</div>';
+    });
+    html += '</div>';
+
+    // Action
+    html += '<div style="text-align:center">';
+    html += '<div style="font-size:20px;font-weight:800;color:' + s.dirColor + ';margin-bottom:4px">' + (s.direction === 'UP' ? '&#9650; UP' : '&#9660; DOWN') + '</div>';
+    html += '<button onclick="document.getElementById(\'scorerInput\').value=\'' + s.ticker + '\';switchTab(\'scorer\',document.querySelector(\'.tab\'))" style="padding:3px 10px;background:var(--accent)22;color:var(--accent);border:1px solid var(--accent)44;border-radius:4px;cursor:pointer;font-size:10px;font-weight:600">Deep Scan</button>';
+    html += '</div>';
+
+    html += '</div>';
+  });
+
+  html += '</div>';
+
+  // Volume Anomaly Section (stocks with unusual volume but small price move — something brewing)
+  const brewing = scored.filter(s => s.volRatio >= 2.5 && Math.abs(s.changePct) < 2).slice(0, 5);
+  if (brewing.length > 0) {
+    html += '<div style="margin-top:16px;background:linear-gradient(135deg,var(--card2),#1a1a3e);border:1px solid #3b82f644;border-radius:10px;padding:16px">';
+    html += '<div style="font-size:13px;color:#3b82f6;font-weight:700;margin-bottom:10px">&#128064; Something Brewing — High Volume, Small Move (Watch These)</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">';
+    brewing.forEach(s => {
+      html += '<div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px">';
+      html += '<div style="font-weight:700;font-size:13px">' + s.ticker + '</div>';
+      html += '<div style="font-size:11px;color:var(--muted)">' + s.sector + '</div>';
+      html += '<div style="margin-top:4px;font-size:12px">Vol: <span style="color:#3b82f6;font-weight:700">' + s.volRatio.toFixed(1) + 'x</span> avg | Move: <span style="color:' + (s.changePct>=0?'#22c55e':'#ef4444') + '">' + (s.changePct>0?'+':'') + s.changePct.toFixed(1) + '%</span></div>';
+      html += '<div style="font-size:10px;color:#3b82f6;margin-top:4px">Heavy accumulation/distribution — big move likely coming</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // Summary stats
+  const upCount = scored.filter(s => s.changePct > 0).length;
+  const downCount = scored.filter(s => s.changePct < 0).length;
+  const avgChange = scored.reduce((sum, s) => sum + s.changePct, 0) / scored.length;
+  html += '<div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">';
+  html += '<div style="background:var(--card2);border-radius:8px;padding:10px 16px;font-size:12px"><span style="color:var(--muted)">Advancing:</span> <span style="color:#22c55e;font-weight:700">' + upCount + '</span></div>';
+  html += '<div style="background:var(--card2);border-radius:8px;padding:10px 16px;font-size:12px"><span style="color:var(--muted)">Declining:</span> <span style="color:#ef4444;font-weight:700">' + downCount + '</span></div>';
+  html += '<div style="background:var(--card2);border-radius:8px;padding:10px 16px;font-size:12px"><span style="color:var(--muted)">Avg Change:</span> <span style="color:' + (avgChange>=0?'#22c55e':'#ef4444') + ';font-weight:700">' + (avgChange>0?'+':'') + avgChange.toFixed(2) + '%</span></div>';
+  html += '<div style="background:var(--card2);border-radius:8px;padding:10px 16px;font-size:12px"><span style="color:var(--muted)">Breadth:</span> <span style="font-weight:700;color:' + (upCount>downCount?'#22c55e':'#ef4444') + '">' + (upCount > downCount ? 'BULLISH' : upCount < downCount ? 'BEARISH' : 'NEUTRAL') + '</span></div>';
+  html += '</div>';
+
+  moversDiv.innerHTML = html;
+  document.getElementById('aiScanTime').textContent = 'Mover scan: ' + now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + ' | ' + results.length + ' stocks scanned';
 }
 
 // ============================================================
