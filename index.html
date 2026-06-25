@@ -1971,7 +1971,7 @@ async function predictDailyMovers() {
 
   const PROXY = 'https://script.google.com/macros/s/AKfycby5PazxAw5pvDzI8om9qimkesKaasklCII19-5bUX5gAo0E92g4Zf67ynQscLkv1Q_OEw/exec';
   const results = [];
-  const batchSize = 5;
+  const batchSize = 10; // 10 stocks per API call for efficiency
   const totalBatches = Math.ceil(MOVER_UNIVERSE.length / batchSize);
 
   for (let i = 0; i < MOVER_UNIVERSE.length; i += batchSize) {
@@ -1980,32 +1980,33 @@ async function predictDailyMovers() {
     document.getElementById('moverStatus').textContent = 'Batch ' + batchNum + '/' + totalBatches + ': ' + batch.map(b=>b.t).join(', ');
     document.getElementById('moverProgress').style.width = ((i + batchSize) / MOVER_UNIVERSE.length * 100).toFixed(0) + '%';
 
-    const promises = batch.map(stock => {
-      const yfTicker = stock.t + '.NS';
-      return fetch(PROXY + '?symbol=' + yfTicker)
-        .then(r => r.json())
-        .then(d => {
-          if (d && d.price) {
-            return {
-              ticker: stock.t, name: stock.n, sector: stock.s,
-              cmp: d.price || 0, prevClose: d.prevClose || 0,
-              changePct: d.changePct || 0, change: d.change || 0,
+    // Build batch symbols string
+    const symbolsStr = batch.map(s => s.t + '.NS').join(',');
+    try {
+      const resp = await fetch(PROXY + '?symbols=' + encodeURIComponent(symbolsStr) + '&mode=all', {signal: AbortSignal.timeout(20000)});
+      const json = await resp.json();
+      if (json && json.success && json.data && json.data.stocks) {
+        batch.forEach(stock => {
+          const yfKey = stock.t + '.NS';
+          const d = json.data.stocks[yfKey];
+          if (d && d.price > 0) {
+            const pctChange = d.prevClose > 0 ? ((d.price - d.prevClose) / d.prevClose * 100) : 0;
+            results.push({
+              ticker: stock.t, name: d.name || stock.n, sector: stock.s,
+              cmp: d.price, prevClose: d.prevClose || 0,
+              changePct: pctChange, change: d.change || 0,
               vol: d.volume || 0, avgVol: d.avgVolume || 0,
               high52: d.high52 || 0, low52: d.low52 || 0,
               pe: d.pe || 0, mcap: d.mcap || 0
-            };
+            });
           }
-          return null;
-        })
-        .catch(() => null);
-    });
-
-    const batchResults = await Promise.all(promises);
-    batchResults.forEach(r => { if (r && r.cmp > 0) results.push(r); });
+        });
+      }
+    } catch(e) { /* skip failed batch */ }
 
     // Brief pause between batches
     if (i + batchSize < MOVER_UNIVERSE.length) {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 400));
     }
   }
 
