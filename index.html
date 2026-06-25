@@ -1876,85 +1876,137 @@ function renderBessChart() {
 //  DAILY MOVER PREDICTOR — AI Momentum Scanner
 // ============================================================
 
-// Universe of 100 high-beta Indian stocks to scan for big moves
+// Universe of 190 high-liquidity Indian stocks across 40+ sectors (NO DEFENCE • NO PHARMA • NO FMCG)
 const MOVER_UNIVERSE = [
-  // Auto & Auto Ancillary
+  // ---- AUTO & AUTO ANCILLARY (17) ----
+  {t:'MARUTI',n:'Maruti Suzuki',s:'Automobile'},{t:'TATAMOTORS',n:'Tata Motors',s:'Automobile'},
+  {t:'M%26M',n:'Mahindra & Mahindra',s:'Automobile'},{t:'BAJAJ-AUTO',n:'Bajaj Auto',s:'Automobile'},
+  {t:'EICHERMOT',n:'Eicher Motors',s:'Automobile'},{t:'HEROMOTOCO',n:'Hero MotoCorp',s:'Automobile'},
+  {t:'TVSMOTOR',n:'TVS Motor',s:'Automobile'},{t:'ASHOKLEY',n:'Ashok Leyland',s:'Auto CV'},
   {t:'MOTHERSON',n:'Motherson Sumi',s:'Auto Ancillary'},{t:'UNOMINDA',n:'UNO Minda',s:'Auto Ancillary'},
-  {t:'MARUTI',n:'Maruti Suzuki',s:'Automobile'},{t:'M%26M',n:'Mahindra & Mahindra',s:'Automobile'},
-  {t:'EICHERMOT',n:'Eicher Motors',s:'Automobile'},{t:'BAJAJ-AUTO',n:'Bajaj Auto',s:'Automobile'},
-  {t:'HEROMOTOCO',n:'Hero MotoCorp',s:'Automobile'},{t:'ASHOKLEY',n:'Ashok Leyland',s:'Auto CV'},
-  {t:'TVSMOTOR',n:'TVS Motor',s:'Automobile'},{t:'BHARATFORG',n:'Bharat Forge',s:'Auto Ancillary'},
-  // Aviation & Travel
+  {t:'BHARATFORG',n:'Bharat Forge',s:'Auto Ancillary'},{t:'TIINDIA',n:'Tube Investments',s:'Auto Ancillary'},
+  {t:'SONACOMS',n:'Sona BLW',s:'Auto Ancillary'},{t:'EXIDEIND',n:'Exide Industries',s:'Auto Battery'},
+  {t:'APOLLOTYRE',n:'Apollo Tyres',s:'Tyres'},{t:'MRF',n:'MRF',s:'Tyres'},
+  {t:'BALKRISIND',n:'Balkrishna Industries',s:'Tyres'},
+  // ---- AVIATION & TRAVEL (3) ----
   {t:'INDIGO',n:'IndiGo',s:'Aviation'},{t:'SPICEJET',n:'SpiceJet',s:'Aviation'},
   {t:'IRCTC',n:'IRCTC',s:'Travel/Railway'},
-  // Banking
+  // ---- PRIVATE BANKING (10) ----
+  {t:'HDFCBANK',n:'HDFC Bank',s:'Private Banking'},{t:'ICICIBANK',n:'ICICI Bank',s:'Private Banking'},
+  {t:'KOTAKBANK',n:'Kotak Mahindra Bank',s:'Private Banking'},{t:'AXISBANK',n:'Axis Bank',s:'Private Banking'},
+  {t:'INDUSINDBK',n:'IndusInd Bank',s:'Private Banking'},{t:'IDFCFIRSTB',n:'IDFC First Bank',s:'Banking'},
+  {t:'BANDHANBNK',n:'Bandhan Bank',s:'Banking'},{t:'FEDERALBNK',n:'Federal Bank',s:'Banking'},
+  {t:'AUBANK',n:'AU Small Finance Bank',s:'Banking'},{t:'RBLBANK',n:'RBL Bank',s:'Banking'},
+  // ---- PSU BANKING (8) ----
   {t:'SBIN',n:'SBI',s:'PSU Banking'},{t:'BANKBARODA',n:'Bank of Baroda',s:'PSU Banking'},
   {t:'PNB',n:'PNB',s:'PSU Banking'},{t:'CANBK',n:'Canara Bank',s:'PSU Banking'},
-  {t:'IDFCFIRSTB',n:'IDFC First Bank',s:'Banking'},{t:'BANDHANBNK',n:'Bandhan Bank',s:'Banking'},
-  {t:'FEDERALBNK',n:'Federal Bank',s:'Banking'},{t:'INDIANB',n:'Indian Bank',s:'PSU Banking'},
-  // NBFC
-  {t:'BAJFINANCE',n:'Bajaj Finance',s:'NBFC'},{t:'MANAPPURAM',n:'Manappuram Finance',s:'NBFC Gold'},
-  {t:'MUTHOOTFIN',n:'Muthoot Finance',s:'NBFC Gold'},{t:'POONAWALLA',n:'Poonawalla Fincorp',s:'NBFC'},
-  // IT
-  {t:'WIPRO',n:'Wipro',s:'IT'},{t:'TECHM',n:'Tech Mahindra',s:'IT'},
-  {t:'LTIM',n:'LTIMindtree',s:'IT'},{t:'MPHASIS',n:'Mphasis',s:'IT'},
-  {t:'PERSISTENT',n:'Persistent Systems',s:'IT'},{t:'COFORGE',n:'Coforge',s:'IT'},
-  // Metals & Mining
+  {t:'INDIANB',n:'Indian Bank',s:'PSU Banking'},{t:'UNIONBANK',n:'Union Bank',s:'PSU Banking'},
+  {t:'MAHABANK',n:'Bank of Maharashtra',s:'PSU Banking'},{t:'IOB',n:'Indian Overseas Bank',s:'PSU Banking'},
+  // ---- NBFC & FINANCIAL SERVICES (10) ----
+  {t:'BAJFINANCE',n:'Bajaj Finance',s:'NBFC'},{t:'BAJAJFINSV',n:'Bajaj Finserv',s:'Financial Services'},
+  {t:'MANAPPURAM',n:'Manappuram Finance',s:'NBFC Gold'},{t:'MUTHOOTFIN',n:'Muthoot Finance',s:'NBFC Gold'},
+  {t:'POONAWALLA',n:'Poonawalla Fincorp',s:'NBFC'},{t:'LICHSGFIN',n:'LIC Housing Finance',s:'Housing Finance'},
+  {t:'CHOLAFIN',n:'Cholamandalam Finance',s:'NBFC'},{t:'SHRIRAMFIN',n:'Shriram Finance',s:'NBFC'},
+  {t:'M%26MFIN',n:'M&M Financial',s:'NBFC'},{t:'SBICARD',n:'SBI Cards',s:'Credit Cards'},
+  // ---- IT & TECH (15) ----
+  {t:'TCS',n:'TCS',s:'IT'},{t:'INFY',n:'Infosys',s:'IT'},
+  {t:'HCLTECH',n:'HCL Tech',s:'IT'},{t:'WIPRO',n:'Wipro',s:'IT'},
+  {t:'TECHM',n:'Tech Mahindra',s:'IT'},{t:'LTIM',n:'LTIMindtree',s:'IT'},
+  {t:'MPHASIS',n:'Mphasis',s:'IT'},{t:'PERSISTENT',n:'Persistent Systems',s:'IT'},
+  {t:'COFORGE',n:'Coforge',s:'IT'},{t:'TATAELXSI',n:'Tata Elxsi',s:'IT/Design'},
+  {t:'KPITTECH',n:'KPIT Technologies',s:'IT/Auto'},{t:'BIRLASOFT',n:'Birlasoft',s:'IT'},
+  {t:'HAPPSTMNDS',n:'Happiest Minds',s:'IT'},{t:'ZENSAR',n:'Zensar Technologies',s:'IT'},
+  {t:'DIXON',n:'Dixon Technologies',s:'EMS/Technology'},
+  // ---- METALS & MINING (8) ----
   {t:'TATASTEEL',n:'Tata Steel',s:'Steel'},{t:'JSWSTEEL',n:'JSW Steel',s:'Steel'},
-  {t:'HINDALCO',n:'Hindalco',s:'Metals'},{t:'VEDL',n:'Vedanta',s:'Mining/Metals'},
-  {t:'NATIONALUM',n:'NALCO',s:'Metals'},{t:'NMDC',n:'NMDC',s:'Mining'},
-  {t:'COALINDIA',n:'Coal India',s:'Mining'},
-  // Oil & Gas
-  {t:'ONGC',n:'ONGC',s:'Oil & Gas'},{t:'BPCL',n:'BPCL',s:'Oil & Gas'},
-  {t:'IOC',n:'Indian Oil',s:'Oil & Gas'},{t:'GAIL',n:'GAIL',s:'Gas'},
-  // Telecom
+  {t:'SAIL',n:'SAIL',s:'Steel'},{t:'HINDALCO',n:'Hindalco',s:'Metals'},
+  {t:'VEDL',n:'Vedanta',s:'Mining/Metals'},{t:'NATIONALUM',n:'NALCO',s:'Metals'},
+  {t:'NMDC',n:'NMDC',s:'Mining'},{t:'COALINDIA',n:'Coal India',s:'Mining'},
+  // ---- OIL & GAS (6) ----
+  {t:'RELIANCE',n:'Reliance Industries',s:'Conglomerate'},{t:'ONGC',n:'ONGC',s:'Oil & Gas'},
+  {t:'BPCL',n:'BPCL',s:'Oil & Gas'},{t:'IOC',n:'Indian Oil',s:'Oil & Gas'},
+  {t:'GAIL',n:'GAIL',s:'Gas'},{t:'PETRONET',n:'Petronet LNG',s:'Gas'},
+  // ---- TELECOM & DATA (5) ----
   {t:'BHARTIARTL',n:'Bharti Airtel',s:'Telecom'},{t:'IDEA',n:'Vodafone Idea',s:'Telecom'},
-  // Real Estate
+  {t:'STLTECH',n:'Sterlite Technologies',s:'Telecom/Data'},{t:'HFCL',n:'HFCL',s:'Telecom Equipment'},
+  {t:'TTML',n:'Tata Teleservices',s:'Telecom'},
+  // ---- REAL ESTATE (9) ----
   {t:'DLF',n:'DLF',s:'Real Estate'},{t:'GODREJPROP',n:'Godrej Properties',s:'Real Estate'},
   {t:'OBEROIRLTY',n:'Oberoi Realty',s:'Real Estate'},{t:'PRESTIGE',n:'Prestige Estates',s:'Real Estate'},
-  // Infra & Railway
-  {t:'IRCON',n:'IRCON International',s:'Railway Infra'},{t:'RVNL',n:'RVNL',s:'Railway Infra'},
-  {t:'NBCC',n:'NBCC',s:'Construction'},{t:'IRB',n:'IRB Infra',s:'Road Infra'},
-  {t:'RAILTEL',n:'RailTel',s:'Railway IT'},
-  // Power & Energy
+  {t:'BRIGADE',n:'Brigade Enterprises',s:'Real Estate'},{t:'LODHA',n:'Macrotech Developers',s:'Real Estate'},
+  {t:'SOBHA',n:'Sobha',s:'Real Estate'},{t:'PHOENIXLTD',n:'Phoenix Mills',s:'Real Estate/Malls'},
+  {t:'SUNTECK',n:'Sunteck Realty',s:'Real Estate'},
+  // ---- INFRA & CONSTRUCTION (8) ----
+  {t:'LT',n:'Larsen & Toubro',s:'Engineering'},{t:'IRCON',n:'IRCON International',s:'Railway Infra'},
+  {t:'RVNL',n:'RVNL',s:'Railway Infra'},{t:'NBCC',n:'NBCC',s:'Construction'},
+  {t:'IRB',n:'IRB Infra',s:'Road Infra'},{t:'RAILTEL',n:'RailTel',s:'Railway IT'},
+  {t:'NCC',n:'NCC',s:'Construction'},{t:'GMRAIRPORT',n:'GMR Airports',s:'Airport Infra'},
+  // ---- POWER & ENERGY (13) ----
   {t:'NTPC',n:'NTPC',s:'Power'},{t:'NHPC',n:'NHPC',s:'Hydro Power'},
   {t:'SJVN',n:'SJVN',s:'Hydro Power'},{t:'ADANIGREEN',n:'Adani Green',s:'Renewable'},
   {t:'ADANIPOWER',n:'Adani Power',s:'Power'},{t:'IREDA',n:'IREDA',s:'Green Finance'},
   {t:'RECLTD',n:'REC',s:'Power Finance'},{t:'PFC',n:'PFC',s:'Power Finance'},
-  // Defence & Shipbuilding
-  {t:'HAL',n:'HAL',s:'Defence'},{t:'BEL',n:'BEL',s:'Defence'},
-  {t:'BHEL',n:'BHEL',s:'Capital Goods'},{t:'COCHINSHIP',n:'Cochin Shipyard',s:'Shipbuilding'},
-  {t:'MAZAGONDOCK',n:'Mazagon Dock',s:'Shipbuilding'},
-  // Pharma (tracking)
-  {t:'SUNPHARMA',n:'Sun Pharma',s:'Pharma'},{t:'DRREDDY',n:'Dr Reddys',s:'Pharma'},
-  {t:'CIPLA',n:'Cipla',s:'Pharma'},{t:'MANKIND',n:'Mankind Pharma',s:'Pharma'},
-  // Chemicals
+  {t:'TATAPOWER',n:'Tata Power',s:'Power'},{t:'JSWENERGY',n:'JSW Energy',s:'Power'},
+  {t:'POWERGRID',n:'Power Grid',s:'Power Transmission'},{t:'TORNTPOWER',n:'Torrent Power',s:'Power'},
+  {t:'CESC',n:'CESC',s:'Power'},
+  // ---- CAPITAL GOODS (6) ----
+  {t:'BHEL',n:'BHEL',s:'Capital Goods'},{t:'SIEMENS',n:'Siemens',s:'Capital Goods'},
+  {t:'ABB',n:'ABB India',s:'Capital Goods'},{t:'CUMMINSIND',n:'Cummins India',s:'Capital Goods'},
+  {t:'THERMAX',n:'Thermax',s:'Capital Goods'},{t:'GRINFRA',n:'G R Infraprojects',s:'Infra EPC'},
+  // ---- CHEMICALS & AGRI CHEM (8) ----
   {t:'DEEPAKNTR',n:'Deepak Nitrite',s:'Chemicals'},{t:'ATUL',n:'Atul',s:'Chemicals'},
-  // FMCG
-  {t:'ITC',n:'ITC',s:'FMCG'},{t:'TATACONSUM',n:'Tata Consumer',s:'FMCG'},
-  // Cement
+  {t:'SRF',n:'SRF',s:'Chemicals'},{t:'PIIND',n:'PI Industries',s:'Agri Chemicals'},
+  {t:'AARTIIND',n:'Aarti Industries',s:'Chemicals'},{t:'NAVINFLUOR',n:'Navin Fluorine',s:'Chemicals'},
+  {t:'CLEAN',n:'Clean Science',s:'Chemicals'},{t:'UPL',n:'UPL',s:'Agri Chemicals'},
+  // ---- CEMENT (6) ----
   {t:'ULTRACEMCO',n:'UltraTech Cement',s:'Cement'},{t:'AMBUJACEM',n:'Ambuja Cements',s:'Cement'},
-  // Insurance
+  {t:'SHREECEM',n:'Shree Cement',s:'Cement'},{t:'DALMIACEM',n:'Dalmia Bharat',s:'Cement'},
+  {t:'JKCEMENT',n:'JK Cement',s:'Cement'},{t:'RAMCOCEM',n:'Ramco Cements',s:'Cement'},
+  // ---- INSURANCE (4) ----
   {t:'SBILIFE',n:'SBI Life',s:'Insurance'},{t:'HDFCLIFE',n:'HDFC Life',s:'Insurance'},
-  // Logistics
+  {t:'ICICIGI',n:'ICICI Lombard',s:'Insurance'},{t:'STARHEALTH',n:'Star Health',s:'Insurance'},
+  // ---- LOGISTICS & PORTS (5) ----
   {t:'DELHIVERY',n:'Delhivery',s:'Logistics'},{t:'CONCOR',n:'Container Corp',s:'Logistics'},
-  {t:'ADANIPORTS',n:'Adani Ports',s:'Ports/Logistics'},
-  // Fintech / New Age
+  {t:'ADANIPORTS',n:'Adani Ports',s:'Ports/Logistics'},{t:'BLUEDART',n:'Blue Dart',s:'Logistics'},
+  {t:'JSWINFRA',n:'JSW Infrastructure',s:'Port Infra'},
+  // ---- FINTECH / NEW AGE / E-COMMERCE (8) ----
   {t:'ZOMATO',n:'Zomato',s:'Food Tech'},{t:'PAYTM',n:'One97/Paytm',s:'Fintech'},
   {t:'NYKAA',n:'FSN E-Commerce',s:'E-commerce'},{t:'POLICYBZR',n:'PB Fintech',s:'Insurtech'},
-  // Conglomerate / High Beta
+  {t:'DMART',n:'Avenue Supermarts',s:'Retail'},{t:'TRENT',n:'Trent',s:'Retail/Fashion'},
+  {t:'AFFLE',n:'Affle India',s:'Ad Tech'},{t:'JIOFIN',n:'Jio Financial',s:'Fintech'},
+  // ---- CONGLOMERATE / DIVERSIFIED (5) ----
   {t:'ADANIENT',n:'Adani Enterprises',s:'Conglomerate'},{t:'IRFC',n:'IRFC',s:'Railway Finance'},
-  {t:'HUDCO',n:'HUDCO',s:'Housing Finance'},
-  // Media
+  {t:'HUDCO',n:'HUDCO',s:'Housing Finance'},{t:'GRASIM',n:'Grasim Industries',s:'Diversified'},
+  {t:'LICI',n:'LIC',s:'Life Insurance'},
+  // ---- MEDIA & ENTERTAINMENT (5) ----
   {t:'ZEEL',n:'Zee Entertainment',s:'Media'},{t:'PVRINOX',n:'PVR INOX',s:'Entertainment'},
-  // Textiles
-  {t:'PAGEIND',n:'Page Industries',s:'Textiles'},
-  // Sugar
+  {t:'SUNTV',n:'Sun TV',s:'Media'},{t:'NAZARA',n:'Nazara Technologies',s:'Gaming'},
+  {t:'SAREGAMA',n:'Saregama',s:'Music/Media'},
+  // ---- CONSUMER DURABLES & ELECTRICALS (8) ----
+  {t:'TITAN',n:'Titan Company',s:'Consumer'},{t:'HAVELLS',n:'Havells India',s:'Electricals'},
+  {t:'CROMPTON',n:'Crompton Greaves',s:'Consumer Electricals'},{t:'BATAINDIA',n:'Bata India',s:'Footwear'},
+  {t:'RELAXO',n:'Relaxo Footwears',s:'Footwear'},{t:'WHIRLPOOL',n:'Whirlpool India',s:'Appliances'},
+  {t:'BLUESTARLT',n:'Blue Star',s:'AC/Cooling'},{t:'KALYANKJIL',n:'Kalyan Jewellers',s:'Jewellery'},
+  // ---- FINANCIAL PLATFORMS (6) ----
+  {t:'CAMS',n:'CAMS',s:'Financial Infra'},{t:'KFINTECH',n:'KFin Technologies',s:'Financial Infra'},
+  {t:'BSE',n:'BSE Limited',s:'Exchange'},{t:'MCX',n:'MCX',s:'Exchange'},
+  {t:'ANGELONE',n:'Angel One',s:'Broking'},{t:'CDSL',n:'CDSL',s:'Depository'},
+  // ---- TEXTILES (3) ----
+  {t:'PAGEIND',n:'Page Industries',s:'Textiles'},{t:'RAYMOND',n:'Raymond',s:'Textiles'},
+  {t:'ARVIND',n:'Arvind',s:'Textiles'},
+  // ---- SUGAR (2) ----
   {t:'BALRAMCHIN',n:'Balrampur Chini',s:'Sugar'},{t:'RENUKA',n:'Shree Renuka',s:'Sugar'},
-  // Misc high-beta
-  {t:'SUZLON',n:'Suzlon Energy',s:'Wind Energy'},{t:'YESBANK',n:'Yes Bank',s:'Banking'},
-  {t:'RPOWER',n:'Reliance Power',s:'Power'},{t:'ZYDUSLIFE',n:'Zydus Lifesciences',s:'Pharma'},
-  {t:'STLTECH',n:'Sterlite Technologies',s:'Telecom/Data'}
+  // ---- HOTELS & TOURISM (3) ----
+  {t:'INDHOTEL',n:'Indian Hotels',s:'Hotels'},{t:'CHALET',n:'Chalet Hotels',s:'Hotels'},
+  {t:'LEMONTREE',n:'Lemon Tree Hotels',s:'Hotels'},
+  // ---- RENEWABLE & EV (3) ----
+  {t:'SUZLON',n:'Suzlon Energy',s:'Wind Energy'},{t:'INOXWIND',n:'Inox Wind',s:'Wind Energy'},
+  {t:'OLECTRA',n:'Olectra Greentech',s:'EV/Green'},
+  // ---- PIPES & ELECTRICAL (2) ----
+  {t:'ASTRAL',n:'Astral',s:'Pipes/Building'},{t:'POLYCAB',n:'Polycab India',s:'Electrical/Cables'},
+  // ---- HIGH BETA / MISC (4) ----
+  {t:'YESBANK',n:'Yes Bank',s:'Banking'},{t:'RPOWER',n:'Reliance Power',s:'Power'},
+  {t:'JPPOWER',n:'Jaiprakash Power',s:'Power'},{t:'ABCAPITAL',n:'Aditya Birla Capital',s:'Financial Services'}
 ];
 
 async function predictDailyMovers() {
@@ -1964,14 +2016,14 @@ async function predictDailyMovers() {
   const moversDiv = document.getElementById('aiMovers');
   moversDiv.innerHTML = '<div style="text-align:center;padding:40px">' +
     '<div style="font-size:40px;margin-bottom:12px">&#128640;</div>' +
-    '<div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">Scanning ' + MOVER_UNIVERSE.length + ' stocks across 25+ sectors...</div>' +
+    '<div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">Scanning ' + MOVER_UNIVERSE.length + ' stocks across 40+ sectors...</div>' +
     '<div style="background:var(--border);height:6px;border-radius:3px;max-width:400px;margin:12px auto">' +
     '<div id="moverProgress" style="height:100%;background:linear-gradient(90deg,#f59e0b,#d97706);border-radius:3px;width:0%;transition:width 0.3s"></div></div>' +
     '<div id="moverStatus" style="font-size:12px;color:var(--muted);margin-top:8px">Initializing AI scanner...</div></div>';
 
   const PROXY = 'https://script.google.com/macros/s/AKfycby5PazxAw5pvDzI8om9qimkesKaasklCII19-5bUX5gAo0E92g4Zf67ynQscLkv1Q_OEw/exec';
   const results = [];
-  const batchSize = 10; // 10 stocks per API call for efficiency
+  const batchSize = 15; // 15 stocks per API call for efficiency
   const totalBatches = Math.ceil(MOVER_UNIVERSE.length / batchSize);
 
   for (let i = 0; i < MOVER_UNIVERSE.length; i += batchSize) {
