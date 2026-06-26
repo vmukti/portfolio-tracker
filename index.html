@@ -102,6 +102,23 @@ td{padding:10px 12px;white-space:nowrap}
 .scorer-history{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
 .scorer-chip{background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--muted);cursor:pointer;transition:.15s}
 .scorer-chip:hover{border-color:var(--accent);color:var(--text)}
+#scorerAutocomplete{position:absolute;top:100%;left:0;right:0;background:var(--card2);border:1px solid var(--border);border-radius:0 0 10px 10px;max-height:340px;overflow-y:auto;z-index:100;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#scorerAutocomplete .ac-item{padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);transition:.15s}
+#scorerAutocomplete .ac-item:hover,.ac-item.ac-active{background:rgba(79,140,255,.1)}
+#scorerAutocomplete .ac-item:last-child{border-bottom:none}
+.ac-ticker{font-weight:700;color:var(--accent);font-size:13px;min-width:80px}
+.ac-name{color:var(--text);font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ac-sector{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(79,140,255,.12);color:var(--accent);white-space:nowrap}
+.scorer-search{position:relative}
+#screenerProgress{height:6px;background:var(--border);border-radius:3px;margin-bottom:16px;overflow:hidden;display:none}
+#screenerProgress .bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;width:0%;transition:width .3s}
+.screener-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.screener-tbl th{background:var(--card2);padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:.3px;font-weight:600;position:sticky;top:0}
+.screener-tbl td{padding:8px 10px;border-bottom:1px solid var(--border)}
+.screener-tbl tr:hover{background:var(--card2)}
+.pos52-bar{width:80px;height:6px;background:var(--border);border-radius:3px;display:inline-block;position:relative;vertical-align:middle}
+.pos52-fill{height:100%;border-radius:3px;position:absolute;left:0;top:0}
+.signal-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;margin:1px 2px}
 
 /* Deep Analysis & Watchlist */
 .deep-section{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
@@ -912,7 +929,8 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     </div>
 
     <div class="scorer-search">
-      <input type="text" id="scorerInput" placeholder="Type company name (Tata Technologies, HDFC Bank) or ticker (TATATECH, HDFCBANK)..." onkeydown="if(event.key==='Enter')runScorer()">
+      <input type="text" id="scorerInput" placeholder="Type company name (Tata Technologies, HDFC Bank) or ticker (TATATECH, HDFCBANK)..." onkeydown="if(event.key==='Enter'){event.preventDefault();runScorer()}" autocomplete="off">
+      <div id="scorerAutocomplete"></div>
       <button class="scorer-btn" id="scorerBtn" onclick="runScorer()">&#9889; Quick Score</button>
       <button class="scorer-btn" id="deepBtn" onclick="runDeepAnalysis()" style="background:#22c55e">&#128270; Deep Analyze</button>
     </div>
@@ -941,6 +959,45 @@ tbody tr.flash-down{animation:flashRed .8s ease}
         <span class="scorer-chip" onclick="document.getElementById('scorerInput').value='ITC';runScorer()">ITC</span>
         <span class="scorer-chip" onclick="document.getElementById('scorerInput').value='SBIN';runScorer()">SBIN</span>
         <span class="scorer-chip" onclick="document.getElementById('scorerInput').value='WIPRO';runScorer()">WIPRO</span>
+      </div>
+    </div>
+
+    <!-- AI Screener Panel -->
+    <div id="screenerPanel">
+      <div style="margin-top:32px;border-top:1px solid var(--border);padding-top:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+          <div>
+            <h3 style="font-size:16px;font-weight:700;margin:0">&#129302; AI Stock Screener &mdash; Find Best Performers</h3>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">Scan 300+ stocks, score with 8-factor algorithm, surface top picks</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+          <select id="screenerSector" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px">
+            <option value="">All Sectors</option>
+            <option value="Automobile">Auto &amp; Ancillary</option>
+            <option value="Banking">Banking (All)</option>
+            <option value="Private Banking">Private Banking</option>
+            <option value="PSU Banking">PSU Banking</option>
+            <option value="NBFC">NBFC &amp; Finance</option>
+            <option value="IT">IT &amp; Tech</option>
+            <option value="Steel">Metals &amp; Mining</option>
+            <option value="Oil & Gas">Oil &amp; Gas</option>
+            <option value="Power">Power &amp; Energy</option>
+            <option value="Real Estate">Real Estate</option>
+            <option value="Infra">Infrastructure</option>
+            <option value="Chemicals">Chemicals</option>
+            <option value="Capital Goods">Capital Goods</option>
+            <option value="Cement">Cement</option>
+            <option value="Insurance">Insurance</option>
+            <option value="EMS">EMS/Electronics</option>
+          </select>
+          <button onclick="runScreener('top50')" style="padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card2);color:var(--accent)">&#9889; Scan Top 50</button>
+          <button onclick="runScreener('all')" style="padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#fff">&#128640; Scan All 300</button>
+          <button onclick="runScreener('sector')" style="padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card2);color:var(--green)">&#127919; Scan by Sector</button>
+          <span id="screenerStatus" style="font-size:11px;color:var(--muted)"></span>
+        </div>
+        <div id="screenerProgress"><div class="bar"></div></div>
+        <div id="screenerResults"></div>
       </div>
     </div>
   </div>
@@ -5879,6 +5936,8 @@ let scorerHistory = [];
 // --- Smart Name-to-Ticker Resolver ---
 const EXTRA_TICKER_MAP = {
   'TATA TECHNOLOGIES':'TATATECH','TATATECH':'TATATECH',
+  'KPI GREEN':'KPIGREEN','KPI GREEN ENERGY':'KPIGREEN','KPIGREEN':'KPIGREEN','KPI':'KPIGREEN',
+  'KPIT':'KPITTECH','KPIT TECHNOLOGIES':'KPITTECH','KPIT TECH':'KPITTECH',
   'ADANI WILMAR':'AWL','ADANI ENERGY':'ADANIENSOL','ADANI ENERGY SOLUTIONS':'ADANIENSOL',
   'ZOMATO':'ZOMATO','SWIGGY':'SWIGGY','OLA ELECTRIC':'OLAELEC','ATHER':'ATHERENERGY',
   'TATA STEEL':'TATASTEEL','TATA MOTORS':'TATAMOTORS','TATA POWER':'TATAPOWER',
@@ -6095,66 +6154,122 @@ function computeScore(data, yfTicker, portfolioStock) {
   const low52 = data.low52 || price;
   const volume = data.volume || 0;
   const changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
-
-  // Get portfolio data if available
   const pe = portfolioStock?.pe || data.pe || 0;
   const roce = portfolioStock?.roce || data.roce || 0;
   const mcap = portfolioStock?.mcap || data.mcap || 0;
-  const avgVol = portfolioStock?.avgVol || data.avgVol || 0;
+  const range52 = high52 - low52;
+  const posIn52W = (range52 > 0) ? ((price - low52) / range52 * 100) : 50;
+  const mid52 = (high52 + low52) / 2;
 
-  // === VALUATION SCORE (0-25) ===
-  let valScore = 12; // neutral
+  // === 1. TREND POSITION (0-15) ===
+  let trendScore = 8;
+  if (range52 > 0) {
+    if (posIn52W >= 50 && posIn52W <= 75) trendScore = 14;
+    else if (posIn52W >= 40 && posIn52W < 50) trendScore = 13;
+    else if (posIn52W >= 75 && posIn52W <= 85) trendScore = 11;
+    else if (posIn52W >= 30 && posIn52W < 40) trendScore = 10;
+    else if (posIn52W >= 85 && posIn52W <= 95) trendScore = 7;
+    else if (posIn52W >= 15 && posIn52W < 30) trendScore = 6;
+    else if (posIn52W > 95) trendScore = 4;
+    else trendScore = 3;
+  }
+
+  // === 2. MOMENTUM STRENGTH (0-15) ===
+  let momScore = 7;
+  const aboveMid = price > mid52;
+  if (changePct >= 5) momScore = 15;
+  else if (changePct >= 3) momScore = 14;
+  else if (changePct >= 1.5) momScore = aboveMid ? 13 : 11;
+  else if (changePct >= 0.5) momScore = aboveMid ? 11 : 9;
+  else if (changePct >= 0) momScore = aboveMid ? 9 : 7;
+  else if (changePct >= -1) momScore = aboveMid ? 7 : 5;
+  else if (changePct >= -3) momScore = 4;
+  else if (changePct >= -5) momScore = 2;
+  else momScore = 1;
+
+  // === 3. BREAKOUT PROXIMITY (0-10) ===
+  let breakoutScore = 5;
+  if (high52 > 0 && range52 > 0) {
+    const pctFromHigh = (high52 - price) / high52 * 100;
+    if (pctFromHigh <= 3) breakoutScore = 10;
+    else if (pctFromHigh <= 5) breakoutScore = 9;
+    else if (pctFromHigh <= 10) breakoutScore = 7;
+    else if (posIn52W <= 10) breakoutScore = 6;
+    else breakoutScore = 4;
+  }
+
+  // === 4. RANGE COMPRESSION (0-10) ===
+  let compressionScore = 5;
+  if (price > 0 && range52 > 0) {
+    const rangeRatio = range52 / price;
+    if (rangeRatio < 0.15) compressionScore = 10;
+    else if (rangeRatio < 0.25) compressionScore = 9;
+    else if (rangeRatio < 0.35) compressionScore = 7;
+    else if (rangeRatio < 0.50) compressionScore = 5;
+    else if (rangeRatio < 0.70) compressionScore = 3;
+    else compressionScore = 1;
+  }
+
+  // === 5. PRICE STRENGTH (0-10) ===
+  let strengthScore = 5;
+  if (mid52 > 0 && range52 > 0) {
+    const aboveMidPct = (price - mid52) / mid52 * 100;
+    if (aboveMidPct > 20) strengthScore = 10;
+    else if (aboveMidPct > 10) strengthScore = 9;
+    else if (aboveMidPct > 5) strengthScore = 8;
+    else if (aboveMidPct > 0) strengthScore = 7;
+    else if (aboveMidPct > -5) strengthScore = 5;
+    else if (aboveMidPct > -15) strengthScore = 3;
+    else strengthScore = 1;
+  }
+
+  // === 6. VALUATION (0-15) ===
+  let valScore = 8;
   if (pe > 0) {
-    if (pe < 10) valScore = 24;
-    else if (pe < 15) valScore = 22;
-    else if (pe < 20) valScore = 19;
-    else if (pe < 30) valScore = 15;
-    else if (pe < 50) valScore = 10;
-    else if (pe < 80) valScore = 6;
-    else valScore = 3;
+    if (pe < 10) valScore = 15;
+    else if (pe < 15) valScore = 14;
+    else if (pe < 20) valScore = 12;
+    else if (pe < 30) valScore = 9;
+    else if (pe < 50) valScore = 6;
+    else if (pe < 80) valScore = 4;
+    else valScore = 2;
   }
 
-  // === QUALITY SCORE (0-25) ===
-  let qualScore = 12;
+  // === 7. QUALITY (0-15) ===
+  let qualScore = 8;
   if (roce > 0) {
-    if (roce >= 30) qualScore = 24;
-    else if (roce >= 20) qualScore = 20;
-    else if (roce >= 15) qualScore = 16;
-    else if (roce >= 10) qualScore = 12;
-    else qualScore = 7;
+    if (roce >= 35) qualScore = 15;
+    else if (roce >= 25) qualScore = 13;
+    else if (roce >= 20) qualScore = 11;
+    else if (roce >= 15) qualScore = 9;
+    else if (roce >= 10) qualScore = 7;
+    else qualScore = 4;
   }
 
-  // === MOMENTUM SCORE (0-25) ===
-  let momScore = 12;
-  if (high52 > 0 && low52 > 0 && high52 !== low52) {
-    const range52 = high52 - low52;
-    const posIn52 = ((price - low52) / range52) * 100;
-
-    // Sweet spot: 40-70% of range (recovering, not overextended)
-    if (posIn52 >= 50 && posIn52 <= 75) momScore = 22;
-    else if (posIn52 >= 30 && posIn52 < 50) momScore = 20;
-    else if (posIn52 >= 75 && posIn52 <= 90) momScore = 16;
-    else if (posIn52 < 30 && posIn52 >= 15) momScore = 14;
-    else if (posIn52 > 90) momScore = 8; // near high — risky entry
-    else if (posIn52 < 15) momScore = 10; // deep fall — possible value trap
-  }
-  // Intraday momentum boost
-  if (changePct > 2) momScore = Math.min(25, momScore + 3);
-  else if (changePct < -3) momScore = Math.max(0, momScore - 3);
-
-  // === SIZE & LIQUIDITY SCORE (0-25) ===
-  let sizeScore = 12;
-  if (mcap > 0) {
-    if (mcap >= 100000) sizeScore = 22; // Large cap — safe
-    else if (mcap >= 20000) sizeScore = 20; // Mid cap — sweet spot
-    else if (mcap >= 5000) sizeScore = 16; // Small cap
-    else if (mcap >= 1000) sizeScore = 12; // Micro cap
-    else sizeScore = 8; // Nano cap — risky
+  // === 8. INTELLIGENCE BONUS (0-10) ===
+  let intelScore = 5;
+  const ticker = yfTicker.replace('.NS','').replace('.BO','');
+  const intel = window._dashboardIntel && window._dashboardIntel[ticker];
+  if (intel) {
+    let boost = 0;
+    if (intel.technical) {
+      if (intel.technical.action === 'BUY' || intel.technical.trend === 'BULLISH') boost += 2;
+      else if (intel.technical.action === 'SELL' || intel.technical.trend === 'BEARISH') boost -= 2;
+    }
+    if (intel.earnings) {
+      if (intel.earnings.epsGrowth > 20) boost += 2;
+      else if (intel.earnings.epsGrowth > 0) boost += 1;
+      else if (intel.earnings.epsGrowth < -10) boost -= 1;
+    }
+    if (intel.ranking) {
+      if (intel.ranking.grade === 'A' || intel.ranking.grade === 'A+') boost += 1;
+      else if (intel.ranking.grade === 'D') boost -= 1;
+    }
+    intelScore = Math.max(0, Math.min(10, 5 + boost));
   }
 
-  const totalScore = valScore + qualScore + momScore + sizeScore;
+  const totalScore = trendScore + momScore + breakoutScore + compressionScore + strengthScore + valScore + qualScore + intelScore;
 
-  // Grade assignment
   let grade, gradeClass, verdict, verdictClass;
   if (totalScore >= 80) { grade = 'A+'; gradeClass = 'grade-a'; verdict = 'STRONG BUY'; verdictClass = 'verdict-buy'; }
   else if (totalScore >= 70) { grade = 'A'; gradeClass = 'grade-a'; verdict = 'BUY'; verdictClass = 'verdict-buy'; }
@@ -6163,19 +6278,178 @@ function computeScore(data, yfTicker, portfolioStock) {
   else if (totalScore >= 40) { grade = 'C'; gradeClass = 'grade-c'; verdict = 'WAIT'; verdictClass = 'verdict-wait'; }
   else { grade = 'D'; gradeClass = 'grade-d'; verdict = 'AVOID'; verdictClass = 'verdict-avoid'; }
 
-  // Position in 52W range
-  const posIn52W = (high52 > low52) ? ((price - low52) / (high52 - low52) * 100) : 50;
-
   return {
     price, prevClose, changePct, high52, low52, volume, pe, roce, mcap,
-    valScore, qualScore, momScore, sizeScore, totalScore,
-    grade, gradeClass, verdict, verdictClass, posIn52W
+    trendScore, momScore, breakoutScore, compressionScore, strengthScore,
+    valScore, qualScore, intelScore, totalScore,
+    grade, gradeClass, verdict, verdictClass, posIn52W,
+    sizeScore: compressionScore + strengthScore
   };
+}
+
+function computeSignals(data, portfolioStock) {
+  const signals = [];
+  const price = data.price || 0;
+  const prevClose = data.prevClose || price;
+  const high52 = data.high52 || price;
+  const low52 = data.low52 || price;
+  const range52 = high52 - low52;
+  const changePct = prevClose > 0 ? ((price - prevClose) / prevClose * 100) : 0;
+  const posIn52W = range52 > 0 ? ((price - low52) / range52 * 100) : 50;
+  const pctFromHigh = high52 > 0 ? ((high52 - price) / high52 * 100) : 50;
+  const rangeRatio = price > 0 && range52 > 0 ? (range52 / price) : 0.5;
+
+  if (pctFromHigh <= 3) signals.push({type:'breakout',label:'Near 52W High — Breakout Zone',strength:'strong',icon:'🚀'});
+  else if (pctFromHigh <= 8) signals.push({type:'breakout',label:'Approaching 52W High ('+pctFromHigh.toFixed(1)+'% away)',strength:'moderate',icon:'📈'});
+  if (posIn52W <= 8) signals.push({type:'oversold',label:'Near 52W Low — Potential Bounce',strength:'moderate',icon:'🎯'});
+  else if (posIn52W <= 15) signals.push({type:'oversold',label:'Oversold Territory ('+posIn52W.toFixed(0)+'%)',strength:'weak',icon:'⚠️'});
+  if (changePct >= 4) signals.push({type:'momentum',label:'Strong Upward Momentum (+'+changePct.toFixed(1)+'%)',strength:'strong',icon:'📈'});
+  else if (changePct >= 2) signals.push({type:'momentum',label:'Positive Momentum (+'+changePct.toFixed(1)+'%)',strength:'moderate',icon:'📈'});
+  else if (changePct <= -4) signals.push({type:'momentum',label:'Sharp Decline ('+changePct.toFixed(1)+'%)',strength:'strong',icon:'📉'});
+  else if (changePct <= -2) signals.push({type:'momentum',label:'Selling Pressure ('+changePct.toFixed(1)+'%)',strength:'moderate',icon:'📉'});
+  if (rangeRatio < 0.20) signals.push({type:'compression',label:'Tight Range — Breakout Imminent',strength:'strong',icon:'🔄'});
+  else if (rangeRatio < 0.30) signals.push({type:'compression',label:'Narrowing Range — Accumulation',strength:'moderate',icon:'🔄'});
+  else if (rangeRatio > 0.80) signals.push({type:'volatility',label:'High Volatility — Wide Range',strength:'weak',icon:'⚡'});
+  if (posIn52W >= 45 && posIn52W <= 70 && changePct >= 0) signals.push({type:'sweetspot',label:'Sweet Spot — Uptrend Mid-Range',strength:'moderate',icon:'✅'});
+  if (portfolioStock && portfolioStock.catalyst) signals.push({type:'catalyst',label:'Catalyst: '+portfolioStock.catalyst.substring(0,40),strength:'strong',icon:'🎯'});
+  return signals;
+}
+
+// ── Autocomplete for Scorer Input ──
+function setupScorerAutocomplete() {
+  const input = document.getElementById('scorerInput');
+  const dropdown = document.getElementById('scorerAutocomplete');
+  if (!input || !dropdown) return;
+  let activeIdx = -1;
+  input.addEventListener('input', function() {
+    const q = this.value.trim().toUpperCase();
+    if (q.length < 2) { dropdown.style.display = 'none'; return; }
+    const matches = [];
+    const seen = new Set();
+    function addMatch(ticker, name, sector) {
+      const key = ticker.toUpperCase();
+      if (seen.has(key) || matches.length >= 8) return;
+      if (key.includes(q) || name.toUpperCase().includes(q)) { seen.add(key); matches.push({ticker, name, sector}); }
+    }
+    stocks.forEach(s => addMatch(s.ticker, s.name, s.sector || ''));
+    if (typeof MOVER_UNIVERSE !== 'undefined') MOVER_UNIVERSE.forEach(m => addMatch(m.t.replace('%26','&'), m.n, m.s || ''));
+    if (typeof EXTRA_TICKER_MAP !== 'undefined') Object.entries(EXTRA_TICKER_MAP).forEach(([name, ticker]) => { if (name.includes(q) || ticker.includes(q)) addMatch(ticker, name, ''); });
+    if (matches.length === 0) { dropdown.style.display = 'none'; return; }
+    activeIdx = -1;
+    dropdown.innerHTML = matches.map((m, i) =>
+      '<div class="ac-item" data-idx="'+i+'" data-ticker="'+m.ticker+'">' +
+        '<span class="ac-ticker">'+m.ticker+'</span>' +
+        '<span class="ac-name">'+m.name+'</span>' +
+        (m.sector ? '<span class="ac-sector">'+m.sector+'</span>' : '') +
+      '</div>'
+    ).join('');
+    dropdown.style.display = 'block';
+    dropdown.querySelectorAll('.ac-item').forEach(el => {
+      el.addEventListener('mousedown', function(e) { e.preventDefault(); input.value = this.dataset.ticker; dropdown.style.display = 'none'; runScorer(); });
+    });
+  });
+  input.addEventListener('keydown', function(e) {
+    const items = dropdown.querySelectorAll('.ac-item');
+    if (!items.length || dropdown.style.display === 'none') return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, items.length - 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); }
+    else if (e.key === 'Escape') { dropdown.style.display = 'none'; return; }
+    else if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); input.value = items[activeIdx].dataset.ticker; dropdown.style.display = 'none'; runScorer(); return; }
+    else return;
+    items.forEach(el => el.classList.remove('ac-active'));
+    if (activeIdx >= 0) items[activeIdx].classList.add('ac-active');
+  });
+  input.addEventListener('blur', function() { setTimeout(() => { dropdown.style.display = 'none'; }, 200); });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupScorerAutocomplete);
+else setupScorerAutocomplete();
+
+// ── AI Screener Engine ──
+window._screenerResults = [];
+async function runScreener(mode) {
+  const statusEl = document.getElementById('screenerStatus');
+  const progressEl = document.getElementById('screenerProgress');
+  const progressBar = progressEl.querySelector('.bar');
+  const resultsEl = document.getElementById('screenerResults');
+  const sectorVal = document.getElementById('screenerSector').value;
+
+  let universe = [];
+  if (mode === 'top50') universe = MOVER_UNIVERSE.slice(0, 50);
+  else if (mode === 'sector') {
+    if (!sectorVal) { statusEl.textContent = 'Select a sector first'; return; }
+    universe = MOVER_UNIVERSE.filter(m => m.s.toLowerCase().includes(sectorVal.toLowerCase()));
+    if (universe.length === 0) { statusEl.textContent = 'No stocks for: ' + sectorVal; return; }
+  } else universe = MOVER_UNIVERSE.slice();
+
+  statusEl.textContent = 'Scanning ' + universe.length + ' stocks...';
+  progressEl.style.display = 'block'; progressBar.style.width = '0%';
+  resultsEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)"><span class="spinner"></span> Scanning ' + universe.length + ' stocks across ' + new Set(universe.map(m=>m.s)).size + ' sectors...</div>';
+
+  const scored = [];
+  const batchSize = 10;
+  for (let i = 0; i < universe.length; i += batchSize) {
+    const batch = universe.slice(i, i + batchSize);
+    progressBar.style.width = Math.min(100, ((i + batchSize) / universe.length * 100)).toFixed(0) + '%';
+    statusEl.textContent = 'Batch ' + Math.floor(i/batchSize + 1) + '/' + Math.ceil(universe.length/batchSize) + ' (' + scored.length + ' scored)';
+    const symbolsStr = batch.map(s => s.t + '.NS').join(',');
+    try {
+      const resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbolsStr) + '&mode=all', {signal: AbortSignal.timeout(20000)});
+      const json = await resp.json();
+      if (json && json.success && json.data && json.data.stocks) {
+        batch.forEach(stock => {
+          const yfKey = stock.t + '.NS';
+          const d = json.data.stocks[yfKey];
+          if (d && d.price > 0) {
+            const ps = stocks.find(s => s.ticker === stock.t.replace('%26','&'));
+            const sc = computeScore(d, yfKey, ps);
+            const sig = computeSignals(Object.assign({}, d, {ticker: stock.t}), ps);
+            scored.push({ticker:stock.t.replace('%26','&'),name:d.name||stock.n,sector:stock.s,price:d.price,changePct:sc.changePct,score:sc.totalScore,verdict:sc.verdict,verdictClass:sc.verdictClass,grade:sc.grade,posIn52W:sc.posIn52W,signals:sig,high52:d.high52||0,low52:d.low52||0});
+          }
+        });
+      }
+    } catch(e) {}
+    if (i + batchSize < universe.length) await new Promise(r => setTimeout(r, 400));
+  }
+
+  progressBar.style.width = '100%';
+  scored.sort((a, b) => b.score - a.score);
+  window._screenerResults = scored;
+  const top = scored.slice(0, 20);
+  statusEl.textContent = 'Done! Scored ' + scored.length + ' stocks. Showing top ' + top.length + '.';
+  setTimeout(() => { progressEl.style.display = 'none'; }, 1000);
+
+  if (top.length === 0) { resultsEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">No data received.</div>'; return; }
+
+  let tbl = '<div style="overflow-x:auto"><table class="screener-tbl"><thead><tr>' +
+    '<th>#</th><th>Ticker</th><th>Name</th><th>Score</th><th>Verdict</th><th>Signals</th><th>52W Pos</th><th>Price</th><th>Chg</th></tr></thead><tbody>';
+  top.forEach((s, i) => {
+    const cc = s.changePct >= 0 ? 'var(--green)' : 'var(--red)';
+    const cs = s.changePct >= 0 ? '+' : '';
+    const sc = s.score >= 70 ? 'var(--green)' : s.score >= 50 ? 'var(--accent)' : s.score >= 40 ? 'var(--amber)' : 'var(--red)';
+    const p = Math.min(100, Math.max(0, s.posIn52W));
+    const pc = p >= 60 ? 'var(--green)' : p >= 30 ? 'var(--amber)' : 'var(--red)';
+    const sh = s.signals.slice(0, 2).map(sig => {
+      const tc = sig.strength==='strong'?'#4ade80':sig.strength==='moderate'?'#60a5fa':'#fbbf24';
+      return '<span class="signal-tag" style="background:'+tc+'15;color:'+tc+';border:1px solid '+tc+'33">'+sig.icon+' '+sig.label.substring(0,22)+'</span>';
+    }).join('');
+    tbl += '<tr><td style="color:var(--muted);font-weight:700">'+(i+1)+'</td>' +
+      '<td><span style="color:var(--accent);font-weight:600;cursor:pointer" onclick="document.getElementById(\'scorerInput\').value=\''+s.ticker+'\';runScorer()">'+s.ticker+'</span></td>' +
+      '<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis">'+s.name+' <span style="font-size:10px;color:var(--muted)">'+s.sector+'</span></td>' +
+      '<td style="font-weight:700;color:'+sc+'">'+s.score+'</td>' +
+      '<td><span class="score-verdict '+s.verdictClass+'" style="font-size:10px;padding:2px 8px">'+s.verdict+'</span></td>' +
+      '<td style="max-width:220px">'+(sh||'-')+'</td>' +
+      '<td><div class="pos52-bar"><div class="pos52-fill" style="width:'+p+'%;background:'+pc+'"></div></div> <span style="font-size:10px;color:var(--muted)">'+p.toFixed(0)+'%</span></td>' +
+      '<td style="font-weight:600">₹'+s.price.toLocaleString('en-IN',{maximumFractionDigits:1})+'</td>' +
+      '<td style="color:'+cc+'">'+cs+s.changePct.toFixed(1)+'%</td></tr>';
+  });
+  tbl += '</tbody></table></div>';
+  resultsEl.innerHTML = tbl;
 }
 
 function renderScorerCard(data, yfTicker, portfolioStock) {
   const resultDiv = document.getElementById('scorerResult');
   const s = computeScore(data, yfTicker, portfolioStock);
+  const signals = computeSignals(Object.assign({}, data, {ticker: yfTicker}), portfolioStock);
 
   const companyName = data.name || portfolioStock?.name || yfTicker.replace('.NS','').replace('.BO','');
   const ticker = yfTicker.replace('.NS','').replace('.BO','');
@@ -6205,6 +6479,23 @@ function renderScorerCard(data, yfTicker, portfolioStock) {
       '</div>';
   }
 
+  // Signals section
+  let signalsHtml = '';
+  if (signals.length > 0) {
+    signalsHtml = '<div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Detected Signals</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">';
+    signals.forEach(sig => {
+      const bgc = sig.strength === 'strong' ? '#22c55e18' : sig.strength === 'moderate' ? '#4f8cff18' : '#f59e0b18';
+      const bdr = sig.strength === 'strong' ? '#22c55e55' : sig.strength === 'moderate' ? '#4f8cff55' : '#f59e0b55';
+      const txc = sig.strength === 'strong' ? '#4ade80' : sig.strength === 'moderate' ? '#60a5fa' : '#fbbf24';
+      signalsHtml += '<div style="background:'+bgc+';border:1px solid '+bdr+';border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px">' +
+        '<span style="font-size:16px">'+sig.icon+'</span>' +
+        '<div><div style="font-size:12px;font-weight:600;color:'+txc+'">'+sig.label+'</div>' +
+        '<div style="font-size:10px;color:var(--muted);text-transform:uppercase">'+sig.strength+'</div></div></div>';
+    });
+    signalsHtml += '</div>';
+  }
+
   resultDiv.innerHTML =
     '<div class="score-card ' + s.gradeClass + '">' +
 
@@ -6225,13 +6516,20 @@ function renderScorerCard(data, yfTicker, portfolioStock) {
     // Catalyst (if in portfolio)
     catalystSection +
 
-    // Score Breakdown
-    '<div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Score Breakdown</div>' +
-    '<div class="score-breakdown">' +
-      scoreDimHtml('Valuation', s.valScore, 25, s.pe > 0 ? 'P/E: ' + s.pe.toFixed(1) : 'P/E: N/A', barColor(s.valScore, 25)) +
-      scoreDimHtml('Quality', s.qualScore, 25, s.roce > 0 ? 'ROCE: ' + s.roce + '%' : 'ROCE: N/A', barColor(s.qualScore, 25)) +
-      scoreDimHtml('Momentum', s.momScore, 25, '52W pos: ' + s.posIn52W.toFixed(0) + '%', barColor(s.momScore, 25)) +
-      scoreDimHtml('Size & Liquidity', s.sizeScore, 25, s.mcap > 0 ? 'MCap: &#8377;' + (s.mcap >= 1000 ? (s.mcap/1000).toFixed(1) + 'L Cr' : s.mcap + ' Cr') : 'MCap: N/A', barColor(s.sizeScore, 25)) +
+    // Signals
+    signalsHtml +
+
+    // Score Breakdown — 8 Factors
+    '<div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Score Breakdown &mdash; 8 Factors</div>' +
+    '<div class="score-breakdown" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">' +
+      scoreDimHtml('Trend Position', s.trendScore, 15, '52W pos: ' + s.posIn52W.toFixed(0) + '%', barColor(s.trendScore, 15)) +
+      scoreDimHtml('Momentum', s.momScore, 15, chgSign + s.changePct.toFixed(1) + '% today', barColor(s.momScore, 15)) +
+      scoreDimHtml('Breakout', s.breakoutScore, 10, s.posIn52W > 90 ? 'Near 52W High' : s.posIn52W < 10 ? 'Near 52W Low' : 'Mid-range', barColor(s.breakoutScore, 10)) +
+      scoreDimHtml('Compression', s.compressionScore, 10, (s.high52 > 0 && s.price > 0 ? ((s.high52-s.low52)/s.price*100).toFixed(0) : '?') + '% range', barColor(s.compressionScore, 10)) +
+      scoreDimHtml('Price Strength', s.strengthScore, 10, (s.price > (s.high52+s.low52)/2 ? 'Above' : 'Below') + ' midpoint', barColor(s.strengthScore, 10)) +
+      scoreDimHtml('Valuation', s.valScore, 15, s.pe > 0 ? 'P/E: ' + s.pe.toFixed(1) : 'P/E: N/A', barColor(s.valScore, 15)) +
+      scoreDimHtml('Quality', s.qualScore, 15, s.roce > 0 ? 'ROCE: ' + s.roce + '%' : 'ROCE: N/A', barColor(s.qualScore, 15)) +
+      scoreDimHtml('Intel Bonus', s.intelScore, 10, (window._dashboardIntel && window._dashboardIntel[ticker]) ? 'Intel active' : 'No intel', barColor(s.intelScore, 10)) +
     '</div>' +
 
     // Key Metrics Grid
@@ -6778,13 +7076,17 @@ function renderDeepCard(data, yfTicker, portfolioStock, intelItems, rawTicker) {
     catalystSection +
     // Intelligence summary bar
     intelSummary +
-    // Score breakdown
-    '<div class="deep-section"><div class="deep-section-title">&#128200; Score Breakdown</div>' +
-    '<div class="score-breakdown">' +
-      scoreDimHtml('Valuation', s.valScore, 25, s.pe > 0 ? 'P/E: ' + s.pe.toFixed(1) : 'P/E: N/A', barColor(s.valScore, 25)) +
-      scoreDimHtml('Quality', s.qualScore, 25, s.roce > 0 ? 'ROCE: ' + s.roce + '%' : 'ROCE: N/A', barColor(s.qualScore, 25)) +
-      scoreDimHtml('Momentum', s.momScore, 25, '52W pos: ' + s.posIn52W.toFixed(0) + '%', barColor(s.momScore, 25)) +
-      scoreDimHtml('Size & Liquidity', s.sizeScore, 25, s.mcap > 0 ? 'MCap: &#8377;' + (s.mcap >= 1000 ? (s.mcap/1000).toFixed(1) + 'L Cr' : s.mcap + ' Cr') : 'MCap: N/A', barColor(s.sizeScore, 25)) +
+    // Score breakdown — 8 Factors
+    '<div class="deep-section"><div class="deep-section-title">&#128200; Score Breakdown &mdash; 8 Factors</div>' +
+    '<div class="score-breakdown" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">' +
+      scoreDimHtml('Trend Position', s.trendScore, 15, '52W pos: ' + s.posIn52W.toFixed(0) + '%', barColor(s.trendScore, 15)) +
+      scoreDimHtml('Momentum', s.momScore, 15, (s.changePct >= 0 ? '+' : '') + s.changePct.toFixed(1) + '% today', barColor(s.momScore, 15)) +
+      scoreDimHtml('Breakout', s.breakoutScore, 10, s.posIn52W > 90 ? 'Near 52W High' : s.posIn52W < 10 ? 'Near 52W Low' : 'Mid-range', barColor(s.breakoutScore, 10)) +
+      scoreDimHtml('Compression', s.compressionScore, 10, (s.high52 > 0 && s.price > 0 ? ((s.high52-s.low52)/s.price*100).toFixed(0) : '?') + '% range', barColor(s.compressionScore, 10)) +
+      scoreDimHtml('Price Strength', s.strengthScore, 10, (s.price > (s.high52+s.low52)/2 ? 'Above' : 'Below') + ' midpoint', barColor(s.strengthScore, 10)) +
+      scoreDimHtml('Valuation', s.valScore, 15, s.pe > 0 ? 'P/E: ' + s.pe.toFixed(1) : 'P/E: N/A', barColor(s.valScore, 15)) +
+      scoreDimHtml('Quality', s.qualScore, 15, s.roce > 0 ? 'ROCE: ' + s.roce + '%' : 'ROCE: N/A', barColor(s.qualScore, 15)) +
+      scoreDimHtml('Intel Bonus', s.intelScore, 10, (window._dashboardIntel && window._dashboardIntel[ticker]) ? 'Intel active' : 'No intel', barColor(s.intelScore, 10)) +
     '</div></div>' +
     // Key Metrics
     '<div class="deep-section"><div class="deep-section-title">&#128176; Key Metrics</div>' +
