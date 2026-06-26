@@ -912,7 +912,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     </div>
 
     <div class="scorer-search">
-      <input type="text" id="scorerInput" placeholder="Enter ticker (e.g. RELIANCE, HDFCBANK, TCS) or company name..." onkeydown="if(event.key==='Enter')runScorer()">
+      <input type="text" id="scorerInput" placeholder="Type company name (Tata Technologies, HDFC Bank) or ticker (TATATECH, HDFCBANK)..." onkeydown="if(event.key==='Enter')runScorer()">
       <button class="scorer-btn" id="scorerBtn" onclick="runScorer()">&#9889; Quick Score</button>
       <button class="scorer-btn" id="deepBtn" onclick="runDeepAnalysis()" style="background:#22c55e">&#128270; Deep Analyze</button>
     </div>
@@ -5876,9 +5876,126 @@ function renderRankTable() {
 // ============================================================
 let scorerHistory = [];
 
+// --- Smart Name-to-Ticker Resolver ---
+const EXTRA_TICKER_MAP = {
+  'TATA TECHNOLOGIES':'TATATECH','TATATECH':'TATATECH',
+  'ADANI WILMAR':'AWL','ADANI ENERGY':'ADANIENSOL','ADANI ENERGY SOLUTIONS':'ADANIENSOL',
+  'ZOMATO':'ZOMATO','SWIGGY':'SWIGGY','OLA ELECTRIC':'OLAELEC','ATHER':'ATHERENERGY',
+  'TATA STEEL':'TATASTEEL','TATA MOTORS':'TATAMOTORS','TATA POWER':'TATAPOWER',
+  'TATA COMMUNICATIONS':'TATACOMM','TATA CHEMICALS':'TATACHEM','TATA ELXSI':'TATAELXSI',
+  'TATA CONSUMER':'TATACONSUM','TATA CONSUMER PRODUCTS':'TATACONSUM',
+  'HDFC BANK':'HDFCBANK','ICICI BANK':'ICICIBANK','AXIS BANK':'AXISBANK',
+  'KOTAK BANK':'KOTAKBANK','KOTAK MAHINDRA':'KOTAKBANK','KOTAK MAHINDRA BANK':'KOTAKBANK',
+  'INDUSIND BANK':'INDUSINDBK','YES BANK':'YESBANK','FEDERAL BANK':'FEDERALBNK',
+  'BANDHAN BANK':'BANDHANBNK','IDFC FIRST':'IDFCFIRSTB','IDFC FIRST BANK':'IDFCFIRSTB',
+  'STATE BANK':'SBIN','SBI':'SBIN','STATE BANK OF INDIA':'SBIN',
+  'BANK OF BARODA':'BANKBARODA','CANARA BANK':'CANBK','PNB':'PNB',
+  'PUNJAB NATIONAL BANK':'PNB','INDIAN BANK':'INDIANB','UNION BANK':'UNIONBANK',
+  'RELIANCE':'RELIANCE','RELIANCE INDUSTRIES':'RELIANCE','RIL':'RELIANCE',
+  'INFOSYS':'INFY','TCS':'TCS','WIPRO':'WIPRO','HCL TECH':'HCLTECH','HCL TECHNOLOGIES':'HCLTECH',
+  'TECH MAHINDRA':'TECHM','LTIMINDTREE':'LTIM','LTI MINDTREE':'LTIM',
+  'BAJAJ FINANCE':'BAJFINANCE','BAJAJ FINSERV':'BAJAJFINSV','BAJAJ AUTO':'BAJAJ-AUTO',
+  'MAHINDRA':'M&M','MAHINDRA AND MAHINDRA':'M&M','M AND M':'M&M',
+  'LARSEN AND TOUBRO':'LT','LARSEN & TOUBRO':'LT','L AND T':'LT','L&T':'LT',
+  'ASIAN PAINTS':'ASIANPAINT','BERGER PAINTS':'BERGEPAINT',
+  'BHARTI AIRTEL':'BHARTIARTL','AIRTEL':'BHARTIARTL','VODAFONE IDEA':'IDEA','VI':'IDEA',
+  'MARUTI':'MARUTI','MARUTI SUZUKI':'MARUTI','HERO MOTOCORP':'HEROMOTOCO','HERO MOTO':'HEROMOTOCO',
+  'TVS MOTOR':'TVSMOTOR','EICHER MOTORS':'EICHERMOT','EICHER':'EICHERMOT',
+  'ASHOK LEYLAND':'ASHOKLEY','BHARAT FORGE':'BHARATFORG',
+  'ULTRATECH':'ULTRACEMCO','ULTRATECH CEMENT':'ULTRACEMCO','AMBUJA CEMENT':'AMBUJACEM','AMBUJA CEMENTS':'AMBUJACEM',
+  'SHREE CEMENT':'SHREECEM','DALMIA BHARAT':'DALMIACEM','ACC':'ACC',
+  'ADANI PORTS':'ADANIPORTS','ADANI GREEN':'ADANIGREEN','ADANI POWER':'ADANIPOWER',
+  'ADANI ENTERPRISES':'ADANIENT','ADANI':'ADANIENT',
+  'POWER GRID':'POWERGRID','POWER GRID CORPORATION':'POWERGRID',
+  'NTPC':'NTPC','NHPC':'NHPC','COAL INDIA':'COALINDIA',
+  'DLF':'DLF','GODREJ PROPERTIES':'GODREJPROP','OBEROI REALTY':'OBEROIRLTY',
+  'PIDILITE':'PIDILITIND','PIDILITE INDUSTRIES':'PIDILITIND',
+  'TITAN':'TITAN','TITAN COMPANY':'TITAN',
+  'DIXON':'DIXON','DIXON TECHNOLOGIES':'DIXON','DIXON TECH':'DIXON',
+  'KAYNES':'KAYNES','KAYNES TECHNOLOGY':'KAYNES','KAYNES TECH':'KAYNES',
+  'CG POWER':'CGPOWER','SUZLON':'SUZLON','SUZLON ENERGY':'SUZLON',
+  'WAAREE':'WAAREE','WAAREE ENERGIES':'WAAREE',
+  'POLYCAB':'POLYCAB','POLYCAB INDIA':'POLYCAB',
+  'CDSL':'CDSL','BSE':'BSE','MCX':'MCX',
+  'ZOMATO':'ZOMATO','PAYTM':'PAYTM','NYKAA':'NYKAA',
+  'DMART':'DMART','AVENUE SUPERMARTS':'DMART',
+  'LIC':'LICI','JIO FINANCIAL':'JIOFIN','JIO':'JIOFIN',
+  'IRCTC':'IRCTC','INDIGO':'INDIGO',
+  'PREMIER ENERGIES':'PREMIERENE','SHRIRAM FINANCE':'SHRIRAMFIN',
+  'HOME FIRST':'HOMEFIRST','HOME FIRST FINANCE':'HOMEFIRST',
+  'MUTHOOT FINANCE':'MUTHOOTFIN','MUTHOOT':'MUTHOOTFIN',
+  'MANAPPURAM':'MANAPPURAM','MANAPPURAM FINANCE':'MANAPPURAM',
+  'CHOLAMANDALAM':'CHOLAFIN','CHOLA FINANCE':'CHOLAFIN',
+  'SBI LIFE':'SBILIFE','HDFC LIFE':'HDFCLIFE','ICICI LOMBARD':'ICICIGI',
+  'STAR HEALTH':'STARHEALTH',
+  'HAVELLS':'HAVELLS','HAVELLS INDIA':'HAVELLS',
+  'CROMPTON':'CROMPTON','CROMPTON GREAVES':'CROMPTON',
+  'VOLTAS':'VOLTAS','TRENT':'TRENT',
+  'INDIAN HOTELS':'INDHOTEL','TAJ HOTELS':'INDHOTEL',
+  'LEMON TREE':'LEMONTREE','LEMON TREE HOTELS':'LEMONTREE',
+  'DEEPAK NITRITE':'DEEPAKNTR','PI INDUSTRIES':'PIIND',
+  'VINATI ORGANICS':'VINATIORGA','SRF':'SRF','ATUL':'ATUL',
+  'PAGE INDUSTRIES':'PAGEIND','ASTRAL':'ASTRAL',
+  'IREDA':'IREDA','IRFC':'IRFC','RVNL':'RVNL',
+  'HUDCO':'HUDCO','NBCC':'NBCC',
+  'GRM OVERSEAS':'GRMOVER','KNOWLEDGE MARINE':'KMEW',
+  'NCC':'NCC','WELSPUN LIVING':'WELSPUNLIV',
+  'HG INFRA':'HGINFRA','HIMADRI':'HSCL','HIMADRI SPECIALITY':'HSCL',
+  'VA TECH WABAG':'WABAG','WABAG':'WABAG',
+  'KALPATARU':'KPIL','KALPATARU PROJECTS':'KPIL',
+  'EVEREADY':'EVEREADY','JAYANT AGRO':'JAYAGROGN',
+  'GRINDWELL NORTON':'GRINDWELL','INOX INDIA':'INOXINDIA',
+  'HYUNDAI':'HYUNDAI','HYUNDAI MOTOR':'HYUNDAI','HYUNDAI INDIA':'HYUNDAI',
+  'JBM AUTO':'JBMA','LENSKART':'LENSKART','DAIKAFFIL':'DAIKAFFIL',
+  'MARICO':'MARICO','GRASIM':'GRASIM','GRASIM INDUSTRIES':'GRASIM'
+};
+
+function resolveTickerFromInput(rawInput) {
+  const input = rawInput.trim().toUpperCase();
+  // 1. Already has exchange suffix — use as-is
+  if (input.includes('.')) return { ticker: input, resolved: false };
+  // 2. Exact ticker match in portfolio stocks
+  const ps = stocks.find(s => s.ticker === input);
+  if (ps) return { ticker: ps.yf.replace(/\.(NS|BO)$/,''), resolved: false, exchange: ps.yf.endsWith('.BO') ? 'BO' : 'NS' };
+  // 3. Exact ticker match in MOVER_UNIVERSE
+  const mu = MOVER_UNIVERSE.find(m => m.t === input || m.t === input.replace('&','%26'));
+  if (mu) return { ticker: mu.t.replace('%26','&'), resolved: false };
+  // 4. Exact name match in EXTRA_TICKER_MAP
+  if (EXTRA_TICKER_MAP[input]) return { ticker: EXTRA_TICKER_MAP[input], resolved: true, from: input };
+  // 5. Exact name match in portfolio stocks
+  const pn = stocks.find(s => s.name.toUpperCase() === input);
+  if (pn) return { ticker: pn.yf.replace(/\.(NS|BO)$/,''), resolved: true, from: input, exchange: pn.yf.endsWith('.BO') ? 'BO' : 'NS' };
+  // 6. Exact name match in MOVER_UNIVERSE
+  const mn = MOVER_UNIVERSE.find(m => m.n.toUpperCase() === input);
+  if (mn) return { ticker: mn.t.replace('%26','&'), resolved: true, from: input };
+  // 7. Partial/fuzzy — check if input is contained in any name
+  const partialP = stocks.find(s => s.name.toUpperCase().includes(input) || input.includes(s.name.toUpperCase()));
+  if (partialP) return { ticker: partialP.yf.replace(/\.(NS|BO)$/,''), resolved: true, from: input + ' → ' + partialP.name, exchange: partialP.yf.endsWith('.BO') ? 'BO' : 'NS' };
+  const partialM = MOVER_UNIVERSE.find(m => m.n.toUpperCase().includes(input) || input.includes(m.n.toUpperCase()));
+  if (partialM) return { ticker: partialM.t.replace('%26','&'), resolved: true, from: input + ' → ' + partialM.n };
+  // 8. Word-based fuzzy — split input into words and find best match
+  const words = input.split(/\s+/);
+  if (words.length >= 2) {
+    const fuzzyP = stocks.find(s => words.every(w => s.name.toUpperCase().includes(w)));
+    if (fuzzyP) return { ticker: fuzzyP.yf.replace(/\.(NS|BO)$/,''), resolved: true, from: input + ' → ' + fuzzyP.name, exchange: fuzzyP.yf.endsWith('.BO') ? 'BO' : 'NS' };
+    const fuzzyM = MOVER_UNIVERSE.find(m => words.every(w => m.n.toUpperCase().includes(w)));
+    if (fuzzyM) return { ticker: fuzzyM.t.replace('%26','&'), resolved: true, from: input + ' → ' + fuzzyM.n };
+    // Try partial word matching (first word match)
+    const firstWord = words[0];
+    const fw = EXTRA_TICKER_MAP[firstWord];
+    if (fw) return { ticker: fw, resolved: true, from: input + ' → ' + firstWord };
+  }
+  // 9. Not found — return original (will try as ticker)
+  return { ticker: input, resolved: false };
+}
+
 async function runScorer() {
-  const input = document.getElementById('scorerInput').value.trim().toUpperCase();
-  if (!input) return;
+  const rawInput = document.getElementById('scorerInput').value.trim().toUpperCase();
+  if (!rawInput) return;
+
+  // Smart resolve: company name → ticker
+  const resolved = resolveTickerFromInput(rawInput);
+  const input = resolved.ticker;
 
   const btn = document.getElementById('scorerBtn');
   const resultDiv = document.getElementById('scorerResult');
@@ -5887,13 +6004,14 @@ async function runScorer() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Analyzing...';
   defaultDiv.style.display = 'none';
-  resultDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)"><span class="spinner"></span> Fetching data for <strong style="color:var(--accent)">' + input + '</strong> from Yahoo Finance...</div>';
+  const resolvedNote = resolved.resolved ? '<div style="font-size:11px;color:var(--green);margin-top:4px">Resolved: ' + rawInput + ' → <strong>' + input + '</strong></div>' : '';
+  resultDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)"><span class="spinner"></span> Fetching data for <strong style="color:var(--accent)">' + input + '</strong> from Yahoo Finance...' + resolvedNote + '</div>';
 
   try {
     // Determine Yahoo Finance ticker
     let yfTicker = input;
     if (!input.includes('.')) {
-      yfTicker = input + '.NS'; // Default to NSE
+      yfTicker = input + (resolved.exchange === 'BO' ? '.BO' : '.NS');
     }
 
     // Check if it's in our portfolio first
@@ -5910,20 +6028,20 @@ async function runScorer() {
         const bseData = await fetchScorerData(bseTicker, input);
         if (bseData) {
           renderScorerCard(bseData, bseTicker, portfolioStock);
-          addToHistory(input);
+          addToHistory(rawInput);
           btn.disabled = false;
           btn.innerHTML = '&#9889; Analyze';
           return;
         }
       }
-      resultDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Could not find data for <strong>' + input + '</strong>. Try the full ticker (e.g., RELIANCE.NS or RELIANCE.BO)</div>';
+      resultDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Could not find data for <strong>' + rawInput + '</strong>' + (resolved.resolved ? ' (tried ticker: ' + input + ')' : '') + '.<br><span style="font-size:12px;color:var(--muted)">Try the NSE/BSE ticker (e.g., TATATECH, RELIANCE, HDFCBANK) or full Yahoo ticker (e.g., TATATECH.NS)</span></div>';
       btn.disabled = false;
       btn.innerHTML = '&#9889; Analyze';
       return;
     }
 
     renderScorerCard(data, yfTicker, portfolioStock);
-    addToHistory(input);
+    addToHistory(rawInput);
 
   } catch(e) {
     resultDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Error: ' + e.message + '</div>';
@@ -6245,8 +6363,12 @@ const SRC_ICONS = {news:'&#128240;',reddit:'&#129302;',x:'&#120143;',youtube:'&#
 const SRC_LABELS = {news:'News',reddit:'Reddit',x:'X / Twitter',youtube:'YouTube',filing:'BSE/NSE Filing',forum:'Forum'};
 
 async function runDeepAnalysis() {
-  const input = document.getElementById('scorerInput').value.trim().toUpperCase();
-  if (!input) { alert('Enter a stock ticker first'); return; }
+  const rawInput = document.getElementById('scorerInput').value.trim().toUpperCase();
+  if (!rawInput) { alert('Enter a stock name or ticker first'); return; }
+
+  // Smart resolve: company name → ticker
+  const resolved = resolveTickerFromInput(rawInput);
+  const input = resolved.ticker;
 
   const btn = document.getElementById('deepBtn');
   const resultDiv = document.getElementById('scorerResult');
@@ -6256,6 +6378,7 @@ async function runDeepAnalysis() {
   btn.innerHTML = '<span class="spinner"></span> Deep Analyzing...';
   defaultDiv.style.display = 'none';
 
+  const resolvedNote = resolved.resolved ? '<div style="font-size:11px;color:var(--green);margin-top:4px">Resolved: ' + rawInput + ' → <strong>' + input + '</strong></div>' : '';
   const loadSteps = [
     'Scanning Google News (6 angles)...',
     'Searching X / Twitter mentions...',
@@ -6266,7 +6389,7 @@ async function runDeepAnalysis() {
   ];
   let stepIdx = 0;
   resultDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">' +
-    '<span class="spinner"></span> Running <strong style="color:var(--green)">Primary Research</strong> on <strong>' + input + '</strong><br>' +
+    '<span class="spinner"></span> Running <strong style="color:var(--green)">Primary Research</strong> on <strong>' + input + '</strong>' + resolvedNote + '<br>' +
     '<div id="deepLoadStep" style="font-size:12px;margin-top:12px;color:var(--accent)">' + loadSteps[0] + '</div>' +
     '<div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">' +
       '<span class="src-tag src-news">Google News</span>' +
@@ -6283,7 +6406,7 @@ async function runDeepAnalysis() {
   }, 1500);
 
   try {
-    let yfTicker = input.includes('.') ? input : input + '.NS';
+    let yfTicker = input.includes('.') ? input : input + (resolved.exchange === 'BO' ? '.BO' : '.NS');
     const portfolioStock = stocks.find(s => s.ticker === input || s.yf === yfTicker || s.yf === input + '.BO');
     if (portfolioStock && portfolioStock.yf) yfTicker = portfolioStock.yf;
 
@@ -6301,18 +6424,18 @@ async function runDeepAnalysis() {
         const bseData = await fetchScorerData(bseTicker, input);
         if (bseData) {
           renderDeepCard(bseData, bseTicker, portfolioStock, intelItems, input);
-          addToHistory(input);
+          addToHistory(rawInput);
           btn.disabled = false; btn.innerHTML = '&#128270; Deep Analyze';
           return;
         }
       }
-      resultDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Could not find data for <strong>' + input + '</strong>.</div>';
+      resultDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Could not find data for <strong>' + rawInput + '</strong>' + (resolved.resolved ? ' (tried: ' + input + ')' : '') + '.<br><span style="font-size:12px;color:var(--muted)">Try the NSE/BSE ticker or full Yahoo ticker (e.g., TATATECH.NS)</span></div>';
       btn.disabled = false; btn.innerHTML = '&#128270; Deep Analyze';
       return;
     }
 
     renderDeepCard(priceData, yfTicker, portfolioStock, intelItems, input);
-    addToHistory(input);
+    addToHistory(rawInput);
   } catch(e) {
     clearInterval(loadTimer);
     resultDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Error: ' + e.message + '</div>';
