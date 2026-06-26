@@ -993,9 +993,10 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <!-- ══════════════════════ PAPER TRADE TAB ══════════════════════ -->
   <div id="tab-papertrade" style="display:none">
     <div style="text-align:center;padding:20px 0 10px">
-      <h2 style="margin:0;font-size:22px">&#128176; AI Quant Paper Trading v3.0</h2>
-      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">Multi-factor AI scoring &mdash; &#128293; 300-Stock Mover Integration &mdash; Conviction sizing &mdash; Trailing stops &mdash; Sector diversification</p>
+      <h2 style="margin:0;font-size:22px">&#129504; AI Quant Paper Trading v4.0</h2>
+      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">7-Layer Intelligence Engine &mdash; Market Regime &bull; Timing &bull; Trend &bull; Smart Exit &bull; Circuit Breaker &bull; Sector Heat &bull; Adaptive Sizing</p>
       <div id="ptMoverBadge" style="display:inline-block;margin-top:8px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">&#128293; MOVER SCAN: Not loaded — Run Daily Mover Predictor first</div>
+      <div id="ptAIBrainBadge" style="display:inline-block;margin-top:8px;margin-left:8px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">&#129504; 7-LAYER AI: Ready</div>
     </div>
 
     <!-- Wallet Summary Cards -->
@@ -1012,7 +1013,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
     <!-- Action buttons -->
     <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
-      <button onclick="runAIAutoTrade()" style="padding:10px 24px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">&#129302; Run AI Auto-Trade v3.0</button>
+      <button onclick="runAIAutoTrade()" style="padding:10px 24px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">&#129504; Run AI Auto-Trade v4.0</button>
       <button onclick="resetPaperWallet()" style="padding:10px 18px;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128260; Reset Wallet</button>
       <span id="ptLastTrade" style="color:var(--muted);font-size:12px;margin-left:auto">No trades yet</span>
     </div>
@@ -2339,6 +2340,8 @@ async function predictDailyMovers() {
     }))
   };
   console.log('[MOVER] Scan stored: ' + scored.length + ' stocks, top=' + (scored[0]?.ticker || 'none') + ' (' + (scored[0]?.moverScore || 0) + ')');
+  // Layer 3: Save daily trend data for multi-day tracking
+  try { saveDailyTrend(); console.log('[TREND] Daily trend data saved after mover scan'); } catch(e) { console.warn('[TREND] Save failed:', e); }
 }
 
 // ============================================================
@@ -3067,6 +3070,18 @@ function updatePTDisplay(w) {
       badge.innerHTML = '&#128293; MOVER SCAN: Not loaded — Run Daily Mover Predictor first';
     }
   }
+  // Update AI Brain badge (Layer status)
+  const brainBadge = document.getElementById('ptAIBrainBadge');
+  if (brainBadge) {
+    const regime = getMarketRegime();
+    const timing = getTimingSignal();
+    const regimeIcon = regime.mode === 'BULL' ? '&#128994;' : regime.mode === 'BEAR' ? '&#128308;' : '&#128993;';
+    const layerCount = 5 + (moverFresh ? 2 : 0); // 5 always active + 2 need mover data
+    brainBadge.style.background = layerCount >= 7 ? '#22c55e22' : '#8b5cf622';
+    brainBadge.style.color = layerCount >= 7 ? '#22c55e' : '#8b5cf6';
+    brainBadge.style.borderColor = layerCount >= 7 ? '#22c55e44' : '#8b5cf644';
+    brainBadge.innerHTML = '&#129504; ' + layerCount + '/7 LAYERS | ' + regimeIcon + ' ' + regime.mode + ' | &#9200; ' + timing.window;
+  }
 
   const totalVal = w.cash + holdingsVal;
   const totalReturn = ((totalVal - PT_START) / PT_START * 100);
@@ -3198,48 +3213,106 @@ function runAIAutoTrade() {
   let tradesMade = 0;
   const log = [];
   const moverActive = isMoverScanFresh();
+  const aiLog = []; // Intelligence layer activity log
 
-  // ═══ PHASE 1: SMART EXIT — multi-factor sell decisions ═══
+  // ═══ LAYER ACTIVATION ═══
+  const regime = getMarketRegime();
+  const timing = getTimingSignal();
+  const circuitBreaker = checkCircuitBreaker(w);
+  aiLog.push('🏛️ Regime: ' + regime.mode + ' (' + regime.reason + ')');
+  aiLog.push('⏰ Timing: ' + timing.window + ' (' + timing.reason + ')');
+
+  // Save trend data if mover scan is fresh
+  if (moverActive) saveDailyTrend();
+
+  // ═══ CIRCUIT BREAKER CHECK (Layer 5) ═══
+  if (circuitBreaker.sellAll) {
+    aiLog.push('🚨 CIRCUIT BREAKER: ' + circuitBreaker.reason);
+    // Liquidate everything
+    for (let i = w.positions.length - 1; i >= 0; i--) {
+      const pos = w.positions[i];
+      const stock = stocks.find(s => s.ticker === pos.ticker);
+      const sellPrice = stock ? stock.cmp : pos.avgPrice;
+      if (sellPrice <= 0) continue;
+      const pnl = (sellPrice - pos.avgPrice) * pos.qty;
+      w.cash += sellPrice * pos.qty;
+      w.trades.push({ type: 'SELL', ticker: pos.ticker, qty: pos.qty, price: sellPrice, pnl: Math.round(pnl), aiScore: 0, reason: '🚨 CIRCUIT BREAKER: Max drawdown — forced liquidation', source: pos.source || 'portfolio', time: now.toISOString() });
+      w.positions.splice(i, 1);
+      tradesMade++;
+      log.push('🚨 LIQUIDATE ' + pos.ticker + ' @ ₹' + sellPrice.toFixed(0));
+    }
+    savePT(w);
+    updatePTDisplay(w);
+    document.getElementById('ptLastTrade').innerHTML = '🚨 <b>CIRCUIT BREAKER ACTIVATED</b>: ' + circuitBreaker.reason + ' | All positions liquidated. Trading halted.';
+    console.log('[AI-ENGINE] ' + aiLog.join(' | '));
+    return;
+  }
+  if (circuitBreaker.halt) {
+    aiLog.push('⛔ Trading halted: ' + circuitBreaker.reason);
+    updatePTDisplay(w);
+    document.getElementById('ptLastTrade').innerHTML = '⛔ ' + circuitBreaker.reason;
+    console.log('[AI-ENGINE] ' + aiLog.join(' | '));
+    return;
+  }
+
+  // ═══ PHASE 1: SMART EXIT — multi-factor sell decisions + Layer 4 smart exits ═══
   for (let i = w.positions.length - 1; i >= 0; i--) {
     const pos = w.positions[i];
-    // For mover-sourced positions, try to get live price from mover scan data
     let stock = stocks.find(s => s.ticker === pos.ticker);
     let sellPrice = stock ? stock.cmp : 0;
-    // If no portfolio stock data, check mover scan for price
     if ((!stock || !stock.cmp) && moverActive) {
       const moverStock = window._moverScan.scored.find(m => m.ticker === pos.ticker);
       if (moverStock && moverStock.cmp > 0) {
         sellPrice = moverStock.cmp;
-        // Create a minimal stock object for scoring
         stock = { ticker: pos.ticker, cmp: moverStock.cmp, changePct: moverStock.changePct, vol: moverStock.vol, avgVol: moverStock.avgVol, high52: moverStock.high52, low52: moverStock.low52, pe: moverStock.pe, mcap: moverStock.mcap };
       }
     }
     if (!sellPrice || sellPrice <= 0) continue;
 
+    // Update current price for smart exit analysis
+    pos.currentPrice = sellPrice;
+
     const returnPct = (sellPrice - pos.avgPrice) / pos.avgPrice * 100;
     const sc = aiScore(stock);
     let shouldSell = false, reason = '';
 
-    // Mover-sourced positions use TIGHTER stops (momentum trades)
     const isMoverPos = pos.source === 'mover';
-    const trailPct = isMoverPos ? 0.95 : 0.93; // 5% trail for movers vs 7% for portfolio
-    const stopLoss = isMoverPos ? -5 : -7;      // 5% stop for movers vs 7% for portfolio
-    const profitBook = isMoverPos ? 15 : 25;     // 15% profit-book for movers vs 25%
+    const trailPct = isMoverPos ? 0.95 : 0.93;
+    const stopLoss = isMoverPos ? -5 : -7;
+    const profitBook = isMoverPos ? 15 : 25;
 
-    // Rule 1: AI Score collapsed below 30 — fundamentals broken
-    if (sc.total < 30 && !isMoverPos) { shouldSell = true; reason = 'AI EXIT: Score collapsed to ' + sc.total + '/100'; }
-    // Rule 1b: Mover position — momentum died (score < 20 OR moverScore dropped)
-    else if (isMoverPos && moverActive) {
-      const currentMover = window._moverScan.scored.find(m => m.ticker === pos.ticker);
-      if (currentMover && currentMover.moverScore < 20) { shouldSell = true; reason = 'MOVER EXIT: Momentum died (score ' + currentMover.moverScore + ')'; }
+    // ── Layer 4: Smart Exit Signals (check FIRST — catches what old rules miss) ──
+    const exitSignals = getSmartExitSignal(pos);
+    if (exitSignals.length > 0 && exitSignals[0].urgency >= 7) {
+      shouldSell = true;
+      reason = '🧠 ' + exitSignals[0].type + ': ' + exitSignals[0].reason;
     }
-    // Rule 2: WEAKENING signal + negative momentum (portfolio stocks only)
-    else if (!isMoverPos && stock.scanStatus === 'WEAKENING' && stock.changePct < -1) { shouldSell = true; reason = 'AI EXIT: WEAK + falling -' + Math.abs(stock.changePct).toFixed(1) + '%'; }
-    // Rule 3: Trailing stop-loss
-    else if (returnPct > 10 && sellPrice < pos.peakPrice * trailPct) { shouldSell = true; reason = (isMoverPos ? 'MOVER' : 'AI') + ' EXIT: Trailing stop ' + ((1 - trailPct) * 100).toFixed(0) + '% from peak'; }
-    else if (returnPct <= 0 && returnPct < stopLoss) { shouldSell = true; reason = (isMoverPos ? 'MOVER' : 'AI') + ' EXIT: Stop-loss ' + Math.abs(stopLoss) + '% triggered'; }
-    // Rule 4: Profit booking
-    else if (returnPct > profitBook) { shouldSell = true; reason = (isMoverPos ? 'MOVER' : 'AI') + ' EXIT: Profit booking ' + profitBook + '%+ return'; }
+    // Dead money exit: urgency 6 + no significant positive momentum
+    else if (exitSignals.length > 0 && exitSignals[0].urgency >= 5 && returnPct < 3) {
+      const deadMoney = exitSignals.find(s => s.type === 'DEAD_MONEY');
+      if (deadMoney) { shouldSell = true; reason = '🧠 ' + deadMoney.reason; }
+    }
+
+    // ── Original exit rules (still active) ──
+    if (!shouldSell) {
+      if (sc.total < 30 && !isMoverPos) { shouldSell = true; reason = 'AI EXIT: Score collapsed to ' + sc.total + '/100'; }
+      else if (isMoverPos && moverActive) {
+        const currentMover = window._moverScan.scored.find(m => m.ticker === pos.ticker);
+        if (currentMover && currentMover.moverScore < 20) { shouldSell = true; reason = 'MOVER EXIT: Momentum died (score ' + currentMover.moverScore + ')'; }
+      }
+      else if (!isMoverPos && stock.scanStatus === 'WEAKENING' && stock.changePct < -1) { shouldSell = true; reason = 'AI EXIT: WEAK + falling -' + Math.abs(stock.changePct).toFixed(1) + '%'; }
+      else if (returnPct > 10 && sellPrice < pos.peakPrice * trailPct) { shouldSell = true; reason = (isMoverPos ? 'MOVER' : 'AI') + ' EXIT: Trailing stop from peak'; }
+      else if (returnPct <= 0 && returnPct < stopLoss) { shouldSell = true; reason = (isMoverPos ? 'MOVER' : 'AI') + ' EXIT: Stop-loss ' + Math.abs(stopLoss) + '% hit'; }
+      else if (returnPct > profitBook) { shouldSell = true; reason = (isMoverPos ? 'MOVER' : 'AI') + ' EXIT: Profit booking ' + profitBook + '%+ return'; }
+    }
+
+    // ── Bear market: tighten all stops by 30% ──
+    if (!shouldSell && regime.mode === 'BEAR') {
+      const bearStop = stopLoss * 0.7; // -5 → -3.5 | -7 → -4.9
+      const bearProfit = profitBook * 0.6; // 15 → 9 | 25 → 15
+      if (returnPct <= 0 && returnPct < bearStop) { shouldSell = true; reason = '🐻 BEAR REGIME: Tightened stop ' + bearStop.toFixed(1) + '% hit'; }
+      else if (returnPct > bearProfit) { shouldSell = true; reason = '🐻 BEAR REGIME: Early profit booking at ' + returnPct.toFixed(1) + '%'; }
+    }
 
     if (shouldSell) {
       const proceeds = sellPrice * pos.qty;
@@ -3254,94 +3327,137 @@ function runAIAutoTrade() {
     }
   }
 
-  // ═══ PHASE 2: SCORE PORTFOLIO CANDIDATES ═══
+  // ═══ TIMING CHECK (Layer 2) — Block new buys during volatile windows ═══
+  if (!timing.canTrade) {
+    aiLog.push('⏰ Buys blocked: ' + timing.reason);
+    // Still save exits but skip buy phases
+    const holdingsVal = w.positions.reduce((sum, p) => {
+      const s = stocks.find(st => st.ticker === p.ticker);
+      let price = s ? s.cmp : 0;
+      if (!price && moverActive) { const ms = window._moverScan.scored.find(m => m.ticker === p.ticker); if (ms) price = ms.cmp; }
+      return sum + ((price || p.avgPrice) * p.qty);
+    }, 0);
+    const totalVal = w.cash + holdingsVal;
+    w.peakValue = Math.max(w.peakValue || PT_START, totalVal);
+    const dateKey = now.toISOString().split('T')[0];
+    w.dailySnap[dateKey] = { total: totalVal, cash: w.cash, holdings: holdingsVal, positions: w.positions.length };
+    savePT(w);
+    updatePTDisplay(w);
+    const exitCount = tradesMade;
+    document.getElementById('ptLastTrade').innerHTML = '⏰ <b>' + timing.window + '</b>: ' + timing.reason + (exitCount > 0 ? ' | ' + exitCount + ' exits processed' : ' | Exits only mode');
+    console.log('[AI-ENGINE] ' + aiLog.join(' | '));
+    return;
+  }
+
+  // ═══ REGIME BUY CHECK (Layer 1) — Block all buys in severe bear ═══
+  if (!regime.canBuy) {
+    aiLog.push('🐻 All buys blocked: ' + regime.reason);
+    savePT(w);
+    updatePTDisplay(w);
+    document.getElementById('ptLastTrade').innerHTML = '🐻 <b>BEAR REGIME</b>: ' + regime.reason + (tradesMade > 0 ? ' | ' + tradesMade + ' exits' : '');
+    console.log('[AI-ENGINE] ' + aiLog.join(' | '));
+    return;
+  }
+
+  // ═══ PHASE 2: SCORE PORTFOLIO CANDIDATES (with Layer 3 trend + Layer 6 sector) ═══
   const heldTickers = new Set(w.positions.map(p => p.ticker));
   const heldSectors = {};
   w.positions.forEach(p => {
     const s = stocks.find(st => st.ticker === p.ticker);
     if (s) heldSectors[s.sector] = (heldSectors[s.sector] || 0) + 1;
-    // Also count mover sectors
     if (p.source === 'mover' && p.sector) heldSectors[p.sector] = (heldSectors[p.sector] || 0) + 1;
   });
 
   const portfolioScored = stocks
     .filter(s => s.cmp && s.cmp > 0 && !heldTickers.has(s.ticker))
-    .map(s => ({ stock: s, sc: aiScore(s), source: 'portfolio' }))
+    .map(s => {
+      const sc = aiScore(s);
+      let bonusScore = sc.total;
+
+      // Layer 3: Trend bonus
+      const trend = getTrend(s.ticker);
+      if (trend.direction === 'STRONG_UP' && trend.volumeTrend === 'RISING') bonusScore += 12;
+      else if (trend.direction === 'STRONG_UP') bonusScore += 8;
+      else if (trend.direction === 'UP') bonusScore += 5;
+      else if (trend.direction === 'STRONG_DOWN') bonusScore -= 10;
+      else if (trend.direction === 'DOWN') bonusScore -= 5;
+
+      // Layer 6: Sector heat bonus
+      const sHeat = getSectorHeat(s.sector);
+      bonusScore += sHeat.bonus;
+
+      return { stock: s, sc: { total: Math.min(100, Math.max(0, bonusScore)), factors: sc.factors, rawScore: sc.total }, source: 'portfolio', trend, sectorHeat: sHeat };
+    })
     .filter(x => x.sc.total >= 50)
     .sort((a, b) => b.sc.total - a.sc.total);
 
-  // ═══ PHASE 2.5: MOVER UNIVERSE CANDIDATES (300-stock scan) ═══
+  // ═══ PHASE 2.5: MOVER UNIVERSE CANDIDATES (with Layer 3 + Layer 6) ═══
   let moverScored = [];
   if (moverActive) {
-    const scanAge = (now.getTime() - window._moverScan.timestamp) / 60000; // minutes
-    console.log('[MOVER-TRADE] Using scan from ' + scanAge.toFixed(0) + 'm ago, ' + window._moverScan.scored.length + ' stocks');
+    const scanAge = (now.getTime() - window._moverScan.timestamp) / 60000;
+    console.log('[MOVER-TRADE v4] Using scan from ' + scanAge.toFixed(0) + 'm ago, ' + window._moverScan.scored.length + ' stocks');
 
     moverScored = window._moverScan.scored
       .filter(m => {
-        if (heldTickers.has(m.ticker)) return false;        // Already holding
-        if (m.cmp <= 10) return false;                       // Penny stock filter
-        if (m.moverScore < 35) return false;                 // Minimum mover conviction
-        if (m.vol < 50000) return false;                     // Minimum liquidity
-        // Ethical filter
+        if (heldTickers.has(m.ticker)) return false;
+        if (m.cmp <= 10) return false;
+        if (m.moverScore < 35) return false;
+        if (m.vol < 50000) return false;
         if (isEthicallyExcluded(m.sector) || isEthicallyExcluded(m.name)) return false;
-        // Skip if already in portfolio candidates (avoid duplicates)
         if (stocks.some(s => s.ticker === m.ticker)) return false;
-        // Prefer direction UP for buys (unless it's a strong reversal play near 52W low)
         if (m.direction === 'DOWN' && m.moverScore < 50) return false;
         return true;
       })
       .map(m => {
-        // ── Mover-adapted trade score (0-100) ──
-        // Heavier on momentum since these are short-term trades
         let tradeScore = 0;
-
-        // Mover Score contribution (0-45) — primary signal
         tradeScore += Math.min(45, Math.round(m.moverScore * 0.45));
-
-        // Volume conviction (0-20) — institutional interest
         if (m.volRatio >= 5) tradeScore += 20;
         else if (m.volRatio >= 3) tradeScore += 16;
         else if (m.volRatio >= 2) tradeScore += 12;
         else if (m.volRatio >= 1.5) tradeScore += 8;
         else tradeScore += 3;
-
-        // 52W position bonus (0-15) — breakout/bounce
         if (m.high52 > 0 && m.low52 > 0 && m.high52 > m.low52) {
           const pos52 = (m.cmp - m.low52) / (m.high52 - m.low52);
-          if (pos52 >= 0.92) tradeScore += 15;       // Breaking out
-          else if (pos52 <= 0.12) tradeScore += 13;  // Bounce play
-          else if (pos52 <= 0.25) tradeScore += 8;   // Deep value
-          else if (pos52 >= 0.80) tradeScore += 10;  // Near high
+          if (pos52 >= 0.92) tradeScore += 15;
+          else if (pos52 <= 0.12) tradeScore += 13;
+          else if (pos52 <= 0.25) tradeScore += 8;
+          else if (pos52 >= 0.80) tradeScore += 10;
           else tradeScore += 4;
         }
-
-        // PE sanity check (0-10) — avoid absurd valuations
         if (m.pe > 0 && m.pe < 100) tradeScore += 10;
         else if (m.pe > 0 && m.pe < 200) tradeScore += 5;
         else tradeScore += 2;
-
-        // Direction bonus (0-10) — strong directional move
         const absChg = Math.abs(m.changePct);
         if (absChg >= 4) tradeScore += 10;
         else if (absChg >= 2.5) tradeScore += 7;
         else if (absChg >= 1.5) tradeScore += 4;
         else tradeScore += 1;
 
+        // Layer 3: Trend bonus for movers
+        const trend = getTrend(m.ticker);
+        if (trend.direction === 'STRONG_UP' && trend.volumeTrend === 'RISING') tradeScore += 10;
+        else if (trend.direction === 'STRONG_UP') tradeScore += 6;
+        else if (trend.direction === 'UP') tradeScore += 3;
+        else if (trend.direction === 'STRONG_DOWN') tradeScore -= 8;
+
+        // Layer 6: Sector heat bonus
+        const sHeat = getSectorHeat(m.sector);
+        tradeScore += sHeat.bonus;
+
         return {
           stock: { ticker: m.ticker, name: m.name, sector: m.sector, cmp: m.cmp, changePct: m.changePct, vol: m.vol },
-          sc: { total: Math.min(100, tradeScore), factors: m.reasons || [] },
-          moverScore: m.moverScore,
-          source: 'mover'
+          sc: { total: Math.min(100, Math.max(0, tradeScore)), factors: m.reasons || [] },
+          moverScore: m.moverScore, source: 'mover', trend, sectorHeat: sHeat
         };
       })
-      .filter(x => x.sc.total >= 45) // minimum combined score for movers
+      .filter(x => x.sc.total >= 45)
       .sort((a, b) => b.sc.total - a.sc.total)
-      .slice(0, 10); // top 10 mover candidates max
+      .slice(0, 10);
 
-    console.log('[MOVER-TRADE] ' + moverScored.length + ' mover candidates qualified');
+    console.log('[MOVER-TRADE v4] ' + moverScored.length + ' mover candidates qualified');
   }
 
-  // ═══ PHASE 3: AGGRESSIVE REBALANCE — swap weak for strong ═══
+  // ═══ PHASE 3: AGGRESSIVE REBALANCE ═══
   const allScored = [...portfolioScored, ...moverScored];
   if (w.positions.length >= 8 && allScored.length > 0) {
     let weakestIdx = -1, weakestScore = 999;
@@ -3352,7 +3468,6 @@ function runAIAutoTrade() {
         if (sc.total < weakestScore) { weakestScore = sc.total; weakestIdx = i; }
       }
     });
-
     if (weakestIdx >= 0 && allScored[0].sc.total - weakestScore >= 20) {
       const weakPos = w.positions[weakestIdx];
       const weakStock = stocks.find(s => s.ticker === weakPos.ticker);
@@ -3369,20 +3484,16 @@ function runAIAutoTrade() {
     }
   }
 
-  // ═══ PHASE 4: UNIFIED BUY — portfolio + mover candidates ═══
-  const maxPositions = 15; // Increased from 12: more candidates from mover universe
-  const maxMoverPositions = 5; // Max 5 mover-sourced positions at any time
+  // ═══ PHASE 4: UNIFIED BUY (Layer 1 regime sizing + Layer 2 timing + Layer 7 adaptive) ═══
+  const maxPositions = 15;
+  const maxMoverPositions = 5;
   const currentMoverCount = w.positions.filter(p => p.source === 'mover').length;
 
-  // Interleave: portfolio candidates first, then fill with movers
   const buyQueue = [];
-  // Add portfolio candidates (priority)
   portfolioScored.forEach(c => buyQueue.push(c));
-  // Add mover candidates (supplementary)
   moverScored.forEach(c => {
     if (!buyQueue.some(q => q.stock.ticker === c.stock.ticker)) buyQueue.push(c);
   });
-  // Re-sort by score
   buyQueue.sort((a, b) => b.sc.total - a.sc.total);
 
   let moverBuys = 0;
@@ -3391,76 +3502,86 @@ function runAIAutoTrade() {
     if (w.positions.length >= maxPositions) break;
     if (w.cash < 500) break;
     if (heldTickers.has(stock.ticker)) continue;
-
-    // Mover position cap
     if (source === 'mover' && (currentMoverCount + moverBuys) >= maxMoverPositions) continue;
 
-    // Sector diversification: max 3 per sector
     const sectorCount = heldSectors[stock.sector] || 0;
     if (sectorCount >= 3) continue;
 
-    // Conviction-based position sizing (movers get smaller positions — higher risk)
-    let allocPct;
-    if (source === 'mover') {
-      // Mover positions: smaller, faster trades
-      if (sc.total >= 80) { allocPct = 0.08; }      // Strong mover → 8%
-      else if (sc.total >= 60) { allocPct = 0.06; }  // Good mover → 6%
-      else { allocPct = 0.04; }                       // Decent mover → 4%
-    } else {
-      // Portfolio positions: conviction sizing
-      if (sc.total >= 80) { allocPct = 0.15; }
-      else if (sc.total >= 65) { allocPct = 0.10; }
-      else { allocPct = 0.07; }
+    // ── Layer 3: Trend confirmation gate ──
+    // Don't buy into confirmed downtrends
+    if (candidate.trend && candidate.trend.direction === 'STRONG_DOWN') {
+      aiLog.push('⬇️ Skipped ' + stock.ticker + ': confirmed downtrend');
+      continue;
     }
 
-    const targetSize = Math.min(PT_START * allocPct, w.cash * 0.30);
+    // ── Base position sizing ──
+    let allocPct;
+    if (source === 'mover') {
+      if (sc.total >= 80) allocPct = 0.08;
+      else if (sc.total >= 60) allocPct = 0.06;
+      else allocPct = 0.04;
+    } else {
+      if (sc.total >= 80) allocPct = 0.15;
+      else if (sc.total >= 65) allocPct = 0.10;
+      else allocPct = 0.07;
+    }
+
+    // ── Layer 1: Regime multiplier ──
+    allocPct *= regime.sizeMultiplier;
+
+    // ── Layer 2: Timing multiplier ──
+    allocPct *= timing.multiplier;
+
+    // ── Layer 7: Adaptive sizing from win/loss history ──
+    allocPct = getAdaptiveSize(source, allocPct, w);
+
+    // ── Layer 3: Trend conviction boost ──
+    if (candidate.trend && candidate.trend.direction === 'STRONG_UP' && candidate.trend.volumeTrend === 'RISING') {
+      allocPct *= 1.25; // 25% bigger position for confirmed uptrends on volume
+    }
+
+    const targetSize = Math.min(PT_START * Math.min(allocPct, 0.20), w.cash * 0.30);
     const buyPrice = stock.cmp;
     const qty = Math.max(1, Math.floor(targetSize / buyPrice));
     const cost = qty * buyPrice;
     if (cost > w.cash) continue;
 
-    // Build reason string
+    // Build reason string with intelligence layer info
     let reason;
+    const trendTag = candidate.trend ? (' T:' + candidate.trend.direction) : '';
+    const heatTag = candidate.sectorHeat ? (' S:' + candidate.sectorHeat.label.split(' ')[0]) : '';
     if (source === 'mover') {
-      const moverData = candidate.moverScore || 0;
-      reason = '🔥 MOVER BUY [Trade:' + sc.total + ' Mover:' + moverData + ']: ';
-      const topReasons = sc.factors.slice(0, 2).join(' + ');
-      reason += topReasons || 'High-momentum scan pick';
+      reason = '🔥 MOVER BUY [' + sc.total + trendTag + heatTag + ']: ';
+      reason += (sc.factors.slice(0, 2).join(' + ') || 'Momentum pick');
     } else {
-      reason = 'AI BUY [' + sc.total + '/100]: ';
-      const topFactors = sc.factors.slice(0, 2).join(' + ');
-      reason += topFactors || stock.catalyst || 'Multi-factor strong';
+      reason = 'AI BUY [' + sc.total + '/100' + trendTag + heatTag + ']: ';
+      reason += (sc.factors.slice(0, 2).join(' + ') || stock.catalyst || 'Multi-factor');
     }
+    reason += ' | 🏛️' + regime.mode + ' ⏰' + timing.window;
 
     w.cash -= cost;
     w.positions.push({
       ticker: stock.ticker, qty, avgPrice: buyPrice, buyDate: now.toISOString(),
       peakPrice: buyPrice, entryScore: sc.total,
-      source: source, // 'portfolio' or 'mover'
-      sector: stock.sector, name: stock.name
+      source, sector: stock.sector, name: stock.name
     });
     w.trades.push({ type: 'BUY', ticker: stock.ticker, qty, price: buyPrice, aiScore: sc.total, reason, source, time: now.toISOString() });
     heldTickers.add(stock.ticker);
     heldSectors[stock.sector] = (heldSectors[stock.sector] || 0) + 1;
     tradesMade++;
     if (source === 'mover') moverBuys++;
-    log.push((source === 'mover' ? '🔥' : '') + 'BUY ' + stock.ticker + ' [' + (source === 'mover' ? 'MOV' : 'AI') + ':' + sc.total + '] ' + qty + ' @ ₹' + buyPrice.toFixed(0));
+    log.push((source === 'mover' ? '🔥' : '') + 'BUY ' + stock.ticker + ' [' + sc.total + '] ' + qty + ' @ ₹' + buyPrice.toFixed(0) + ' ' + regime.mode + '/' + timing.window);
   }
 
   // ═══ SAVE & UPDATE ═══
   const holdingsVal = w.positions.reduce((sum, p) => {
-    // Try portfolio stocks first, then mover scan data for price
     const s = stocks.find(st => st.ticker === p.ticker);
     let price = s ? s.cmp : 0;
-    if (!price && moverActive) {
-      const ms = window._moverScan.scored.find(m => m.ticker === p.ticker);
-      if (ms) price = ms.cmp;
-    }
+    if (!price && moverActive) { const ms = window._moverScan.scored.find(m => m.ticker === p.ticker); if (ms) price = ms.cmp; }
     return sum + ((price || p.avgPrice) * p.qty);
   }, 0);
   const totalVal = w.cash + holdingsVal;
   w.peakValue = Math.max(w.peakValue || PT_START, totalVal);
-
   const dateKey = now.toISOString().split('T')[0];
   w.dailySnap[dateKey] = { total: totalVal, cash: w.cash, holdings: holdingsVal, positions: w.positions.length };
   savePT(w);
@@ -3468,11 +3589,14 @@ function runAIAutoTrade() {
 
   const moverCount = w.positions.filter(p => p.source === 'mover').length;
   const portfolioCount = w.positions.length - moverCount;
+  const regimeIcon = regime.mode === 'BULL' ? '🟢' : regime.mode === 'BEAR' ? '🔴' : '🟡';
+
   if (tradesMade === 0) {
-    document.getElementById('ptLastTrade').textContent = 'Portfolio optimal — ' + portfolioCount + ' core + ' + moverCount + ' mover positions' + (moverActive ? ' | 🔥 Mover-Powered' : '') + ' | ' + stocks.filter(s=>s.cmp>0).length + ' stocks scanned.';
+    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' <b>' + regime.mode + '</b> | ' + portfolioCount + ' core + ' + moverCount + ' mover | ⏰' + timing.window + (moverActive ? ' | 🔥 Mover-Powered' : '') + ' | 7-Layer AI v4.0';
   } else {
-    document.getElementById('ptLastTrade').textContent = tradesMade + ' AI trades' + (moverBuys > 0 ? ' (' + moverBuys + ' mover picks)' : '') + ' | Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0}) + (moverActive ? ' | 🔥 Mover-Powered' : '');
+    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' ' + tradesMade + ' AI trades' + (moverBuys > 0 ? ' (' + moverBuys + ' movers)' : '') + ' | ' + regime.mode + ' | ⏰' + timing.window + ' | Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0}) + ' | 🧠 v4.0';
   }
+  console.log('[AI-ENGINE v4.0] ' + aiLog.join(' | ') + ' | Trades: ' + tradesMade);
 }
 
 // Check if mover scan data is fresh (same trading day, < 4 hours old)
@@ -3483,6 +3607,303 @@ function isMoverScanFresh() {
   if (scanAge > 4) return false; // stale after 4 hours
   const today = now.toISOString().split('T')[0];
   return window._moverScan.date === today;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  7-LAYER AI INTELLIGENCE ENGINE v4.0
+// ═══════════════════════════════════════════════════════════
+
+// ── LAYER 1: MARKET REGIME DETECTOR ──
+// Uses mover scan breadth + NIFTY direction to determine regime
+function getMarketRegime() {
+  const regime = { mode: 'NEUTRAL', sizeMultiplier: 0.7, canBuy: true, reason: 'Default neutral' };
+  if (!isMoverScanFresh()) return regime; // No data = cautious neutral
+
+  const scan = window._moverScan;
+  const upCount = scan.scored.filter(s => s.changePct > 0).length;
+  const downCount = scan.scored.filter(s => s.changePct < 0).length;
+  const total = scan.scored.length;
+  const breadthPct = total > 0 ? (upCount / total * 100) : 50;
+  const avgChange = scan.scored.reduce((s, x) => s + x.changePct, 0) / (total || 1);
+
+  if (breadthPct >= 60 && avgChange > 0.5) {
+    regime.mode = 'BULL';
+    regime.sizeMultiplier = 1.0;
+    regime.canBuy = true;
+    regime.reason = 'Bullish: ' + breadthPct.toFixed(0) + '% advancing, avg +' + avgChange.toFixed(1) + '%';
+  } else if (breadthPct <= 35 || avgChange < -0.8) {
+    regime.mode = 'BEAR';
+    regime.sizeMultiplier = 0.3;
+    regime.canBuy = avgChange > -1.5; // Only block buys in severe selloffs
+    regime.reason = 'Bearish: only ' + breadthPct.toFixed(0) + '% advancing, avg ' + avgChange.toFixed(1) + '%';
+    if (!regime.canBuy) regime.reason += ' — BUYS BLOCKED (severe selloff)';
+  } else {
+    regime.mode = 'NEUTRAL';
+    regime.sizeMultiplier = 0.7;
+    regime.canBuy = true;
+    regime.reason = 'Neutral: ' + breadthPct.toFixed(0) + '% advancing, avg ' + avgChange.toFixed(1) + '%';
+  }
+  return regime;
+}
+
+// ── LAYER 2: INTRADAY TIMING ──
+// Identifies optimal trading windows during market hours
+function getTimingSignal() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  const t = h * 60 + m; // minutes since midnight
+
+  // Market closed: 0:00-9:14 or after 15:30
+  if (t < 555 || t >= 930) return { canTrade: true, window: 'CLOSED', multiplier: 1.0, reason: 'Market closed — using last prices' };
+  // Opening volatility: 9:15-9:45 — avoid new entries
+  if (t >= 555 && t < 585) return { canTrade: false, window: 'OPEN_VOLATILE', multiplier: 0, reason: 'Opening 30min — too volatile, wait' };
+  // Prime buy window: 10:00-11:30
+  if (t >= 600 && t < 690) return { canTrade: true, window: 'PRIME_BUY', multiplier: 1.2, reason: 'Prime buy window — trends established' };
+  // Mid-day: 11:30-14:30
+  if (t >= 690 && t < 870) return { canTrade: true, window: 'MIDDAY', multiplier: 0.8, reason: 'Mid-day — normal trading' };
+  // Prime exit window: 14:30-15:15
+  if (t >= 870 && t < 915) return { canTrade: true, window: 'PRIME_EXIT', multiplier: 0.5, reason: 'Exit window — institutional moves, reduce buying' };
+  // Last 15min: 15:15-15:30
+  if (t >= 915 && t < 930) return { canTrade: false, window: 'CLOSING', multiplier: 0, reason: 'Last 15min — no new positions' };
+  return { canTrade: true, window: 'UNKNOWN', multiplier: 1.0, reason: '' };
+}
+
+// ── LAYER 3: MULTI-DAY TREND TRACKER ──
+const TREND_KEY = 'aiTrendData_v1';
+
+function saveDailyTrend() {
+  if (!isMoverScanFresh()) return;
+  try {
+    const history = JSON.parse(localStorage.getItem(TREND_KEY) || '{}');
+    const today = new Date().toISOString().split('T')[0];
+    if (history[today]) return; // Already saved today
+
+    const dayData = {};
+    window._moverScan.scored.forEach(s => {
+      dayData[s.ticker] = { p: Math.round(s.cmp * 100) / 100, v: s.vol, c: Math.round(s.changePct * 100) / 100 };
+    });
+    // Also save portfolio stocks
+    stocks.forEach(s => {
+      if (s.cmp > 0 && !dayData[s.ticker]) {
+        dayData[s.ticker] = { p: Math.round(s.cmp * 100) / 100, v: s.vol || 0, c: Math.round(s.changePct * 100) / 100 };
+      }
+    });
+    history[today] = dayData;
+
+    // Keep only last 5 days to avoid localStorage overflow
+    const dates = Object.keys(history).sort().reverse();
+    if (dates.length > 5) {
+      dates.slice(5).forEach(d => delete history[d]);
+    }
+    localStorage.setItem(TREND_KEY, JSON.stringify(history));
+    console.log('[TREND] Saved ' + Object.keys(dayData).length + ' stocks for ' + today);
+  } catch(e) { console.warn('[TREND] Save failed:', e); }
+}
+
+function getTrend(ticker) {
+  const trend = { days: 0, direction: 'FLAT', streak: 0, volumeTrend: 'FLAT', confidence: 0 };
+  try {
+    const history = JSON.parse(localStorage.getItem(TREND_KEY) || '{}');
+    const dates = Object.keys(history).sort().reverse(); // newest first
+    if (dates.length < 2) return trend;
+
+    let upDays = 0, downDays = 0, volUp = 0, volDown = 0;
+    let streak = 0, lastDir = null;
+
+    for (let i = 0; i < Math.min(dates.length, 4); i++) {
+      const d = history[dates[i]];
+      if (!d || !d[ticker]) continue;
+      trend.days++;
+      const chg = d[ticker].c || 0;
+
+      if (chg > 0.3) { upDays++; if (lastDir === 'UP' || lastDir === null) { streak++; lastDir = 'UP'; } else { lastDir = 'UP'; streak = 1; } }
+      else if (chg < -0.3) { downDays++; if (lastDir === 'DOWN' || lastDir === null) { streak++; lastDir = 'DOWN'; } else { lastDir = 'DOWN'; streak = 1; } }
+      else { lastDir = 'FLAT'; streak = 0; }
+
+      // Volume trend
+      if (i > 0 && history[dates[i-1]] && history[dates[i-1]][ticker]) {
+        if (d[ticker].v > history[dates[i-1]][ticker].v) volUp++;
+        else volDown++;
+      }
+    }
+
+    trend.streak = streak;
+    trend.direction = lastDir || 'FLAT';
+    if (upDays >= 3) { trend.direction = 'STRONG_UP'; trend.confidence = 85; }
+    else if (downDays >= 3) { trend.direction = 'STRONG_DOWN'; trend.confidence = 85; }
+    else if (upDays >= 2) { trend.direction = 'UP'; trend.confidence = 60; }
+    else if (downDays >= 2) { trend.direction = 'DOWN'; trend.confidence = 60; }
+    else { trend.confidence = 30; }
+
+    trend.volumeTrend = volUp > volDown ? 'RISING' : volDown > volUp ? 'FALLING' : 'FLAT';
+    // Rising volume + rising price = strongest signal
+    if (trend.direction === 'STRONG_UP' && trend.volumeTrend === 'RISING') trend.confidence = 95;
+    if (trend.direction === 'STRONG_DOWN' && trend.volumeTrend === 'RISING') trend.confidence = 90; // selling on volume
+  } catch(e) {}
+  return trend;
+}
+
+// ── LAYER 4: SMART EXIT SIGNALS ──
+function getSmartExitSignal(pos) {
+  const signals = [];
+  const now = new Date();
+  const holdDays = pos.buyDate ? Math.floor((now - new Date(pos.buyDate)) / 86400000) : 0;
+  const returnPct = pos.currentPrice ? ((pos.currentPrice - pos.avgPrice) / pos.avgPrice * 100) : 0;
+
+  // Dead money: held 3+ days with <2% absolute move
+  if (holdDays >= 3 && Math.abs(returnPct) < 2) {
+    signals.push({ type: 'DEAD_MONEY', reason: 'Dead money: held ' + holdDays + 'd, only ' + (returnPct > 0 ? '+' : '') + returnPct.toFixed(1) + '% — redeploy capital', urgency: 6 });
+  }
+
+  // Momentum decay: mover position where volume has died
+  if (pos.source === 'mover' && isMoverScanFresh()) {
+    const current = window._moverScan.scored.find(m => m.ticker === pos.ticker);
+    if (current) {
+      // Mover score dropped significantly
+      if (pos.entryScore && current.moverScore < pos.entryScore * 0.5) {
+        signals.push({ type: 'MOMENTUM_DECAY', reason: 'Momentum died: mover score ' + (pos.entryScore||0) + ' → ' + current.moverScore, urgency: 7 });
+      }
+      // Volume collapsed (less than 50% of average)
+      if (current.volRatio < 0.5) {
+        signals.push({ type: 'VOLUME_DRIED', reason: 'Volume dried up: ' + current.volRatio.toFixed(1) + 'x avg — no interest', urgency: 5 });
+      }
+    }
+  }
+
+  // Multi-day trend exit
+  const trend = getTrend(pos.ticker);
+  if (trend.direction === 'STRONG_DOWN' && trend.volumeTrend === 'RISING') {
+    signals.push({ type: 'TREND_EXIT', reason: 'Downtrend confirmed: ' + trend.streak + ' red days on rising volume', urgency: 8 });
+  }
+
+  // Sector weakness exit
+  if (pos.sector && isMoverScanFresh()) {
+    const sectorStocks = window._moverScan.scored.filter(s => s.sector === pos.sector);
+    if (sectorStocks.length >= 3) {
+      const sectorAvg = sectorStocks.reduce((s, x) => s + x.changePct, 0) / sectorStocks.length;
+      if (sectorAvg < -2.5) {
+        signals.push({ type: 'SECTOR_WEAK', reason: 'Sector ' + pos.sector + ' avg ' + sectorAvg.toFixed(1) + '% — sector-wide selling', urgency: 6 });
+      }
+    }
+  }
+
+  // Sort by urgency (highest first)
+  signals.sort((a, b) => b.urgency - a.urgency);
+  return signals;
+}
+
+// ── LAYER 5: RISK CIRCUIT BREAKER ──
+const CIRCUIT_KEY = 'aiCircuitBreaker_v1';
+
+function checkCircuitBreaker(w) {
+  const cb = { halt: false, reason: '', sellAll: false };
+  const totalVal = w.cash + w.positions.reduce((s, p) => s + (p.currentPrice || p.avgPrice) * p.qty, 0);
+  const totalReturn = ((totalVal - PT_START) / PT_START * 100);
+
+  // Load circuit breaker state
+  let cbState = {};
+  try { cbState = JSON.parse(localStorage.getItem(CIRCUIT_KEY) || '{}'); } catch(e) {}
+
+  const today = new Date().toISOString().split('T')[0];
+
+  // Cool-down: if triggered yesterday, allow trading again today
+  if (cbState.haltDate && cbState.haltDate === today) {
+    cb.halt = true;
+    cb.reason = 'Circuit breaker active — triggered today. Trading resumes tomorrow.';
+    return cb;
+  }
+
+  // Check today's P&L
+  const todayPnl = w.positions.reduce((s, p) => {
+    const stock = stocks.find(st => st.ticker === p.ticker);
+    const prevClose = stock ? (stock.prevClose || p.avgPrice) : p.avgPrice;
+    const livePrice = p.currentPrice || p.avgPrice;
+    return s + (livePrice - prevClose) * p.qty;
+  }, 0);
+  const todayPnlPct = totalVal > 0 ? (todayPnl / totalVal * 100) : 0;
+
+  // Daily loss limit: -2%
+  if (todayPnlPct < -2) {
+    cb.halt = true;
+    cb.reason = 'DAILY LOSS LIMIT: Portfolio down ' + todayPnlPct.toFixed(1) + '% today. No new buys.';
+    cbState.haltDate = today;
+    cbState.reason = cb.reason;
+    localStorage.setItem(CIRCUIT_KEY, JSON.stringify(cbState));
+    return cb;
+  }
+
+  // Max drawdown: -5% total → sell everything
+  if (totalReturn < -5) {
+    cb.halt = true;
+    cb.sellAll = true;
+    cb.reason = 'MAX DRAWDOWN BREACHED: Total return ' + totalReturn.toFixed(1) + '%. Liquidating all positions to preserve capital.';
+    cbState.haltDate = today;
+    cbState.reason = cb.reason;
+    localStorage.setItem(CIRCUIT_KEY, JSON.stringify(cbState));
+    return cb;
+  }
+
+  return cb;
+}
+
+// ── LAYER 6: SECTOR HEAT MAP ──
+function getSectorHeat(sector) {
+  if (!isMoverScanFresh() || !sector) return { heat: 0, bonus: 0, label: 'Unknown' };
+  const sectorStocks = window._moverScan.scored.filter(s => s.sector === sector);
+  if (sectorStocks.length < 2) return { heat: 0, bonus: 0, label: 'Low data' };
+
+  const avgChange = sectorStocks.reduce((s, x) => s + x.changePct, 0) / sectorStocks.length;
+  const movingCount = sectorStocks.filter(s => Math.abs(s.changePct) > 2).length;
+
+  if (avgChange > 2 && movingCount >= 2) return { heat: 3, bonus: 15, label: '🔥 ON FIRE (' + avgChange.toFixed(1) + '%)' };
+  if (avgChange > 1) return { heat: 2, bonus: 10, label: '📈 Hot (' + avgChange.toFixed(1) + '%)' };
+  if (avgChange > 0.3) return { heat: 1, bonus: 5, label: 'Warm (' + avgChange.toFixed(1) + '%)' };
+  if (avgChange < -2) return { heat: -2, bonus: -15, label: '🧊 Frozen (' + avgChange.toFixed(1) + '%)' };
+  if (avgChange < -1) return { heat: -1, bonus: -10, label: '📉 Cold (' + avgChange.toFixed(1) + '%)' };
+  return { heat: 0, bonus: 0, label: 'Neutral (' + avgChange.toFixed(1) + '%)' };
+}
+
+// ── LAYER 7: ADAPTIVE POSITION SIZING ──
+function getAdaptiveSize(source, baseAllocPct, w) {
+  const trades = w.trades.filter(t => t.type === 'SELL' && t.source === source);
+  if (trades.length < 3) return baseAllocPct; // Need minimum data
+
+  const wins = trades.filter(t => t.pnl > 0);
+  const losses = trades.filter(t => t.pnl <= 0);
+  const winRate = wins.length / trades.length;
+  const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + t.pnl, 0) / wins.length : 0;
+  const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s, t) => s + t.pnl, 0) / losses.length) : 1;
+
+  // Simplified Kelly: f* = (W * avgWin - (1-W) * avgLoss) / avgWin
+  const kelly = avgWin > 0 ? (winRate * avgWin - (1 - winRate) * avgLoss) / avgWin : 0;
+
+  // Clamp Kelly between 0.5x and 2x of base allocation
+  const multiplier = Math.max(0.5, Math.min(2.0, 1 + kelly));
+  const adapted = baseAllocPct * multiplier;
+
+  // Hard limits
+  return Math.max(0.03, Math.min(0.20, adapted)); // 3% min, 20% max
+}
+
+// ── INTELLIGENCE SUMMARY (for UI) ──
+function getAISummary() {
+  const regime = getMarketRegime();
+  const timing = getTimingSignal();
+  const moverFresh = isMoverScanFresh();
+  return {
+    regime: regime,
+    timing: timing,
+    moverActive: moverFresh,
+    layersActive: [
+      regime.mode !== 'NEUTRAL' ? '✅ Regime: ' + regime.mode : '⬜ Regime: NEUTRAL',
+      timing.canTrade ? '✅ Timing: ' + timing.window : '❌ Timing: ' + timing.window,
+      '✅ Trend tracker',
+      '✅ Smart exits',
+      '✅ Circuit breaker',
+      moverFresh ? '✅ Sector heat' : '⬜ Sector heat (no scan)',
+      '✅ Adaptive sizing'
+    ]
+  };
 }
 
 // ============================================================
