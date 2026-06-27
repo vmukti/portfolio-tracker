@@ -968,7 +968,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
           <div>
             <h3 style="font-size:16px;font-weight:700;margin:0">&#129302; AI Stock Screener &mdash; Find Best Performers</h3>
-            <div style="font-size:12px;color:var(--muted);margin-top:4px">Scan 300+ stocks, score with 8-factor algorithm, surface top picks</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">Scan 300+ stocks by cap size &amp; sector, score with 8-factor algorithm, surface top picks</div>
           </div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
@@ -990,6 +990,15 @@ tbody tr.flash-down{animation:flashRed .8s ease}
             <option value="Cement">Cement</option>
             <option value="Insurance">Insurance</option>
             <option value="EMS">EMS/Electronics</option>
+          </select>
+          <select id="screenerMcap" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px">
+            <option value="">All Cap Sizes</option>
+            <option value="L">Large Cap (&gt;₹50K Cr)</option>
+            <option value="M">Mid Cap (₹10K–50K Cr)</option>
+            <option value="S">Small Cap (₹2K–10K Cr)</option>
+            <option value="X">Micro Cap (&lt;₹2K Cr)</option>
+            <option value="MS">Mid + Small Cap</option>
+            <option value="SX">Small + Micro Cap</option>
           </select>
           <button onclick="runScreener('top50')" style="padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card2);color:var(--accent)">&#9889; Scan Top 50</button>
           <button onclick="runScreener('all')" style="padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#fff">&#128640; Scan All 300</button>
@@ -1939,195 +1948,195 @@ function renderBessChart() {
 // Universe of 300 high-liquidity Indian stocks across 50+ sectors (NO DEFENCE • NO PHARMA • NO FMCG)
 const MOVER_UNIVERSE = [
   // ---- AUTO & AUTO ANCILLARY (24) ----
-  {t:'MARUTI',n:'Maruti Suzuki',s:'Automobile'},{t:'TATAMOTORS',n:'Tata Motors',s:'Automobile'},
-  {t:'M%26M',n:'Mahindra & Mahindra',s:'Automobile'},{t:'BAJAJ-AUTO',n:'Bajaj Auto',s:'Automobile'},
-  {t:'EICHERMOT',n:'Eicher Motors',s:'Automobile'},{t:'HEROMOTOCO',n:'Hero MotoCorp',s:'Automobile'},
-  {t:'TVSMOTOR',n:'TVS Motor',s:'Automobile'},{t:'ASHOKLEY',n:'Ashok Leyland',s:'Auto CV'},
-  {t:'MOTHERSON',n:'Motherson Sumi',s:'Auto Ancillary'},{t:'UNOMINDA',n:'UNO Minda',s:'Auto Ancillary'},
-  {t:'BHARATFORG',n:'Bharat Forge',s:'Auto Ancillary'},{t:'TIINDIA',n:'Tube Investments',s:'Auto Ancillary'},
-  {t:'SONACOMS',n:'Sona BLW',s:'Auto Ancillary'},{t:'EXIDEIND',n:'Exide Industries',s:'Auto Battery'},
-  {t:'APOLLOTYRE',n:'Apollo Tyres',s:'Tyres'},{t:'MRF',n:'MRF',s:'Tyres'},
-  {t:'BALKRISIND',n:'Balkrishna Industries',s:'Tyres'},{t:'FORCEMOT',n:'Force Motors',s:'Auto CV'},
-  {t:'ESCORTS',n:'Escorts Kubota',s:'Tractors'},{t:'CEATLTD',n:'CEAT',s:'Tyres'},
-  {t:'JKTYRE',n:'JK Tyre',s:'Tyres'},{t:'ENDURANCE',n:'Endurance Technologies',s:'Auto Ancillary'},
-  {t:'SUNDRMFAST',n:'Sundram Fasteners',s:'Auto Ancillary'},{t:'SCHAEFFLER',n:'Schaeffler India',s:'Auto Ancillary'},
+  {t:'MARUTI',n:'Maruti Suzuki',s:'Automobile',c:'L',pe:28,ro:22,mc:370000},{t:'TATAMOTORS',n:'Tata Motors',s:'Automobile',c:'L',pe:8,ro:18,mc:270000},
+  {t:'M%26M',n:'Mahindra & Mahindra',s:'Automobile',c:'L',pe:30,ro:21,mc:400000},{t:'BAJAJ-AUTO',n:'Bajaj Auto',s:'Automobile',c:'L',pe:33,ro:35,mc:260000},
+  {t:'EICHERMOT',n:'Eicher Motors',s:'Automobile',c:'L',pe:35,ro:28,mc:145000},{t:'HEROMOTOCO',n:'Hero MotoCorp',s:'Automobile',c:'L',pe:25,ro:30,mc:110000},
+  {t:'TVSMOTOR',n:'TVS Motor',s:'Automobile',c:'L',pe:65,ro:30,mc:110000},{t:'ASHOKLEY',n:'Ashok Leyland',s:'Auto CV',c:'M',pe:22,ro:20,mc:48000},
+  {t:'MOTHERSON',n:'Motherson Sumi',s:'Auto Ancillary',c:'L',pe:45,ro:12,mc:100000},{t:'UNOMINDA',n:'UNO Minda',s:'Auto Ancillary',c:'M',pe:55,ro:20,mc:40000},
+  {t:'BHARATFORG',n:'Bharat Forge',s:'Auto Ancillary',c:'M',pe:50,ro:15,mc:32000},{t:'TIINDIA',n:'Tube Investments',s:'Auto Ancillary',c:'M',pe:42,ro:20,mc:45000},
+  {t:'SONACOMS',n:'Sona BLW',s:'Auto Ancillary',c:'M',pe:55,ro:16,mc:28000},{t:'EXIDEIND',n:'Exide Industries',s:'Auto Battery',c:'M',pe:38,ro:14,mc:30000},
+  {t:'APOLLOTYRE',n:'Apollo Tyres',s:'Tyres',c:'M',pe:18,ro:14,mc:28000},{t:'MRF',n:'MRF',s:'Tyres',c:'M',pe:28,ro:12,mc:48000},
+  {t:'BALKRISIND',n:'Balkrishna Industries',s:'Tyres',c:'M',pe:30,ro:18,mc:46000},{t:'FORCEMOT',n:'Force Motors',s:'Auto CV',c:'S',pe:18,ro:22,mc:7500},
+  {t:'ESCORTS',n:'Escorts Kubota',s:'Tractors',c:'M',pe:28,ro:16,mc:25000},{t:'CEATLTD',n:'CEAT',s:'Tyres',c:'M',pe:28,ro:12,mc:12000},
+  {t:'JKTYRE',n:'JK Tyre',s:'Tyres',c:'S',pe:12,ro:14,mc:5000},{t:'ENDURANCE',n:'Endurance Technologies',s:'Auto Ancillary',c:'M',pe:55,ro:18,mc:28000},
+  {t:'SUNDRMFAST',n:'Sundram Fasteners',s:'Auto Ancillary',c:'S',pe:32,ro:20,mc:9500},{t:'SCHAEFFLER',n:'Schaeffler India',s:'Auto Ancillary',c:'M',pe:45,ro:22,mc:35000},
   // ---- AVIATION & TRAVEL (3) ----
-  {t:'INDIGO',n:'IndiGo',s:'Aviation'},{t:'SPICEJET',n:'SpiceJet',s:'Aviation'},
-  {t:'IRCTC',n:'IRCTC',s:'Travel/Railway'},
+  {t:'INDIGO',n:'IndiGo',s:'Aviation',c:'L',pe:20,ro:55,mc:160000},{t:'SPICEJET',n:'SpiceJet',s:'Aviation',c:'S',pe:0,ro:0,mc:4000},
+  {t:'IRCTC',n:'IRCTC',s:'Travel/Railway',c:'L',pe:50,ro:45,mc:65000},
   // ---- PRIVATE BANKING (10) ----
-  {t:'HDFCBANK',n:'HDFC Bank',s:'Private Banking'},{t:'ICICIBANK',n:'ICICI Bank',s:'Private Banking'},
-  {t:'KOTAKBANK',n:'Kotak Mahindra Bank',s:'Private Banking'},{t:'AXISBANK',n:'Axis Bank',s:'Private Banking'},
-  {t:'INDUSINDBK',n:'IndusInd Bank',s:'Private Banking'},{t:'IDFCFIRSTB',n:'IDFC First Bank',s:'Banking'},
-  {t:'BANDHANBNK',n:'Bandhan Bank',s:'Banking'},{t:'FEDERALBNK',n:'Federal Bank',s:'Banking'},
-  {t:'AUBANK',n:'AU Small Finance Bank',s:'Banking'},{t:'RBLBANK',n:'RBL Bank',s:'Banking'},
+  {t:'HDFCBANK',n:'HDFC Bank',s:'Private Banking',c:'L',pe:20,ro:16,mc:1350000},{t:'ICICIBANK',n:'ICICI Bank',s:'Private Banking',c:'L',pe:18,ro:16,mc:950000},
+  {t:'KOTAKBANK',n:'Kotak Mahindra Bank',s:'Private Banking',c:'L',pe:22,ro:14,mc:400000},{t:'AXISBANK',n:'Axis Bank',s:'Private Banking',c:'L',pe:13,ro:15,mc:370000},
+  {t:'INDUSINDBK',n:'IndusInd Bank',s:'Private Banking',c:'L',pe:12,ro:12,mc:80000},{t:'IDFCFIRSTB',n:'IDFC First Bank',s:'Banking',c:'M',pe:14,ro:10,mc:35000},
+  {t:'BANDHANBNK',n:'Bandhan Bank',s:'Banking',c:'M',pe:10,ro:14,mc:25000},{t:'FEDERALBNK',n:'Federal Bank',s:'Banking',c:'M',pe:10,ro:12,mc:30000},
+  {t:'AUBANK',n:'AU Small Finance Bank',s:'Banking',c:'M',pe:28,ro:12,mc:35000},{t:'RBLBANK',n:'RBL Bank',s:'Banking',c:'S',pe:10,ro:8,mc:8000},
   // ---- PSU BANKING (11) ----
-  {t:'SBIN',n:'SBI',s:'PSU Banking'},{t:'BANKBARODA',n:'Bank of Baroda',s:'PSU Banking'},
-  {t:'PNB',n:'PNB',s:'PSU Banking'},{t:'CANBK',n:'Canara Bank',s:'PSU Banking'},
-  {t:'INDIANB',n:'Indian Bank',s:'PSU Banking'},{t:'UNIONBANK',n:'Union Bank',s:'PSU Banking'},
-  {t:'MAHABANK',n:'Bank of Maharashtra',s:'PSU Banking'},{t:'IOB',n:'Indian Overseas Bank',s:'PSU Banking'},
-  {t:'CENTRALBK',n:'Central Bank of India',s:'PSU Banking'},{t:'UCOBANK',n:'UCO Bank',s:'PSU Banking'},
-  {t:'BANKINDIA',n:'Bank of India',s:'PSU Banking'},
+  {t:'SBIN',n:'SBI',s:'PSU Banking',c:'L',pe:10,ro:15,mc:650000},{t:'BANKBARODA',n:'Bank of Baroda',s:'PSU Banking',c:'L',pe:6,ro:12,mc:130000},
+  {t:'PNB',n:'PNB',s:'PSU Banking',c:'L',pe:7,ro:10,mc:120000},{t:'CANBK',n:'Canara Bank',s:'PSU Banking',c:'L',pe:6,ro:12,mc:95000},
+  {t:'INDIANB',n:'Indian Bank',s:'PSU Banking',c:'M',pe:6,ro:12,mc:48000},{t:'UNIONBANK',n:'Union Bank',s:'PSU Banking',c:'L',pe:6,ro:10,mc:80000},
+  {t:'MAHABANK',n:'Bank of Maharashtra',s:'PSU Banking',c:'M',pe:7,ro:12,mc:35000},{t:'IOB',n:'Indian Overseas Bank',s:'PSU Banking',c:'L',pe:25,ro:6,mc:55000},
+  {t:'CENTRALBK',n:'Central Bank of India',s:'PSU Banking',c:'M',pe:35,ro:3,mc:22000},{t:'UCOBANK',n:'UCO Bank',s:'PSU Banking',c:'M',pe:10,ro:6,mc:30000},
+  {t:'BANKINDIA',n:'Bank of India',s:'PSU Banking',c:'M',pe:6,ro:8,mc:35000},
   // ---- SMALL FINANCE & OTHER BANKS (5) ----
-  {t:'EQUITASBNK',n:'Equitas SFB',s:'Small Finance Bank'},{t:'UJJIVANSFB',n:'Ujjivan SFB',s:'Small Finance Bank'},
-  {t:'KTKBANK',n:'Karnataka Bank',s:'Banking'},{t:'SOUTHBANK',n:'South Indian Bank',s:'Banking'},
-  {t:'DCBBANK',n:'DCB Bank',s:'Banking'},
+  {t:'EQUITASBNK',n:'Equitas SFB',s:'Small Finance Bank',c:'S',pe:8,ro:12,mc:7500},{t:'UJJIVANSFB',n:'Ujjivan SFB',s:'Small Finance Bank',c:'S',pe:7,ro:16,mc:8000},
+  {t:'KTKBANK',n:'Karnataka Bank',s:'Banking',c:'S',pe:5,ro:10,mc:6000},{t:'SOUTHBANK',n:'South Indian Bank',s:'Banking',c:'S',pe:5,ro:8,mc:5000},
+  {t:'DCBBANK',n:'DCB Bank',s:'Banking',c:'S',pe:7,ro:8,mc:3500},
   // ---- NBFC & FINANCIAL SERVICES (17) ----
-  {t:'BAJFINANCE',n:'Bajaj Finance',s:'NBFC'},{t:'BAJAJFINSV',n:'Bajaj Finserv',s:'Financial Services'},
-  {t:'MANAPPURAM',n:'Manappuram Finance',s:'NBFC Gold'},{t:'MUTHOOTFIN',n:'Muthoot Finance',s:'NBFC Gold'},
-  {t:'POONAWALLA',n:'Poonawalla Fincorp',s:'NBFC'},{t:'LICHSGFIN',n:'LIC Housing Finance',s:'Housing Finance'},
-  {t:'CHOLAFIN',n:'Cholamandalam Finance',s:'NBFC'},{t:'SHRIRAMFIN',n:'Shriram Finance',s:'NBFC'},
-  {t:'M%26MFIN',n:'M&M Financial',s:'NBFC'},{t:'SBICARD',n:'SBI Cards',s:'Credit Cards'},
-  {t:'LTFH',n:'L&T Finance',s:'NBFC'},{t:'PNBHOUSING',n:'PNB Housing Finance',s:'Housing Finance'},
-  {t:'CANFINHOME',n:'Can Fin Homes',s:'Housing Finance'},{t:'AAVAS',n:'Aavas Financiers',s:'Housing Finance'},
-  {t:'HOMEFIRST',n:'Home First Finance',s:'Housing Finance'},{t:'APTUS',n:'Aptus Value Housing',s:'Housing Finance'},
-  {t:'CREDITACC',n:'CreditAccess Grameen',s:'Microfinance'},
+  {t:'BAJFINANCE',n:'Bajaj Finance',s:'NBFC',c:'L',pe:32,ro:22,mc:470000},{t:'BAJAJFINSV',n:'Bajaj Finserv',s:'Financial Services',c:'L',pe:100,ro:15,mc:280000},
+  {t:'MANAPPURAM',n:'Manappuram Finance',s:'NBFC Gold',c:'M',pe:8,ro:22,mc:18000},{t:'MUTHOOTFIN',n:'Muthoot Finance',s:'NBFC Gold',c:'L',pe:15,ro:22,mc:70000},
+  {t:'POONAWALLA',n:'Poonawalla Fincorp',s:'NBFC',c:'M',pe:25,ro:12,mc:35000},{t:'LICHSGFIN',n:'LIC Housing Finance',s:'Housing Finance',c:'M',pe:8,ro:14,mc:28000},
+  {t:'CHOLAFIN',n:'Cholamandalam Finance',s:'NBFC',c:'L',pe:30,ro:16,mc:110000},{t:'SHRIRAMFIN',n:'Shriram Finance',s:'NBFC',c:'L',pe:14,ro:18,mc:95000},
+  {t:'M%26MFIN',n:'M&M Financial',s:'NBFC',c:'M',pe:12,ro:14,mc:30000},{t:'SBICARD',n:'SBI Cards',s:'Credit Cards',c:'M',pe:28,ro:25,mc:40000},
+  {t:'LTFH',n:'L&T Finance',s:'NBFC',c:'M',pe:10,ro:12,mc:32000},{t:'PNBHOUSING',n:'PNB Housing Finance',s:'Housing Finance',c:'S',pe:8,ro:10,mc:8000},
+  {t:'CANFINHOME',n:'Can Fin Homes',s:'Housing Finance',c:'S',pe:10,ro:18,mc:7500},{t:'AAVAS',n:'Aavas Financiers',s:'Housing Finance',c:'S',pe:22,ro:12,mc:8000},
+  {t:'HOMEFIRST',n:'Home First Finance',s:'Housing Finance',c:'S',pe:25,ro:14,mc:9000},{t:'APTUS',n:'Aptus Value Housing',s:'Housing Finance',c:'S',pe:20,ro:14,mc:7000},
+  {t:'CREDITACC',n:'CreditAccess Grameen',s:'Microfinance',c:'S',pe:10,ro:18,mc:8500},
   // ---- IT & TECH (24) ----
-  {t:'TCS',n:'TCS',s:'IT'},{t:'INFY',n:'Infosys',s:'IT'},
-  {t:'HCLTECH',n:'HCL Tech',s:'IT'},{t:'WIPRO',n:'Wipro',s:'IT'},
-  {t:'TECHM',n:'Tech Mahindra',s:'IT'},{t:'LTIM',n:'LTIMindtree',s:'IT'},
-  {t:'MPHASIS',n:'Mphasis',s:'IT'},{t:'PERSISTENT',n:'Persistent Systems',s:'IT'},
-  {t:'COFORGE',n:'Coforge',s:'IT'},{t:'TATAELXSI',n:'Tata Elxsi',s:'IT/Design'},
-  {t:'KPITTECH',n:'KPIT Technologies',s:'IT/Auto'},{t:'BIRLASOFT',n:'Birlasoft',s:'IT'},
-  {t:'HAPPSTMNDS',n:'Happiest Minds',s:'IT'},{t:'ZENSAR',n:'Zensar Technologies',s:'IT'},
-  {t:'DIXON',n:'Dixon Technologies',s:'EMS/Technology'},{t:'CYIENT',n:'Cyient',s:'IT/Engineering'},
-  {t:'MASTEK',n:'Mastek',s:'IT'},{t:'SONATASOFT',n:'Sonata Software',s:'IT'},
-  {t:'INTELLECT',n:'Intellect Design',s:'IT/Fintech'},{t:'NEWGEN',n:'Newgen Software',s:'IT/Enterprise'},
-  {t:'TANLA',n:'Tanla Platforms',s:'IT/CPaaS'},{t:'ECLERX',n:'eClerx Services',s:'IT/BPO'},
-  {t:'LATENTVIEW',n:'Latent View Analytics',s:'IT/Analytics'},{t:'MAPMYINDIA',n:'CE Info Systems',s:'Tech/Maps'},
+  {t:'TCS',n:'TCS',s:'IT',c:'L',pe:30,ro:55,mc:1350000},{t:'INFY',n:'Infosys',s:'IT',c:'L',pe:28,ro:38,mc:680000},
+  {t:'HCLTECH',n:'HCL Tech',s:'IT',c:'L',pe:26,ro:30,mc:450000},{t:'WIPRO',n:'Wipro',s:'IT',c:'L',pe:22,ro:16,mc:270000},
+  {t:'TECHM',n:'Tech Mahindra',s:'IT',c:'L',pe:35,ro:18,mc:160000},{t:'LTIM',n:'LTIMindtree',s:'IT',c:'L',pe:35,ro:32,mc:160000},
+  {t:'MPHASIS',n:'Mphasis',s:'IT',c:'M',pe:28,ro:22,mc:45000},{t:'PERSISTENT',n:'Persistent Systems',s:'IT',c:'L',pe:55,ro:30,mc:65000},
+  {t:'COFORGE',n:'Coforge',s:'IT',c:'M',pe:45,ro:28,mc:40000},{t:'TATAELXSI',n:'Tata Elxsi',s:'IT/Design',c:'M',pe:45,ro:38,mc:30000},
+  {t:'KPITTECH',n:'KPIT Technologies',s:'IT/Auto',c:'M',pe:55,ro:32,mc:35000},{t:'BIRLASOFT',n:'Birlasoft',s:'IT',c:'M',pe:22,ro:18,mc:12000},
+  {t:'HAPPSTMNDS',n:'Happiest Minds',s:'IT',c:'S',pe:35,ro:25,mc:7500},{t:'ZENSAR',n:'Zensar Technologies',s:'IT',c:'M',pe:22,ro:16,mc:14000},
+  {t:'DIXON',n:'Dixon Technologies',s:'EMS/Technology',c:'L',pe:95,ro:25,mc:80000},{t:'CYIENT',n:'Cyient',s:'IT/Engineering',c:'M',pe:20,ro:18,mc:14000},
+  {t:'MASTEK',n:'Mastek',s:'IT',c:'S',pe:25,ro:20,mc:8000},{t:'SONATASOFT',n:'Sonata Software',s:'IT',c:'S',pe:35,ro:22,mc:9000},
+  {t:'INTELLECT',n:'Intellect Design',s:'IT/Fintech',c:'S',pe:30,ro:18,mc:8500},{t:'NEWGEN',n:'Newgen Software',s:'IT/Enterprise',c:'S',pe:35,ro:28,mc:9500},
+  {t:'TANLA',n:'Tanla Platforms',s:'IT/CPaaS',c:'S',pe:15,ro:25,mc:5500},{t:'ECLERX',n:'eClerx Services',s:'IT/BPO',c:'M',pe:22,ro:35,mc:12000},
+  {t:'LATENTVIEW',n:'Latent View Analytics',s:'IT/Analytics',c:'S',pe:50,ro:18,mc:5500},{t:'MAPMYINDIA',n:'CE Info Systems',s:'Tech/Maps',c:'S',pe:60,ro:22,mc:9000},
   // ---- METALS & MINING (13) ----
-  {t:'TATASTEEL',n:'Tata Steel',s:'Steel'},{t:'JSWSTEEL',n:'JSW Steel',s:'Steel'},
-  {t:'SAIL',n:'SAIL',s:'Steel'},{t:'HINDALCO',n:'Hindalco',s:'Metals'},
-  {t:'VEDL',n:'Vedanta',s:'Mining/Metals'},{t:'NATIONALUM',n:'NALCO',s:'Metals'},
-  {t:'NMDC',n:'NMDC',s:'Mining'},{t:'COALINDIA',n:'Coal India',s:'Mining'},
-  {t:'MOIL',n:'MOIL',s:'Mining/Manganese'},{t:'RATNAMANI',n:'Ratnamani Metals',s:'Steel Tubes'},
-  {t:'WELCORP',n:'Welspun Corp',s:'Steel Pipes'},{t:'APLAPOLLO',n:'APL Apollo Tubes',s:'Steel Tubes'},
-  {t:'JINDALSAW',n:'Jindal SAW',s:'Steel Pipes'},
+  {t:'TATASTEEL',n:'Tata Steel',s:'Steel',c:'L',pe:0,ro:8,mc:185000},{t:'JSWSTEEL',n:'JSW Steel',s:'Steel',c:'L',pe:25,ro:12,mc:230000},
+  {t:'SAIL',n:'SAIL',s:'Steel',c:'M',pe:10,ro:8,mc:42000},{t:'HINDALCO',n:'Hindalco',s:'Metals',c:'L',pe:12,ro:12,mc:150000},
+  {t:'VEDL',n:'Vedanta',s:'Mining/Metals',c:'L',pe:8,ro:15,mc:170000},{t:'NATIONALUM',n:'NALCO',s:'Metals',c:'M',pe:10,ro:16,mc:30000},
+  {t:'NMDC',n:'NMDC',s:'Mining',c:'M',pe:8,ro:22,mc:32000},{t:'COALINDIA',n:'Coal India',s:'Mining',c:'L',pe:8,ro:55,mc:250000},
+  {t:'MOIL',n:'MOIL',s:'Mining/Manganese',c:'S',pe:10,ro:18,mc:5500},{t:'RATNAMANI',n:'Ratnamani Metals',s:'Steel Tubes',c:'M',pe:35,ro:22,mc:15000},
+  {t:'WELCORP',n:'Welspun Corp',s:'Steel Pipes',c:'M',pe:12,ro:18,mc:14000},{t:'APLAPOLLO',n:'APL Apollo Tubes',s:'Steel Tubes',c:'M',pe:45,ro:30,mc:38000},
+  {t:'JINDALSAW',n:'Jindal SAW',s:'Steel Pipes',c:'M',pe:10,ro:18,mc:12000},
   // ---- OIL & GAS (12) ----
-  {t:'RELIANCE',n:'Reliance Industries',s:'Conglomerate'},{t:'ONGC',n:'ONGC',s:'Oil & Gas'},
-  {t:'BPCL',n:'BPCL',s:'Oil & Gas'},{t:'IOC',n:'Indian Oil',s:'Oil & Gas'},
-  {t:'GAIL',n:'GAIL',s:'Gas'},{t:'PETRONET',n:'Petronet LNG',s:'Gas'},
-  {t:'HINDPETRO',n:'HPCL',s:'Oil & Gas'},{t:'IGL',n:'Indraprastha Gas',s:'Gas Distribution'},
-  {t:'MGL',n:'Mahanagar Gas',s:'Gas Distribution'},{t:'GUJGASLTD',n:'Gujarat Gas',s:'Gas Distribution'},
-  {t:'ATGL',n:'Adani Total Gas',s:'Gas Distribution'},{t:'AEGISCHEM',n:'Aegis Logistics',s:'Gas/Logistics'},
+  {t:'RELIANCE',n:'Reliance Industries',s:'Conglomerate',c:'L',pe:28,ro:10,mc:1700000},{t:'ONGC',n:'ONGC',s:'Oil & Gas',c:'L',pe:7,ro:14,mc:340000},
+  {t:'BPCL',n:'BPCL',s:'Oil & Gas',c:'L',pe:8,ro:22,mc:120000},{t:'IOC',n:'Indian Oil',s:'Oil & Gas',c:'L',pe:6,ro:18,mc:180000},
+  {t:'GAIL',n:'GAIL',s:'Gas',c:'L',pe:10,ro:15,mc:140000},{t:'PETRONET',n:'Petronet LNG',s:'Gas',c:'M',pe:12,ro:22,mc:45000},
+  {t:'HINDPETRO',n:'HPCL',s:'Oil & Gas',c:'L',pe:8,ro:18,mc:70000},{t:'IGL',n:'Indraprastha Gas',s:'Gas Distribution',c:'M',pe:22,ro:22,mc:28000},
+  {t:'MGL',n:'Mahanagar Gas',s:'Gas Distribution',c:'M',pe:15,ro:25,mc:14000},{t:'GUJGASLTD',n:'Gujarat Gas',s:'Gas Distribution',c:'M',pe:25,ro:20,mc:18000},
+  {t:'ATGL',n:'Adani Total Gas',s:'Gas Distribution',c:'L',pe:120,ro:15,mc:80000},{t:'AEGISCHEM',n:'Aegis Logistics',s:'Gas/Logistics',c:'M',pe:25,ro:15,mc:18000},
   // ---- TELECOM & DATA (6) ----
-  {t:'BHARTIARTL',n:'Bharti Airtel',s:'Telecom'},{t:'IDEA',n:'Vodafone Idea',s:'Telecom'},
-  {t:'STLTECH',n:'Sterlite Technologies',s:'Telecom/Data'},{t:'HFCL',n:'HFCL',s:'Telecom Equipment'},
-  {t:'TTML',n:'Tata Teleservices',s:'Telecom'},{t:'TATACOMM',n:'Tata Communications',s:'Telecom/Data'},
+  {t:'BHARTIARTL',n:'Bharti Airtel',s:'Telecom',c:'L',pe:75,ro:12,mc:850000},{t:'IDEA',n:'Vodafone Idea',s:'Telecom',c:'M',pe:0,ro:0,mc:45000},
+  {t:'STLTECH',n:'Sterlite Technologies',s:'Telecom/Data',c:'S',pe:30,ro:6,mc:8000},{t:'HFCL',n:'HFCL',s:'Telecom Equipment',c:'S',pe:35,ro:18,mc:9000},
+  {t:'TTML',n:'Tata Teleservices',s:'Telecom',c:'X',pe:0,ro:0,mc:1500},{t:'TATACOMM',n:'Tata Communications',s:'Telecom/Data',c:'M',pe:25,ro:15,mc:22000},
   // ---- REAL ESTATE (11) ----
-  {t:'DLF',n:'DLF',s:'Real Estate'},{t:'GODREJPROP',n:'Godrej Properties',s:'Real Estate'},
-  {t:'OBEROIRLTY',n:'Oberoi Realty',s:'Real Estate'},{t:'PRESTIGE',n:'Prestige Estates',s:'Real Estate'},
-  {t:'BRIGADE',n:'Brigade Enterprises',s:'Real Estate'},{t:'LODHA',n:'Macrotech Developers',s:'Real Estate'},
-  {t:'SOBHA',n:'Sobha',s:'Real Estate'},{t:'PHOENIXLTD',n:'Phoenix Mills',s:'Real Estate/Malls'},
-  {t:'SUNTECK',n:'Sunteck Realty',s:'Real Estate'},{t:'KOLTEPATIL',n:'Kolte-Patil Developers',s:'Real Estate'},
-  {t:'MAHLIFE',n:'Mahindra Lifespace',s:'Real Estate'},
+  {t:'DLF',n:'DLF',s:'Real Estate',c:'L',pe:45,ro:8,mc:170000},{t:'GODREJPROP',n:'Godrej Properties',s:'Real Estate',c:'L',pe:55,ro:8,mc:65000},
+  {t:'OBEROIRLTY',n:'Oberoi Realty',s:'Real Estate',c:'M',pe:25,ro:14,mc:42000},{t:'PRESTIGE',n:'Prestige Estates',s:'Real Estate',c:'L',pe:35,ro:10,mc:55000},
+  {t:'BRIGADE',n:'Brigade Enterprises',s:'Real Estate',c:'M',pe:30,ro:10,mc:18000},{t:'LODHA',n:'Macrotech Developers',s:'Real Estate',c:'L',pe:30,ro:10,mc:70000},
+  {t:'SOBHA',n:'Sobha',s:'Real Estate',c:'S',pe:22,ro:8,mc:5500},{t:'PHOENIXLTD',n:'Phoenix Mills',s:'Real Estate/Malls',c:'M',pe:40,ro:10,mc:42000},
+  {t:'SUNTECK',n:'Sunteck Realty',s:'Real Estate',c:'S',pe:18,ro:4,mc:5000},{t:'KOLTEPATIL',n:'Kolte-Patil Developers',s:'Real Estate',c:'S',pe:12,ro:14,mc:3500},
+  {t:'MAHLIFE',n:'Mahindra Lifespace',s:'Real Estate',c:'S',pe:55,ro:4,mc:5000},
   // ---- INFRA & CONSTRUCTION (14) ----
-  {t:'LT',n:'Larsen & Toubro',s:'Engineering'},{t:'IRCON',n:'IRCON International',s:'Railway Infra'},
-  {t:'RVNL',n:'RVNL',s:'Railway Infra'},{t:'NBCC',n:'NBCC',s:'Construction'},
-  {t:'IRB',n:'IRB Infra',s:'Road Infra'},{t:'RAILTEL',n:'RailTel',s:'Railway IT'},
-  {t:'NCC',n:'NCC',s:'Construction'},{t:'GMRAIRPORT',n:'GMR Airports',s:'Airport Infra'},
-  {t:'KNRCON',n:'KNR Constructions',s:'Road Infra'},{t:'PNCINFRA',n:'PNC Infratech',s:'Road Infra'},
-  {t:'HGINFRA',n:'H.G. Infra',s:'Infra EPC'},{t:'KEC',n:'KEC International',s:'Infra EPC'},
-  {t:'ENGINERSIN',n:'Engineers India',s:'Engineering'},{t:'POWERMECH',n:'Power Mech Projects',s:'Infra EPC'},
+  {t:'LT',n:'Larsen & Toubro',s:'Engineering',c:'L',pe:32,ro:15,mc:480000},{t:'IRCON',n:'IRCON International',s:'Railway Infra',c:'M',pe:15,ro:18,mc:18000},
+  {t:'RVNL',n:'RVNL',s:'Railway Infra',c:'M',pe:35,ro:22,mc:45000},{t:'NBCC',n:'NBCC',s:'Construction',c:'M',pe:40,ro:28,mc:20000},
+  {t:'IRB',n:'IRB Infra',s:'Road Infra',c:'M',pe:18,ro:8,mc:18000},{t:'RAILTEL',n:'RailTel',s:'Railway IT',c:'S',pe:30,ro:18,mc:8000},
+  {t:'NCC',n:'NCC',s:'Construction',c:'M',pe:12,ro:15,mc:12000},{t:'GMRAIRPORT',n:'GMR Airports',s:'Airport Infra',c:'M',pe:0,ro:2,mc:35000},
+  {t:'KNRCON',n:'KNR Constructions',s:'Road Infra',c:'S',pe:18,ro:16,mc:8500},{t:'PNCINFRA',n:'PNC Infratech',s:'Road Infra',c:'S',pe:12,ro:16,mc:6000},
+  {t:'HGINFRA',n:'H.G. Infra',s:'Infra EPC',c:'S',pe:10,ro:22,mc:5500},{t:'KEC',n:'KEC International',s:'Infra EPC',c:'M',pe:35,ro:14,mc:18000},
+  {t:'ENGINERSIN',n:'Engineers India',s:'Engineering',c:'S',pe:15,ro:18,mc:9000},{t:'POWERMECH',n:'Power Mech Projects',s:'Infra EPC',c:'S',pe:18,ro:18,mc:5000},
   // ---- POWER & ENERGY (15) ----
-  {t:'NTPC',n:'NTPC',s:'Power'},{t:'NHPC',n:'NHPC',s:'Hydro Power'},
-  {t:'SJVN',n:'SJVN',s:'Hydro Power'},{t:'ADANIGREEN',n:'Adani Green',s:'Renewable'},
-  {t:'ADANIPOWER',n:'Adani Power',s:'Power'},{t:'IREDA',n:'IREDA',s:'Green Finance'},
-  {t:'RECLTD',n:'REC',s:'Power Finance'},{t:'PFC',n:'PFC',s:'Power Finance'},
-  {t:'TATAPOWER',n:'Tata Power',s:'Power'},{t:'JSWENERGY',n:'JSW Energy',s:'Power'},
-  {t:'POWERGRID',n:'Power Grid',s:'Power Transmission'},{t:'TORNTPOWER',n:'Torrent Power',s:'Power'},
-  {t:'CESC',n:'CESC',s:'Power'},{t:'NLCINDIA',n:'NLC India',s:'Power/Mining'},
-  {t:'IEX',n:'Indian Energy Exchange',s:'Power Exchange'},
+  {t:'NTPC',n:'NTPC',s:'Power',c:'L',pe:14,ro:10,mc:370000},{t:'NHPC',n:'NHPC',s:'Hydro Power',c:'L',pe:18,ro:8,mc:80000},
+  {t:'SJVN',n:'SJVN',s:'Hydro Power',c:'M',pe:28,ro:8,mc:35000},{t:'ADANIGREEN',n:'Adani Green',s:'Renewable',c:'L',pe:120,ro:5,mc:180000},
+  {t:'ADANIPOWER',n:'Adani Power',s:'Power',c:'L',pe:8,ro:18,mc:80000},{t:'IREDA',n:'IREDA',s:'Green Finance',c:'M',pe:22,ro:12,mc:35000},
+  {t:'RECLTD',n:'REC',s:'Power Finance',c:'L',pe:8,ro:16,mc:55000},{t:'PFC',n:'PFC',s:'Power Finance',c:'L',pe:6,ro:18,mc:55000},
+  {t:'TATAPOWER',n:'Tata Power',s:'Power',c:'L',pe:35,ro:10,mc:120000},{t:'JSWENERGY',n:'JSW Energy',s:'Power',c:'L',pe:50,ro:8,mc:70000},
+  {t:'POWERGRID',n:'Power Grid',s:'Power Transmission',c:'L',pe:14,ro:14,mc:280000},{t:'TORNTPOWER',n:'Torrent Power',s:'Power',c:'M',pe:28,ro:15,mc:45000},
+  {t:'CESC',n:'CESC',s:'Power',c:'M',pe:14,ro:12,mc:14000},{t:'NLCINDIA',n:'NLC India',s:'Power/Mining',c:'M',pe:12,ro:10,mc:18000},
+  {t:'IEX',n:'Indian Energy Exchange',s:'Power Exchange',c:'M',pe:35,ro:45,mc:12000},
   // ---- CAPITAL GOODS (12) ----
-  {t:'BHEL',n:'BHEL',s:'Capital Goods'},{t:'SIEMENS',n:'Siemens',s:'Capital Goods'},
-  {t:'ABB',n:'ABB India',s:'Capital Goods'},{t:'CUMMINSIND',n:'Cummins India',s:'Capital Goods'},
-  {t:'THERMAX',n:'Thermax',s:'Capital Goods'},{t:'GRINFRA',n:'G R Infraprojects',s:'Infra EPC'},
-  {t:'ELGIEQUIP',n:'Elgi Equipments',s:'Capital Goods'},{t:'HONAUT',n:'Honeywell Automation',s:'Automation'},
-  {t:'AIAENG',n:'AIA Engineering',s:'Capital Goods'},{t:'KAYNES',n:'Kaynes Technology',s:'Electronics'},
-  {t:'CGPOWER',n:'CG Power',s:'Electricals'},{t:'TRITURBINE',n:'Triveni Turbines',s:'Capital Goods'},
+  {t:'BHEL',n:'BHEL',s:'Capital Goods',c:'L',pe:55,ro:6,mc:80000},{t:'SIEMENS',n:'Siemens',s:'Capital Goods',c:'L',pe:80,ro:18,mc:220000},
+  {t:'ABB',n:'ABB India',s:'Capital Goods',c:'L',pe:85,ro:20,mc:160000},{t:'CUMMINSIND',n:'Cummins India',s:'Capital Goods',c:'L',pe:48,ro:30,mc:90000},
+  {t:'THERMAX',n:'Thermax',s:'Capital Goods',c:'M',pe:55,ro:18,mc:40000},{t:'GRINFRA',n:'G R Infraprojects',s:'Infra EPC',c:'S',pe:10,ro:14,mc:6000},
+  {t:'ELGIEQUIP',n:'Elgi Equipments',s:'Capital Goods',c:'M',pe:55,ro:22,mc:18000},{t:'HONAUT',n:'Honeywell Automation',s:'Automation',c:'M',pe:60,ro:18,mc:38000},
+  {t:'AIAENG',n:'AIA Engineering',s:'Capital Goods',c:'M',pe:35,ro:22,mc:25000},{t:'KAYNES',n:'Kaynes Technology',s:'Electronics',c:'M',pe:80,ro:20,mc:25000},
+  {t:'CGPOWER',n:'CG Power',s:'Electricals',c:'L',pe:65,ro:30,mc:75000},{t:'TRITURBINE',n:'Triveni Turbines',s:'Capital Goods',c:'M',pe:55,ro:35,mc:18000},
   // ---- CHEMICALS & AGRI CHEM (16) ----
-  {t:'DEEPAKNTR',n:'Deepak Nitrite',s:'Chemicals'},{t:'ATUL',n:'Atul',s:'Chemicals'},
-  {t:'SRF',n:'SRF',s:'Chemicals'},{t:'PIIND',n:'PI Industries',s:'Agri Chemicals'},
-  {t:'AARTIIND',n:'Aarti Industries',s:'Chemicals'},{t:'NAVINFLUOR',n:'Navin Fluorine',s:'Chemicals'},
-  {t:'CLEAN',n:'Clean Science',s:'Chemicals'},{t:'UPL',n:'UPL',s:'Agri Chemicals'},
-  {t:'FINEORG',n:'Fine Organic Industries',s:'Specialty Chemicals'},{t:'TATACHEM',n:'Tata Chemicals',s:'Chemicals'},
-  {t:'GNFC',n:'GNFC',s:'Chemicals/Fertilizers'},{t:'GUJALKALI',n:'Gujarat Alkalies',s:'Chemicals'},
-  {t:'ROSSARI',n:'Rossari Biotech',s:'Specialty Chemicals'},{t:'VINATIORGN',n:'Vinati Organics',s:'Specialty Chemicals'},
-  {t:'FLUOROCHEM',n:'Gujarat Fluorochemicals',s:'Specialty Chemicals'},{t:'LXCHEM',n:'Laxmi Organic',s:'Specialty Chemicals'},
+  {t:'DEEPAKNTR',n:'Deepak Nitrite',s:'Chemicals',c:'M',pe:35,ro:15,mc:30000},{t:'ATUL',n:'Atul',s:'Chemicals',c:'M',pe:45,ro:12,mc:22000},
+  {t:'SRF',n:'SRF',s:'Chemicals',c:'L',pe:40,ro:14,mc:65000},{t:'PIIND',n:'PI Industries',s:'Agri Chemicals',c:'L',pe:35,ro:20,mc:55000},
+  {t:'AARTIIND',n:'Aarti Industries',s:'Chemicals',c:'M',pe:25,ro:10,mc:14000},{t:'NAVINFLUOR',n:'Navin Fluorine',s:'Chemicals',c:'M',pe:40,ro:12,mc:12000},
+  {t:'CLEAN',n:'Clean Science',s:'Chemicals',c:'M',pe:45,ro:28,mc:15000},{t:'UPL',n:'UPL',s:'Agri Chemicals',c:'M',pe:0,ro:5,mc:40000},
+  {t:'FINEORG',n:'Fine Organic Industries',s:'Specialty Chemicals',c:'M',pe:40,ro:22,mc:12000},{t:'TATACHEM',n:'Tata Chemicals',s:'Chemicals',c:'M',pe:12,ro:10,mc:22000},
+  {t:'GNFC',n:'GNFC',s:'Chemicals/Fertilizers',c:'S',pe:8,ro:14,mc:7500},{t:'GUJALKALI',n:'Gujarat Alkalies',s:'Chemicals',c:'S',pe:15,ro:8,mc:4000},
+  {t:'ROSSARI',n:'Rossari Biotech',s:'Specialty Chemicals',c:'S',pe:30,ro:14,mc:3500},{t:'VINATIORGN',n:'Vinati Organics',s:'Specialty Chemicals',c:'M',pe:55,ro:18,mc:15000},
+  {t:'FLUOROCHEM',n:'Gujarat Fluorochemicals',s:'Specialty Chemicals',c:'M',pe:45,ro:10,mc:25000},{t:'LXCHEM',n:'Laxmi Organic',s:'Specialty Chemicals',c:'S',pe:35,ro:10,mc:4000},
   // ---- FERTILIZERS (5) ----
-  {t:'CHAMBLFERT',n:'Chambal Fertilizers',s:'Fertilizers'},{t:'COROMANDEL',n:'Coromandel International',s:'Fertilizers'},
-  {t:'DEEPAKFERT',n:'Deepak Fertilisers',s:'Fertilizers'},{t:'RCF',n:'Rashtriya Chemicals',s:'Fertilizers'},
-  {t:'NFL',n:'National Fertilizers',s:'Fertilizers'},
+  {t:'CHAMBLFERT',n:'Chambal Fertilizers',s:'Fertilizers',c:'M',pe:12,ro:22,mc:14000},{t:'COROMANDEL',n:'Coromandel International',s:'Fertilizers',c:'M',pe:22,ro:28,mc:35000},
+  {t:'DEEPAKFERT',n:'Deepak Fertilisers',s:'Fertilizers',c:'S',pe:10,ro:12,mc:4500},{t:'RCF',n:'Rashtriya Chemicals',s:'Fertilizers',c:'S',pe:10,ro:10,mc:5000},
+  {t:'NFL',n:'National Fertilizers',s:'Fertilizers',c:'S',pe:12,ro:10,mc:3500},
   // ---- CEMENT (10) ----
-  {t:'ULTRACEMCO',n:'UltraTech Cement',s:'Cement'},{t:'AMBUJACEM',n:'Ambuja Cements',s:'Cement'},
-  {t:'SHREECEM',n:'Shree Cement',s:'Cement'},{t:'DALMIACEM',n:'Dalmia Bharat',s:'Cement'},
-  {t:'JKCEMENT',n:'JK Cement',s:'Cement'},{t:'RAMCOCEM',n:'Ramco Cements',s:'Cement'},
-  {t:'ACC',n:'ACC',s:'Cement'},{t:'BIRLACORPN',n:'Birla Corporation',s:'Cement'},
-  {t:'INDIACEM',n:'India Cements',s:'Cement'},{t:'HEIDELBERG',n:'Heidelberg Cement',s:'Cement'},
+  {t:'ULTRACEMCO',n:'UltraTech Cement',s:'Cement',c:'L',pe:40,ro:12,mc:320000},{t:'AMBUJACEM',n:'Ambuja Cements',s:'Cement',c:'L',pe:22,ro:10,mc:130000},
+  {t:'SHREECEM',n:'Shree Cement',s:'Cement',c:'L',pe:38,ro:14,mc:100000},{t:'DALMIACEM',n:'Dalmia Bharat',s:'Cement',c:'M',pe:35,ro:8,mc:35000},
+  {t:'JKCEMENT',n:'JK Cement',s:'Cement',c:'M',pe:28,ro:12,mc:20000},{t:'RAMCOCEM',n:'Ramco Cements',s:'Cement',c:'M',pe:18,ro:10,mc:12000},
+  {t:'ACC',n:'ACC',s:'Cement',c:'L',pe:18,ro:12,mc:50000},{t:'BIRLACORPN',n:'Birla Corporation',s:'Cement',c:'S',pe:28,ro:6,mc:6500},
+  {t:'INDIACEM',n:'India Cements',s:'Cement',c:'S',pe:0,ro:2,mc:4500},{t:'HEIDELBERG',n:'Heidelberg Cement',s:'Cement',c:'S',pe:25,ro:10,mc:5000},
   // ---- INSURANCE (6) ----
-  {t:'SBILIFE',n:'SBI Life',s:'Insurance'},{t:'HDFCLIFE',n:'HDFC Life',s:'Insurance'},
-  {t:'ICICIGI',n:'ICICI Lombard',s:'Insurance'},{t:'STARHEALTH',n:'Star Health',s:'Insurance'},
-  {t:'GICRE',n:'GIC Re',s:'Insurance/Re'},{t:'NIACL',n:'New India Assurance',s:'Insurance'},
+  {t:'SBILIFE',n:'SBI Life',s:'Insurance',c:'L',pe:65,ro:12,mc:160000},{t:'HDFCLIFE',n:'HDFC Life',s:'Insurance',c:'L',pe:85,ro:10,mc:145000},
+  {t:'ICICIGI',n:'ICICI Lombard',s:'Insurance',c:'L',pe:40,ro:22,mc:75000},{t:'STARHEALTH',n:'Star Health',s:'Insurance',c:'M',pe:30,ro:10,mc:28000},
+  {t:'GICRE',n:'GIC Re',s:'Insurance/Re',c:'M',pe:8,ro:6,mc:22000},{t:'NIACL',n:'New India Assurance',s:'Insurance',c:'S',pe:10,ro:6,mc:8000},
   // ---- LOGISTICS & PORTS (8) ----
-  {t:'DELHIVERY',n:'Delhivery',s:'Logistics'},{t:'CONCOR',n:'Container Corp',s:'Logistics'},
-  {t:'ADANIPORTS',n:'Adani Ports',s:'Ports/Logistics'},{t:'BLUEDART',n:'Blue Dart',s:'Logistics'},
-  {t:'JSWINFRA',n:'JSW Infrastructure',s:'Port Infra'},{t:'ALLCARGO',n:'Allcargo Logistics',s:'Logistics'},
-  {t:'TCI',n:'Transport Corp',s:'Logistics'},{t:'VRLLOG',n:'VRL Logistics',s:'Logistics'},
+  {t:'DELHIVERY',n:'Delhivery',s:'Logistics',c:'M',pe:0,ro:2,mc:28000},{t:'CONCOR',n:'Container Corp',s:'Logistics',c:'M',pe:30,ro:12,mc:42000},
+  {t:'ADANIPORTS',n:'Adani Ports',s:'Ports/Logistics',c:'L',pe:28,ro:14,mc:280000},{t:'BLUEDART',n:'Blue Dart',s:'Logistics',c:'M',pe:50,ro:25,mc:15000},
+  {t:'JSWINFRA',n:'JSW Infrastructure',s:'Port Infra',c:'L',pe:40,ro:10,mc:55000},{t:'ALLCARGO',n:'Allcargo Logistics',s:'Logistics',c:'S',pe:15,ro:10,mc:7000},
+  {t:'TCI',n:'Transport Corp',s:'Logistics',c:'S',pe:22,ro:15,mc:6000},{t:'VRLLOG',n:'VRL Logistics',s:'Logistics',c:'S',pe:25,ro:18,mc:5500},
   // ---- FINTECH / NEW AGE / E-COMMERCE (9) ----
-  {t:'ZOMATO',n:'Zomato',s:'Food Tech'},{t:'PAYTM',n:'One97/Paytm',s:'Fintech'},
-  {t:'NYKAA',n:'FSN E-Commerce',s:'E-commerce'},{t:'POLICYBZR',n:'PB Fintech',s:'Insurtech'},
-  {t:'DMART',n:'Avenue Supermarts',s:'Retail'},{t:'TRENT',n:'Trent',s:'Retail/Fashion'},
-  {t:'AFFLE',n:'Affle India',s:'Ad Tech'},{t:'JIOFIN',n:'Jio Financial',s:'Fintech'},
-  {t:'RATEGAIN',n:'RateGain Travel',s:'Travel Tech'},
+  {t:'ZOMATO',n:'Zomato',s:'Food Tech',c:'L',pe:0,ro:4,mc:200000},{t:'PAYTM',n:'One97/Paytm',s:'Fintech',c:'M',pe:0,ro:0,mc:35000},
+  {t:'NYKAA',n:'FSN E-Commerce',s:'E-commerce',c:'M',pe:500,ro:4,mc:25000},{t:'POLICYBZR',n:'PB Fintech',s:'Insurtech',c:'M',pe:0,ro:5,mc:22000},
+  {t:'DMART',n:'Avenue Supermarts',s:'Retail',c:'L',pe:85,ro:18,mc:270000},{t:'TRENT',n:'Trent',s:'Retail/Fashion',c:'L',pe:120,ro:25,mc:200000},
+  {t:'AFFLE',n:'Affle India',s:'Ad Tech',c:'M',pe:55,ro:20,mc:15000},{t:'JIOFIN',n:'Jio Financial',s:'Fintech',c:'L',pe:100,ro:2,mc:160000},
+  {t:'RATEGAIN',n:'RateGain Travel',s:'Travel Tech',c:'S',pe:55,ro:12,mc:8000},
   // ---- CONGLOMERATE / DIVERSIFIED (6) ----
-  {t:'ADANIENT',n:'Adani Enterprises',s:'Conglomerate'},{t:'IRFC',n:'IRFC',s:'Railway Finance'},
-  {t:'HUDCO',n:'HUDCO',s:'Housing Finance'},{t:'GRASIM',n:'Grasim Industries',s:'Diversified'},
-  {t:'LICI',n:'LIC',s:'Life Insurance'},{t:'GODREJIND',n:'Godrej Industries',s:'Diversified'},
+  {t:'ADANIENT',n:'Adani Enterprises',s:'Conglomerate',c:'L',pe:55,ro:8,mc:350000},{t:'IRFC',n:'IRFC',s:'Railway Finance',c:'L',pe:8,ro:12,mc:60000},
+  {t:'HUDCO',n:'HUDCO',s:'Housing Finance',c:'M',pe:10,ro:12,mc:35000},{t:'GRASIM',n:'Grasim Industries',s:'Diversified',c:'L',pe:18,ro:10,mc:130000},
+  {t:'LICI',n:'LIC',s:'Life Insurance',c:'L',pe:12,ro:55,mc:550000},{t:'GODREJIND',n:'Godrej Industries',s:'Diversified',c:'M',pe:0,ro:4,mc:18000},
   // ---- MEDIA & ENTERTAINMENT (7) ----
-  {t:'ZEEL',n:'Zee Entertainment',s:'Media'},{t:'PVRINOX',n:'PVR INOX',s:'Entertainment'},
-  {t:'SUNTV',n:'Sun TV',s:'Media'},{t:'NAZARA',n:'Nazara Technologies',s:'Gaming'},
-  {t:'SAREGAMA',n:'Saregama',s:'Music/Media'},{t:'NETWORK18',n:'Network18',s:'Media'},
-  {t:'TV18BRDCST',n:'TV18 Broadcast',s:'Media'},
+  {t:'ZEEL',n:'Zee Entertainment',s:'Media',c:'S',pe:20,ro:6,mc:8000},{t:'PVRINOX',n:'PVR INOX',s:'Entertainment',c:'M',pe:35,ro:8,mc:10000},
+  {t:'SUNTV',n:'Sun TV',s:'Media',c:'M',pe:14,ro:30,mc:20000},{t:'NAZARA',n:'Nazara Technologies',s:'Gaming',c:'S',pe:55,ro:8,mc:5000},
+  {t:'SAREGAMA',n:'Saregama',s:'Music/Media',c:'S',pe:30,ro:22,mc:6500},{t:'NETWORK18',n:'Network18',s:'Media',c:'S',pe:0,ro:0,mc:5000},
+  {t:'TV18BRDCST',n:'TV18 Broadcast',s:'Media',c:'S',pe:0,ro:0,mc:4000},
   // ---- CONSUMER DURABLES & ELECTRICALS (14) ----
-  {t:'TITAN',n:'Titan Company',s:'Consumer'},{t:'HAVELLS',n:'Havells India',s:'Electricals'},
-  {t:'CROMPTON',n:'Crompton Greaves',s:'Consumer Electricals'},{t:'BATAINDIA',n:'Bata India',s:'Footwear'},
-  {t:'RELAXO',n:'Relaxo Footwears',s:'Footwear'},{t:'WHIRLPOOL',n:'Whirlpool India',s:'Appliances'},
-  {t:'BLUESTARLT',n:'Blue Star',s:'AC/Cooling'},{t:'KALYANKJIL',n:'Kalyan Jewellers',s:'Jewellery'},
-  {t:'ORIENTELEC',n:'Orient Electric',s:'Consumer Electricals'},{t:'VGUARD',n:'V-Guard Industries',s:'Electricals'},
-  {t:'SYMPHONY',n:'Symphony',s:'AC/Cooling'},{t:'CERA',n:'CERA Sanitaryware',s:'Building Products'},
-  {t:'CENTURYPLY',n:'Century Plyboards',s:'Building Products'},{t:'KAJARIACER',n:'Kajaria Ceramics',s:'Building Products'},
+  {t:'TITAN',n:'Titan Company',s:'Consumer',c:'L',pe:70,ro:25,mc:300000},{t:'HAVELLS',n:'Havells India',s:'Electricals',c:'L',pe:65,ro:30,mc:100000},
+  {t:'CROMPTON',n:'Crompton Greaves',s:'Consumer Electricals',c:'M',pe:35,ro:22,mc:18000},{t:'BATAINDIA',n:'Bata India',s:'Footwear',c:'M',pe:45,ro:18,mc:18000},
+  {t:'RELAXO',n:'Relaxo Footwears',s:'Footwear',c:'S',pe:55,ro:12,mc:9000},{t:'WHIRLPOOL',n:'Whirlpool India',s:'Appliances',c:'S',pe:55,ro:8,mc:8000},
+  {t:'BLUESTARLT',n:'Blue Star',s:'AC/Cooling',c:'M',pe:50,ro:22,mc:22000},{t:'KALYANKJIL',n:'Kalyan Jewellers',s:'Jewellery',c:'M',pe:60,ro:35,mc:45000},
+  {t:'ORIENTELEC',n:'Orient Electric',s:'Consumer Electricals',c:'S',pe:45,ro:18,mc:7000},{t:'VGUARD',n:'V-Guard Industries',s:'Electricals',c:'M',pe:50,ro:22,mc:12000},
+  {t:'SYMPHONY',n:'Symphony',s:'AC/Cooling',c:'S',pe:60,ro:25,mc:7500},{t:'CERA',n:'CERA Sanitaryware',s:'Building Products',c:'S',pe:35,ro:22,mc:8000},
+  {t:'CENTURYPLY',n:'Century Plyboards',s:'Building Products',c:'S',pe:18,ro:18,mc:7500},{t:'KAJARIACER',n:'Kajaria Ceramics',s:'Building Products',c:'M',pe:40,ro:22,mc:12000},
   // ---- FINANCIAL PLATFORMS (6) ----
-  {t:'CAMS',n:'CAMS',s:'Financial Infra'},{t:'KFINTECH',n:'KFin Technologies',s:'Financial Infra'},
-  {t:'BSE',n:'BSE Limited',s:'Exchange'},{t:'MCX',n:'MCX',s:'Exchange'},
-  {t:'ANGELONE',n:'Angel One',s:'Broking'},{t:'CDSL',n:'CDSL',s:'Depository'},
+  {t:'CAMS',n:'CAMS',s:'Financial Infra',c:'M',pe:40,ro:40,mc:16000},{t:'KFINTECH',n:'KFin Technologies',s:'Financial Infra',c:'M',pe:45,ro:30,mc:14000},
+  {t:'BSE',n:'BSE Limited',s:'Exchange',c:'M',pe:35,ro:25,mc:35000},{t:'MCX',n:'MCX',s:'Exchange',c:'M',pe:28,ro:12,mc:18000},
+  {t:'ANGELONE',n:'Angel One',s:'Broking',c:'M',pe:15,ro:45,mc:14000},{t:'CDSL',n:'CDSL',s:'Depository',c:'M',pe:45,ro:40,mc:25000},
   // ---- AMC / FUND MANAGEMENT (2) ----
-  {t:'HDFCAMC',n:'HDFC AMC',s:'Asset Management'},{t:'UTIAMC',n:'UTI AMC',s:'Asset Management'},
+  {t:'HDFCAMC',n:'HDFC AMC',s:'Asset Management',c:'L',pe:38,ro:35,mc:70000},{t:'UTIAMC',n:'UTI AMC',s:'Asset Management',c:'S',pe:18,ro:35,mc:8000},
   // ---- PAINTS (3) ----
-  {t:'ASIANPAINT',n:'Asian Paints',s:'Paints'},{t:'BERGEPAINT',n:'Berger Paints',s:'Paints'},
-  {t:'KANSAINER',n:'Kansai Nerolac',s:'Paints'},
+  {t:'ASIANPAINT',n:'Asian Paints',s:'Paints',c:'L',pe:55,ro:25,mc:250000},{t:'BERGEPAINT',n:'Berger Paints',s:'Paints',c:'L',pe:55,ro:22,mc:60000},
+  {t:'KANSAINER',n:'Kansai Nerolac',s:'Paints',c:'M',pe:45,ro:16,mc:18000},
   // ---- TEXTILES (6) ----
-  {t:'PAGEIND',n:'Page Industries',s:'Textiles'},{t:'RAYMOND',n:'Raymond',s:'Textiles'},
-  {t:'ARVIND',n:'Arvind',s:'Textiles'},{t:'TRIDENT',n:'Trident',s:'Textiles'},
-  {t:'GOKALDAS',n:'Gokaldas Exports',s:'Textiles'},{t:'KPRMILL',n:'KPR Mill',s:'Textiles'},
+  {t:'PAGEIND',n:'Page Industries',s:'Textiles',c:'M',pe:65,ro:40,mc:35000},{t:'RAYMOND',n:'Raymond',s:'Textiles',c:'M',pe:18,ro:12,mc:10000},
+  {t:'ARVIND',n:'Arvind',s:'Textiles',c:'S',pe:12,ro:10,mc:5000},{t:'TRIDENT',n:'Trident',s:'Textiles',c:'S',pe:18,ro:12,mc:9000},
+  {t:'GOKALDAS',n:'Gokaldas Exports',s:'Textiles',c:'S',pe:18,ro:22,mc:5500},{t:'KPRMILL',n:'KPR Mill',s:'Textiles',c:'M',pe:25,ro:28,mc:14000},
   // ---- SUGAR (4) ----
-  {t:'BALRAMCHIN',n:'Balrampur Chini',s:'Sugar'},{t:'RENUKA',n:'Shree Renuka',s:'Sugar'},
-  {t:'TRIVENI',n:'Triveni Engineering',s:'Sugar'},{t:'BAJAJHIND',n:'Bajaj Hindusthan',s:'Sugar'},
+  {t:'BALRAMCHIN',n:'Balrampur Chini',s:'Sugar',c:'S',pe:14,ro:14,mc:4500},{t:'RENUKA',n:'Shree Renuka',s:'Sugar',c:'S',pe:18,ro:8,mc:3500},
+  {t:'TRIVENI',n:'Triveni Engineering',s:'Sugar',c:'S',pe:15,ro:18,mc:5500},{t:'BAJAJHIND',n:'Bajaj Hindusthan',s:'Sugar',c:'X',pe:0,ro:2,mc:1500},
   // ---- HOTELS & TOURISM (4) ----
-  {t:'INDHOTEL',n:'Indian Hotels',s:'Hotels'},{t:'CHALET',n:'Chalet Hotels',s:'Hotels'},
-  {t:'LEMONTREE',n:'Lemon Tree Hotels',s:'Hotels'},{t:'EIHOTEL',n:'EIH',s:'Hotels'},
+  {t:'INDHOTEL',n:'Indian Hotels',s:'Hotels',c:'L',pe:60,ro:12,mc:80000},{t:'CHALET',n:'Chalet Hotels',s:'Hotels',c:'M',pe:35,ro:10,mc:14000},
+  {t:'LEMONTREE',n:'Lemon Tree Hotels',s:'Hotels',c:'S',pe:45,ro:10,mc:6500},{t:'EIHOTEL',n:'EIH',s:'Hotels',c:'S',pe:35,ro:10,mc:5000},
   // ---- RENEWABLE & EV (4) ----
-  {t:'SUZLON',n:'Suzlon Energy',s:'Wind Energy'},{t:'INOXWIND',n:'Inox Wind',s:'Wind Energy'},
-  {t:'OLECTRA',n:'Olectra Greentech',s:'EV/Green'},{t:'BOROSILREN',n:'Borosil Renewables',s:'Solar'},
+  {t:'SUZLON',n:'Suzlon Energy',s:'Wind Energy',c:'L',pe:55,ro:28,mc:85000},{t:'INOXWIND',n:'Inox Wind',s:'Wind Energy',c:'M',pe:45,ro:15,mc:12000},
+  {t:'OLECTRA',n:'Olectra Greentech',s:'EV/Green',c:'S',pe:55,ro:12,mc:6000},{t:'BOROSILREN',n:'Borosil Renewables',s:'Solar',c:'S',pe:0,ro:2,mc:3000},
   // ---- PIPES & BUILDING MATERIALS (5) ----
-  {t:'ASTRAL',n:'Astral',s:'Pipes/Building'},{t:'POLYCAB',n:'Polycab India',s:'Electrical/Cables'},
-  {t:'SUPREMEIND',n:'Supreme Industries',s:'Pipes/Plastics'},{t:'PRINCEPIPE',n:'Prince Pipes',s:'Pipes'},
-  {t:'FINCABLES',n:'Finolex Cables',s:'Cables'},
+  {t:'ASTRAL',n:'Astral',s:'Pipes/Building',c:'L',pe:70,ro:22,mc:55000},{t:'POLYCAB',n:'Polycab India',s:'Electrical/Cables',c:'L',pe:50,ro:28,mc:85000},
+  {t:'SUPREMEIND',n:'Supreme Industries',s:'Pipes/Plastics',c:'M',pe:42,ro:22,mc:35000},{t:'PRINCEPIPE',n:'Prince Pipes',s:'Pipes',c:'S',pe:22,ro:14,mc:5000},
+  {t:'FINCABLES',n:'Finolex Cables',s:'Cables',c:'S',pe:22,ro:14,mc:7500},
   // ---- RETAIL (3) ----
-  {t:'SHOPERSTOP',n:'Shoppers Stop',s:'Retail'},{t:'METROBRAND',n:'Metro Brands',s:'Footwear/Retail'},
-  {t:'CAMPUS',n:'Campus Activewear',s:'Footwear'},
+  {t:'SHOPERSTOP',n:'Shoppers Stop',s:'Retail',c:'S',pe:55,ro:10,mc:4500},{t:'METROBRAND',n:'Metro Brands',s:'Footwear/Retail',c:'M',pe:60,ro:22,mc:18000},
+  {t:'CAMPUS',n:'Campus Activewear',s:'Footwear',c:'S',pe:55,ro:10,mc:5000},
   // ---- HIGH BETA / MISC (5) ----
-  {t:'YESBANK',n:'Yes Bank',s:'Banking'},{t:'RPOWER',n:'Reliance Power',s:'Power'},
-  {t:'JPPOWER',n:'Jaiprakash Power',s:'Power'},{t:'ABCAPITAL',n:'Aditya Birla Capital',s:'Financial Services'},
-  {t:'BLS',n:'BLS International',s:'Services'}
+  {t:'YESBANK',n:'Yes Bank',s:'Banking',c:'M',pe:35,ro:4,mc:42000},{t:'RPOWER',n:'Reliance Power',s:'Power',c:'S',pe:0,ro:0,mc:4500},
+  {t:'JPPOWER',n:'Jaiprakash Power',s:'Power',c:'S',pe:15,ro:6,mc:3000},{t:'ABCAPITAL',n:'Aditya Birla Capital',s:'Financial Services',c:'M',pe:15,ro:10,mc:30000},
+  {t:'BLS',n:'BLS International',s:'Services',c:'S',pe:22,ro:25,mc:8000}
 ];
 
 async function predictDailyMovers() {
@@ -6154,9 +6163,11 @@ function computeScore(data, yfTicker, portfolioStock) {
   const low52 = data.low52 || price;
   const volume = data.volume || 0;
   const changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
-  const pe = portfolioStock?.pe || data.pe || 0;
-  const roce = portfolioStock?.roce || data.roce || 0;
-  const mcap = portfolioStock?.mcap || data.mcap || 0;
+  const _tk = yfTicker.replace('.NS','').replace('.BO','').replace('&','%26');
+  const _uv = MOVER_UNIVERSE.find(m => m.t === _tk || m.t === _tk.replace('%26','&'));
+  const pe = portfolioStock?.pe || data.pe || (_uv && _uv.pe) || 0;
+  const roce = portfolioStock?.roce || data.roce || (_uv && _uv.ro) || 0;
+  const mcap = portfolioStock?.mcap || data.mcap || (_uv && _uv.mc) || 0;
   const range52 = high52 - low52;
   const posIn52W = (range52 > 0) ? ((price - low52) / range52 * 100) : 50;
   const mid52 = (high52 + low52) / 2;
@@ -6372,6 +6383,7 @@ async function runScreener(mode) {
   const progressBar = progressEl.querySelector('.bar');
   const resultsEl = document.getElementById('screenerResults');
   const sectorVal = document.getElementById('screenerSector').value;
+  const mcapVal = document.getElementById('screenerMcap').value;
 
   let universe = [];
   if (mode === 'top50') universe = MOVER_UNIVERSE.slice(0, 50);
@@ -6380,6 +6392,16 @@ async function runScreener(mode) {
     universe = MOVER_UNIVERSE.filter(m => m.s.toLowerCase().includes(sectorVal.toLowerCase()));
     if (universe.length === 0) { statusEl.textContent = 'No stocks for: ' + sectorVal; return; }
   } else universe = MOVER_UNIVERSE.slice();
+
+  // Apply MCap filter
+  if (mcapVal) {
+    const capMatch = mcapVal.length === 1 ? (m => m.c === mcapVal)
+      : mcapVal === 'MS' ? (m => m.c === 'M' || m.c === 'S')
+      : mcapVal === 'SX' ? (m => m.c === 'S' || m.c === 'X')
+      : (() => true);
+    universe = universe.filter(capMatch);
+    if (universe.length === 0) { statusEl.textContent = 'No stocks match cap size filter'; return; }
+  }
 
   statusEl.textContent = 'Scanning ' + universe.length + ' stocks...';
   progressEl.style.display = 'block'; progressBar.style.width = '0%';
@@ -6403,7 +6425,7 @@ async function runScreener(mode) {
             const ps = stocks.find(s => s.ticker === stock.t.replace('%26','&'));
             const sc = computeScore(d, yfKey, ps);
             const sig = computeSignals(Object.assign({}, d, {ticker: stock.t}), ps);
-            scored.push({ticker:stock.t.replace('%26','&'),name:d.name||stock.n,sector:stock.s,price:d.price,changePct:sc.changePct,score:sc.totalScore,verdict:sc.verdict,verdictClass:sc.verdictClass,grade:sc.grade,posIn52W:sc.posIn52W,signals:sig,high52:d.high52||0,low52:d.low52||0});
+            scored.push({ticker:stock.t.replace('%26','&'),name:d.name||stock.n,sector:stock.s,cap:stock.c||'?',price:d.price,changePct:sc.changePct,score:sc.totalScore,verdict:sc.verdict,verdictClass:sc.verdictClass,grade:sc.grade,posIn52W:sc.posIn52W,signals:sig,high52:d.high52||0,low52:d.low52||0,pe:sc.pe,roce:sc.roce});
           }
         });
       }
@@ -6421,7 +6443,7 @@ async function runScreener(mode) {
   if (top.length === 0) { resultsEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">No data received.</div>'; return; }
 
   let tbl = '<div style="overflow-x:auto"><table class="screener-tbl"><thead><tr>' +
-    '<th>#</th><th>Ticker</th><th>Name</th><th>Score</th><th>Verdict</th><th>Signals</th><th>52W Pos</th><th>Price</th><th>Chg</th></tr></thead><tbody>';
+    '<th>#</th><th>Ticker</th><th>Name</th><th>Cap</th><th>Score</th><th>Verdict</th><th>Signals</th><th>52W Pos</th><th>Price</th><th>Chg</th></tr></thead><tbody>';
   top.forEach((s, i) => {
     const cc = s.changePct >= 0 ? 'var(--green)' : 'var(--red)';
     const cs = s.changePct >= 0 ? '+' : '';
@@ -6432,9 +6454,12 @@ async function runScreener(mode) {
       const tc = sig.strength==='strong'?'#4ade80':sig.strength==='moderate'?'#60a5fa':'#fbbf24';
       return '<span class="signal-tag" style="background:'+tc+'15;color:'+tc+';border:1px solid '+tc+'33">'+sig.icon+' '+sig.label.substring(0,22)+'</span>';
     }).join('');
+    const capLbl = s.cap==='L'?'LARGE':s.cap==='M'?'MID':s.cap==='S'?'SMALL':s.cap==='X'?'MICRO':'?';
+    const capClr = s.cap==='L'?'#3b82f6':s.cap==='M'?'#8b5cf6':s.cap==='S'?'#f59e0b':s.cap==='X'?'#ef4444':'#888';
     tbl += '<tr><td style="color:var(--muted);font-weight:700">'+(i+1)+'</td>' +
       '<td><span style="color:var(--accent);font-weight:600;cursor:pointer" onclick="document.getElementById(\'scorerInput\').value=\''+s.ticker+'\';runScorer()">'+s.ticker+'</span></td>' +
       '<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis">'+s.name+' <span style="font-size:10px;color:var(--muted)">'+s.sector+'</span></td>' +
+      '<td><span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:'+capClr+'22;color:'+capClr+';border:1px solid '+capClr+'44">'+capLbl+'</span></td>' +
       '<td style="font-weight:700;color:'+sc+'">'+s.score+'</td>' +
       '<td><span class="score-verdict '+s.verdictClass+'" style="font-size:10px;padding:2px 8px">'+s.verdict+'</span></td>' +
       '<td style="max-width:220px">'+(sh||'-')+'</td>' +
