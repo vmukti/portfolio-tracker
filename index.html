@@ -1080,7 +1080,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
     <!-- Action buttons -->
     <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
-      <button onclick="runAIAutoTrade()" style="padding:10px 24px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">&#129504; Run AI Auto-Trade v5.0</button>
+      <button onclick="runAIAutoTrade()" style="padding:10px 24px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">&#129504; Run AI Auto-Trade v6.0</button>
       <button onclick="resetPaperWallet()" style="padding:10px 18px;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128260; Reset Wallet</button>
       <span id="ptLastTrade" style="color:var(--muted);font-size:12px;margin-left:auto">No trades yet</span>
     </div>
@@ -3178,6 +3178,17 @@ function aiScore(s) {
   const factors = [];
   let momentum = 0, value = 0, quality = 0, signal = 0;
 
+  // ── ENRICH from MOVER_UNIVERSE if fundamentals missing ──
+  const _aiTk = (s.ticker||'').replace('.NS','').replace('.BO','').replace('&','%26');
+  const _aiUv = typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.find(m => m.t === _aiTk || m.t === _aiTk.replace('%26','&') || m.t === s.ticker) : null;
+  if (_aiUv) {
+    if (!s.pe && _aiUv.pe) s.pe = _aiUv.pe;
+    if (!s.roce && _aiUv.ro) s.roce = _aiUv.ro;
+    if (!s.mcap && _aiUv.mc) s.mcap = _aiUv.mc;
+    if (!s.sector && _aiUv.s) s.sector = _aiUv.s;
+    if (!s._cap) s._cap = _aiUv.c;
+  }
+
   // ── MOMENTUM (0-25): price action + volume ──
   // 52W position: closer to low = more upside (contrarian)
   if (s.low52 && s.high52 && s.high52 > s.low52) {
@@ -3307,6 +3318,11 @@ function updatePTDisplay(w) {
       const ms = window._moverScan.scored.find(m => m.ticker === p.ticker);
       if (ms && ms.cmp > 0) { livePrice = ms.cmp; prevClose = ms.prevClose || livePrice; }
     }
+    // For screener/universe positions, try screener results for price
+    if ((!stock || livePrice === p.avgPrice) && window._screenerResults) {
+      const sr = window._screenerResults.find(r => r.ticker === p.ticker);
+      if (sr && (sr.price || sr.cmp) > 0) { livePrice = sr.price || sr.cmp; }
+    }
     p.currentPrice = livePrice;
     p.marketValue = livePrice * p.qty;
     p.pnl = (livePrice - p.avgPrice) * p.qty;
@@ -3318,17 +3334,24 @@ function updatePTDisplay(w) {
   // Update mover badge
   const badge = document.getElementById('ptMoverBadge');
   if (badge) {
+    const hasScreener = window._screenerResults && window._screenerResults.length > 0 && window._screenerTimestamp && (Date.now() - window._screenerTimestamp) < 7200000;
+    const screenerTag = hasScreener ? ' | 🎯 Screener: ' + window._screenerResults.length + ' scored' : '';
     if (moverFresh) {
       const scanAge = Math.round((Date.now() - window._moverScan.timestamp) / 60000);
       badge.style.background = '#22c55e22';
       badge.style.color = '#22c55e';
       badge.style.borderColor = '#22c55e44';
-      badge.innerHTML = '&#128293; MOVER-POWERED: ' + window._moverScan.totalScanned + ' stocks scanned ' + scanAge + 'm ago | Top: ' + (window._moverScan.scored[0]?.ticker || '--') + ' (' + (window._moverScan.scored[0]?.moverScore || 0) + ')';
+      badge.innerHTML = '&#128293; MOVER-POWERED: ' + window._moverScan.totalScanned + ' stocks scanned ' + scanAge + 'm ago | Top: ' + (window._moverScan.scored[0]?.ticker || '--') + ' (' + (window._moverScan.scored[0]?.moverScore || 0) + ')' + screenerTag;
+    } else if (hasScreener) {
+      badge.style.background = '#8b5cf622';
+      badge.style.color = '#8b5cf6';
+      badge.style.borderColor = '#8b5cf644';
+      badge.innerHTML = '🎯 SCREENER-POWERED: ' + window._screenerResults.length + ' stocks scored from 300-stock universe | Run Mover Scan for full coverage';
     } else {
       badge.style.background = '#f59e0b22';
       badge.style.color = '#f59e0b';
       badge.style.borderColor = '#f59e0b44';
-      badge.innerHTML = '&#128293; MOVER SCAN: Not loaded — Run Daily Mover Predictor first';
+      badge.innerHTML = '🌐 UNIVERSE READY: 300 stocks enriched — Run Screener Scan or Mover Predictor for AI trade candidates';
     }
   }
   // Update AI Brain badge (Layer status)
@@ -3413,7 +3436,7 @@ function updatePTDisplay(w) {
       const pnlColor = p.pnl >= 0 ? '#22c55e' : '#ef4444';
       const grade = aiScoreGrade(p.aiScoreNow || 0);
       html += '<tr style="border-bottom:1px solid var(--border)22">';
-      const srcBadge = p.source === 'mover' ? ' <span style="background:#f59e0b22;color:#f59e0b;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700">🔥MOV</span>' : '';
+      const srcBadge = p.source === 'mover' ? ' <span style="background:#f59e0b22;color:#f59e0b;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700">🔥MOV</span>' : p.source === 'screener' ? ' <span style="background:#8b5cf622;color:#8b5cf6;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700">🎯SCR</span>' : p.source === 'universe' ? ' <span style="background:#3b82f622;color:#3b82f6;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700">🌐UNI</span>' : '';
       html += '<td style="padding:8px;font-weight:600">' + p.ticker + srcBadge + '</td>';
       html += '<td style="text-align:center"><span style="background:' + grade.color + '22;color:' + grade.color + ';padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px">' + (p.aiScoreNow||0) + ' ' + grade.grade + '</span></td>';
       html += '<td style="text-align:center">' + p.qty + '</td>';
@@ -3442,7 +3465,7 @@ function updatePTDisplay(w) {
       const icon = isBuy ? '⬆' : '⬇';
       const pnlStr = t.pnl !== undefined ? (' | P&L: ' + (t.pnl>=0?'+':'') + '₹' + t.pnl.toLocaleString('en-IN',{maximumFractionDigits:0})) : '';
       const scoreStr = t.aiScore ? ' [AI:' + t.aiScore + ']' : '';
-      const srcTag = t.source === 'mover' ? '<span style="background:#f59e0b22;color:#f59e0b;padding:1px 4px;border-radius:3px;font-size:9px;margin-left:4px">🔥MOV</span>' : '';
+      const srcTag = t.source === 'mover' ? '<span style="background:#f59e0b22;color:#f59e0b;padding:1px 4px;border-radius:3px;font-size:9px;margin-left:4px">🔥MOV</span>' : t.source === 'screener' ? '<span style="background:#8b5cf622;color:#8b5cf6;padding:1px 4px;border-radius:3px;font-size:9px;margin-left:4px">🎯SCR</span>' : t.source === 'universe' ? '<span style="background:#3b82f622;color:#3b82f6;padding:1px 4px;border-radius:3px;font-size:9px;margin-left:4px">🌐UNI</span>' : '';
       thtml += '<div style="padding:6px 8px;border-bottom:1px solid var(--border)22;display:flex;align-items:center;gap:8px">';
       thtml += '<span style="color:' + color + ';font-weight:700;min-width:40px">' + icon + ' ' + t.type + '</span>';
       thtml += '<span style="font-weight:600;min-width:80px">' + t.ticker + scoreStr + srcTag + '</span>';
@@ -3470,8 +3493,13 @@ function paperSell(posIdx) {
   if (sellPrice <= 0 || (!stock && isMoverScanFresh())) {
     const ms = window._moverScan && window._moverScan.scored.find(m => m.ticker === pos.ticker);
     if (ms && ms.cmp > 0) sellPrice = ms.cmp;
-    else sellPrice = pos.avgPrice; // fallback
   }
+  // For screener/universe positions, try screener results
+  if (sellPrice <= 0 && window._screenerResults) {
+    const sr = window._screenerResults.find(r => r.ticker === pos.ticker);
+    if (sr && (sr.price || sr.cmp) > 0) sellPrice = sr.price || sr.cmp;
+  }
+  if (sellPrice <= 0) sellPrice = pos.avgPrice; // final fallback
   const proceeds = sellPrice * pos.qty;
   const pnl = (sellPrice - pos.avgPrice) * pos.qty;
   w.cash += proceeds;
@@ -3484,7 +3512,7 @@ function paperSell(posIdx) {
 // ═══════════════════════════════════════════════════════════
 //  AI QUANT AUTO-TRADE ENGINE v3.0 — MOVER-POWERED
 // ═══════════════════════════════════════════════════════════
-function runAIAutoTrade() {
+async function runAIAutoTrade() {
   // ── PRE-STEP: Sync all dashboard intelligence before trading ──
   syncAllIntelligence();
   const intelCount = Object.keys(window._dashboardIntel).length;
@@ -3553,6 +3581,14 @@ function runAIAutoTrade() {
       if (moverStock && moverStock.cmp > 0) {
         sellPrice = moverStock.cmp;
         stock = { ticker: pos.ticker, cmp: moverStock.cmp, changePct: moverStock.changePct, vol: moverStock.vol, avgVol: moverStock.avgVol, high52: moverStock.high52, low52: moverStock.low52, pe: moverStock.pe, mcap: moverStock.mcap };
+      }
+    }
+    // Fallback: check screener results for price
+    if ((!stock || !sellPrice) && window._screenerResults && window._screenerResults.length > 0) {
+      const screenerStock = window._screenerResults.find(sr => sr.ticker === pos.ticker);
+      if (screenerStock && (screenerStock.price || screenerStock.cmp) > 0) {
+        sellPrice = screenerStock.price || screenerStock.cmp;
+        stock = { ticker: pos.ticker, cmp: sellPrice, changePct: screenerStock.changePct || 0, vol: screenerStock.vol || 0, pe: screenerStock.pe, roce: screenerStock.roce, mcap: screenerStock.mcap, sector: screenerStock.sector };
       }
     }
     if (!sellPrice || sellPrice <= 0) continue;
@@ -3745,8 +3781,128 @@ function runAIAutoTrade() {
     console.log('[MOVER-TRADE v4] ' + moverScored.length + ' mover candidates qualified');
   }
 
+  // ═══ PHASE 2.6: SCREENER UNIVERSE CANDIDATES (enriched 300-stock pool) ═══
+  let screenerScored = [];
+  // Use recent screener results if available (from AI Screener tab)
+  if (window._screenerResults && window._screenerResults.length > 0) {
+    const screenerAge = window._screenerTimestamp ? (now.getTime() - window._screenerTimestamp) / 60000 : 999;
+    if (screenerAge < 120) { // Use if scanned within 2 hours
+      console.log('[SCREENER-TRADE] Using screener results from ' + screenerAge.toFixed(0) + 'm ago, ' + window._screenerResults.length + ' stocks');
+      screenerScored = window._screenerResults
+        .filter(sr => {
+          if (heldTickers.has(sr.ticker)) return false;
+          if (stocks.some(s => s.ticker === sr.ticker)) return false; // Already in portfolio pool
+          if (moverScored.some(m => m.stock.ticker === sr.ticker)) return false; // Already in mover pool
+          if (sr.score < 55) return false;
+          if (isEthicallyExcluded(sr.sector) || isEthicallyExcluded(sr.name)) return false;
+          return true;
+        })
+        .map(sr => {
+          let tradeScore = sr.score;
+          // Layer 3: Trend bonus
+          const trend = getTrend(sr.ticker);
+          if (trend.direction === 'STRONG_UP' && trend.volumeTrend === 'RISING') tradeScore += 8;
+          else if (trend.direction === 'STRONG_UP') tradeScore += 5;
+          else if (trend.direction === 'UP') tradeScore += 3;
+          else if (trend.direction === 'STRONG_DOWN') tradeScore -= 8;
+          // Layer 6: Sector heat
+          const sHeat = getSectorHeat(sr.sector);
+          tradeScore += sHeat.bonus;
+          // Cap size bonus: mid/small caps get slight alpha premium
+          const capBonus = sr.cap === 'M' ? 3 : sr.cap === 'S' ? 5 : sr.cap === 'X' ? 4 : 0;
+          tradeScore += capBonus;
+          return {
+            stock: { ticker: sr.ticker, name: sr.name, sector: sr.sector, cmp: sr.price || sr.cmp, changePct: sr.changePct || 0, vol: sr.vol || 0, pe: sr.pe, roce: sr.roce, mcap: sr.mcap, _cap: sr.cap },
+            sc: { total: Math.min(100, Math.max(0, tradeScore)), factors: sr.signals || ['Screener pick'] },
+            source: 'screener', trend, sectorHeat: sHeat
+          };
+        })
+        .filter(x => x.sc.total >= 55 && x.stock.cmp > 10)
+        .sort((a, b) => b.sc.total - a.sc.total)
+        .slice(0, 15);
+      console.log('[SCREENER-TRADE] ' + screenerScored.length + ' screener candidates qualified');
+      aiLog.push('🎯 Screener: ' + screenerScored.length + ' universe candidates');
+    }
+  }
+
+  // ═══ PHASE 2.7: AUTO UNIVERSE SCAN (when no mover/screener data) ═══
+  let universeScored = [];
+  if (!moverActive && screenerScored.length === 0 && typeof MOVER_UNIVERSE !== 'undefined') {
+    console.log('[UNIVERSE-TRADE] No mover/screener data — auto-scanning top universe stocks');
+    // Pick stocks with best enriched fundamentals as candidates
+    const topUniverse = MOVER_UNIVERSE
+      .filter(m => {
+        if (!m.pe || !m.ro || !m.mc) return false;
+        if (heldTickers.has(m.t)) return false;
+        if (stocks.some(s => s.ticker === m.t)) return false;
+        if (isEthicallyExcluded(m.s) || isEthicallyExcluded(m.n)) return false;
+        // Quality filter: reasonable PE + decent ROCE
+        return m.pe > 0 && m.pe < 60 && m.ro >= 12;
+      })
+      .sort((a, b) => {
+        // Rank by quality score: ROCE/PE ratio (higher = better value-quality combo)
+        const scoreA = (a.ro / Math.max(1, a.pe)) * (a.c === 'M' || a.c === 'S' ? 1.2 : 1);
+        const scoreB = (b.ro / Math.max(1, b.pe)) * (b.c === 'M' || b.c === 'S' ? 1.2 : 1);
+        return scoreB - scoreA;
+      })
+      .slice(0, 30);
+
+    // Fetch prices for top candidates in batches
+    const universeSymbols = topUniverse.map(m => m.t + '.NS');
+    const batchSize = 10;
+    const universePrices = {};
+    for (let i = 0; i < universeSymbols.length; i += batchSize) {
+      const batch = universeSymbols.slice(i, i + batchSize);
+      try {
+        const resp = await fetch(PROXY_URL + '?symbols=' + batch.join(',') + '&mode=all');
+        const data = await resp.json();
+        if (data.results) {
+          data.results.forEach(r => {
+            const tk = r.symbol.replace('.NS','').replace('.BO','');
+            if (r.price > 0) universePrices[tk] = r;
+          });
+        }
+      } catch(e) { console.log('[UNIVERSE-TRADE] Batch fetch error:', e); }
+    }
+
+    topUniverse.forEach(m => {
+      const priceData = universePrices[m.t];
+      if (!priceData || priceData.price <= 10) return;
+      const synthStock = {
+        ticker: m.t, name: m.n, sector: m.s, cmp: priceData.price,
+        changePct: priceData.prevClose > 0 ? ((priceData.price - priceData.prevClose) / priceData.prevClose * 100) : 0,
+        high52: priceData.high52 || 0, low52: priceData.low52 || 0,
+        pe: m.pe, roce: m.ro, mcap: m.mc, _cap: m.c,
+        vol: priceData.volume || 0
+      };
+      const sc = aiScore(synthStock);
+      let bonusScore = sc.total;
+      const trend = getTrend(m.t);
+      if (trend.direction === 'STRONG_UP') bonusScore += 6;
+      else if (trend.direction === 'UP') bonusScore += 3;
+      else if (trend.direction === 'STRONG_DOWN') bonusScore -= 8;
+      const sHeat = getSectorHeat(m.s);
+      bonusScore += sHeat.bonus;
+      // Mid/small cap alpha premium
+      if (m.c === 'S') bonusScore += 4;
+      else if (m.c === 'M') bonusScore += 2;
+
+      if (bonusScore >= 55) {
+        universeScored.push({
+          stock: synthStock,
+          sc: { total: Math.min(100, Math.max(0, bonusScore)), factors: sc.factors },
+          source: 'universe', trend, sectorHeat: sHeat
+        });
+      }
+    });
+    universeScored.sort((a, b) => b.sc.total - a.sc.total);
+    universeScored = universeScored.slice(0, 10);
+    console.log('[UNIVERSE-TRADE] ' + universeScored.length + ' universe candidates qualified');
+    aiLog.push('🌐 Universe: ' + universeScored.length + ' auto-scanned candidates');
+  }
+
   // ═══ PHASE 3: AGGRESSIVE REBALANCE ═══
-  const allScored = [...portfolioScored, ...moverScored];
+  const allScored = [...portfolioScored, ...moverScored, ...screenerScored, ...universeScored];
   if (w.positions.length >= 8 && allScored.length > 0) {
     let weakestIdx = -1, weakestScore = 999;
     w.positions.forEach((p, i) => {
@@ -3763,7 +3919,7 @@ function runAIAutoTrade() {
       const pnl = (sellPrice - weakPos.avgPrice) * weakPos.qty;
       w.cash += sellPrice * weakPos.qty;
       const swapTarget = allScored[0];
-      const swapLabel = swapTarget.source === 'mover' ? '🔥MOVER ' : '';
+      const swapLabel = swapTarget.source === 'mover' ? '🔥MOVER ' : swapTarget.source === 'screener' ? '🎯SCREENER ' : swapTarget.source === 'universe' ? '🌐UNIVERSE ' : '';
       w.trades.push({ type: 'SELL', ticker: weakPos.ticker, qty: weakPos.qty, price: sellPrice, pnl: Math.round(pnl), aiScore: weakestScore, reason: 'AI REBALANCE: Score ' + weakestScore + ' → swapped for ' + swapLabel + swapTarget.stock.ticker + ' (' + swapTarget.sc.total + ')', source: weakPos.source || 'portfolio', time: now.toISOString() });
       w.positions.splice(weakestIdx, 1);
       tradesMade++;
@@ -3775,22 +3931,34 @@ function runAIAutoTrade() {
   // ═══ PHASE 4: UNIFIED BUY (Layer 1 regime sizing + Layer 2 timing + Layer 7 adaptive) ═══
   const maxPositions = 15;
   const maxMoverPositions = 5;
+  const maxScreenerPositions = 7; // Allow up to 7 screener/universe picks
   const currentMoverCount = w.positions.filter(p => p.source === 'mover').length;
+  const currentScreenerCount = w.positions.filter(p => p.source === 'screener' || p.source === 'universe').length;
 
   const buyQueue = [];
   portfolioScored.forEach(c => buyQueue.push(c));
   moverScored.forEach(c => {
     if (!buyQueue.some(q => q.stock.ticker === c.stock.ticker)) buyQueue.push(c);
   });
+  screenerScored.forEach(c => {
+    if (!buyQueue.some(q => q.stock.ticker === c.stock.ticker)) buyQueue.push(c);
+  });
+  universeScored.forEach(c => {
+    if (!buyQueue.some(q => q.stock.ticker === c.stock.ticker)) buyQueue.push(c);
+  });
   buyQueue.sort((a, b) => b.sc.total - a.sc.total);
 
-  let moverBuys = 0;
+  const srcCounts = { portfolio: buyQueue.filter(c=>c.source==='portfolio').length, mover: buyQueue.filter(c=>c.source==='mover').length, screener: buyQueue.filter(c=>c.source==='screener').length, universe: buyQueue.filter(c=>c.source==='universe').length };
+  aiLog.push('📊 Buy pool: ' + srcCounts.portfolio + ' portfolio + ' + srcCounts.mover + ' mover + ' + srcCounts.screener + ' screener + ' + srcCounts.universe + ' universe = ' + buyQueue.length + ' total');
+
+  let moverBuys = 0, screenerBuys = 0;
   for (const candidate of buyQueue) {
     const { stock, sc, source } = candidate;
     if (w.positions.length >= maxPositions) break;
     if (w.cash < 500) break;
     if (heldTickers.has(stock.ticker)) continue;
     if (source === 'mover' && (currentMoverCount + moverBuys) >= maxMoverPositions) continue;
+    if ((source === 'screener' || source === 'universe') && (currentScreenerCount + screenerBuys) >= maxScreenerPositions) continue;
 
     const sectorCount = heldSectors[stock.sector] || 0;
     if (sectorCount >= 3) continue;
@@ -3808,6 +3976,11 @@ function runAIAutoTrade() {
       if (sc.total >= 80) allocPct = 0.08;
       else if (sc.total >= 60) allocPct = 0.06;
       else allocPct = 0.04;
+    } else if (source === 'screener' || source === 'universe') {
+      // Screener/universe picks: sized between mover and portfolio
+      if (sc.total >= 80) allocPct = 0.10;
+      else if (sc.total >= 65) allocPct = 0.08;
+      else allocPct = 0.05;
     } else {
       if (sc.total >= 80) allocPct = 0.15;
       else if (sc.total >= 65) allocPct = 0.10;
@@ -3838,9 +4011,16 @@ function runAIAutoTrade() {
     let reason;
     const trendTag = candidate.trend ? (' T:' + candidate.trend.direction) : '';
     const heatTag = candidate.sectorHeat ? (' S:' + candidate.sectorHeat.label.split(' ')[0]) : '';
+    const capTag = stock._cap ? (' [' + (stock._cap==='L'?'LARGE':stock._cap==='M'?'MID':stock._cap==='S'?'SMALL':'MICRO') + ']') : '';
     if (source === 'mover') {
       reason = '🔥 MOVER BUY [' + sc.total + trendTag + heatTag + ']: ';
       reason += (sc.factors.slice(0, 2).join(' + ') || 'Momentum pick');
+    } else if (source === 'screener') {
+      reason = '🎯 SCREENER BUY [' + sc.total + capTag + trendTag + heatTag + ']: ';
+      reason += (sc.factors.slice(0, 2).join(' + ') || 'Top screener pick');
+    } else if (source === 'universe') {
+      reason = '🌐 UNIVERSE BUY [' + sc.total + capTag + trendTag + heatTag + ']: ';
+      reason += (sc.factors.slice(0, 2).join(' + ') || 'Quality-value discovery');
     } else {
       reason = 'AI BUY [' + sc.total + '/100' + trendTag + heatTag + ']: ';
       reason += (sc.factors.slice(0, 2).join(' + ') || stock.catalyst || 'Multi-factor');
@@ -3858,7 +4038,9 @@ function runAIAutoTrade() {
     heldSectors[stock.sector] = (heldSectors[stock.sector] || 0) + 1;
     tradesMade++;
     if (source === 'mover') moverBuys++;
-    log.push((source === 'mover' ? '🔥' : '') + 'BUY ' + stock.ticker + ' [' + sc.total + '] ' + qty + ' @ ₹' + buyPrice.toFixed(0) + ' ' + regime.mode + '/' + timing.window);
+    if (source === 'screener' || source === 'universe') screenerBuys++;
+    const srcIcon = source === 'mover' ? '🔥' : source === 'screener' ? '🎯' : source === 'universe' ? '🌐' : '';
+    log.push(srcIcon + 'BUY ' + stock.ticker + ' [' + sc.total + '] ' + qty + ' @ ₹' + buyPrice.toFixed(0) + ' ' + regime.mode + '/' + timing.window);
   }
 
   // ═══ SAVE & UPDATE ═══
@@ -3866,6 +4048,7 @@ function runAIAutoTrade() {
     const s = stocks.find(st => st.ticker === p.ticker);
     let price = s ? s.cmp : 0;
     if (!price && moverActive) { const ms = window._moverScan.scored.find(m => m.ticker === p.ticker); if (ms) price = ms.cmp; }
+    if (!price && window._screenerResults) { const sr = window._screenerResults.find(r => r.ticker === p.ticker); if (sr) price = sr.price || sr.cmp || 0; }
     return sum + ((price || p.avgPrice) * p.qty);
   }, 0);
   const totalVal = w.cash + holdingsVal;
@@ -3876,16 +4059,20 @@ function runAIAutoTrade() {
   updatePTDisplay(w);
 
   const moverCount = w.positions.filter(p => p.source === 'mover').length;
-  const portfolioCount = w.positions.length - moverCount;
+  const screenerCount = w.positions.filter(p => p.source === 'screener' || p.source === 'universe').length;
+  const portfolioCount = w.positions.length - moverCount - screenerCount;
   const regimeIcon = regime.mode === 'BULL' ? '🟢' : regime.mode === 'BEAR' ? '🔴' : '🟡';
 
   const intelTag = intelSources.length > 0 ? ' | 📊' + intelSources.join('+') : '';
+  const posBreakdown = portfolioCount + ' core' + (moverCount > 0 ? ' + ' + moverCount + ' mover' : '') + (screenerCount > 0 ? ' + ' + screenerCount + ' screener' : '');
+  const universeTag = (screenerScored.length > 0 || universeScored.length > 0) ? ' | 🎯 300-Universe' : (moverActive ? ' | 🔥 Mover-Powered' : '');
   if (tradesMade === 0) {
-    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' <b>' + regime.mode + '</b> | ' + portfolioCount + ' core + ' + moverCount + ' mover | ⏰' + timing.window + (moverActive ? ' | 🔥 Mover-Powered' : '') + intelTag + ' | 🧠 360° v5.0';
+    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' <b>' + regime.mode + '</b> | ' + posBreakdown + ' | ⏰' + timing.window + universeTag + intelTag + ' | 🧠 360° v6.0';
   } else {
-    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' ' + tradesMade + ' AI trades' + (moverBuys > 0 ? ' (' + moverBuys + ' movers)' : '') + ' | ' + regime.mode + ' | ⏰' + timing.window + intelTag + ' | Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0}) + ' | 🧠 360° v5.0';
+    const tradeBreakdown = tradesMade + ' AI trades' + (moverBuys > 0 ? ' (' + moverBuys + ' mover)' : '') + (screenerBuys > 0 ? ' (' + screenerBuys + ' screener)' : '');
+    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' ' + tradeBreakdown + ' | ' + regime.mode + ' | ⏰' + timing.window + universeTag + intelTag + ' | Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0}) + ' | 🧠 360° v6.0';
   }
-  console.log('[AI-ENGINE v5.0 360°] Intel:' + intelSources.join(',') + ' | ' + aiLog.join(' | ') + ' | Trades: ' + tradesMade);
+  console.log('[AI-ENGINE v6.0 360°] Intel:' + intelSources.join(',') + ' | ' + aiLog.join(' | ') + ' | Trades: ' + tradesMade);
 }
 
 // Check if mover scan data is fresh (same trading day, < 4 hours old)
@@ -6436,6 +6623,7 @@ async function runScreener(mode) {
   progressBar.style.width = '100%';
   scored.sort((a, b) => b.score - a.score);
   window._screenerResults = scored;
+  window._screenerTimestamp = Date.now();
   const top = scored.slice(0, 20);
   statusEl.textContent = 'Done! Scored ' + scored.length + ' stocks. Showing top ' + top.length + '.';
   setTimeout(() => { progressEl.style.display = 'none'; }, 1000);
