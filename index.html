@@ -477,7 +477,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     </div>
     <div class="tbl-wrap">
       <table><thead><tr>
-        <th>Company</th><th>NSE / BSE</th><th>Category</th><th>Sector</th>
+        <th>Company</th><th>NSE / BSE</th><th>Category</th><th>Cap</th><th>Sector</th>
         <th>CMP (&#8377;)</th><th>Change</th><th>Catalyst</th><th>P/E</th><th>ROCE</th><th>52W Range</th><th>Signal</th>
       </tr></thead><tbody id="stockBody"></tbody></table>
     </div>
@@ -1059,7 +1059,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <!-- ══════════════════════ PAPER TRADE TAB ══════════════════════ -->
   <div id="tab-papertrade" style="display:none">
     <div style="text-align:center;padding:20px 0 10px">
-      <h2 style="margin:0;font-size:22px">&#129504; AI Quant Paper Trading v5.0</h2>
+      <h2 style="margin:0;font-size:22px">&#129504; AI Quant Paper Trading v6.0</h2>
       <p style="color:var(--muted);margin:4px 0 0;font-size:13px">360&deg; Intelligence Engine &mdash; 7 AI Layers + Dashboard Intel (Technical &bull; Earnings &bull; Ranking &bull; Fundamental &bull; News Sentiment)</p>
       <div id="ptMoverBadge" style="display:inline-block;margin-top:8px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">&#128293; MOVER SCAN: Not loaded — Run Daily Mover Predictor first</div>
       <div id="ptAIBrainBadge" style="display:inline-block;margin-top:8px;margin-left:8px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">&#129504; 7-LAYER AI: Ready</div>
@@ -1205,7 +1205,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v3.0 &mdash; Valuation Edition &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v8.0 &mdash; Full Intelligence Edition &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -1650,6 +1650,14 @@ function renderTable(data) {
       <td><span class="ticker" onclick="showDetail('${s.ticker}')">${s.name}</span>${scanBadge}</td>
       <td style="color:var(--muted);font-size:12px">${s.ticker}</td>
       <td><span class="badge ${layerCls}">${s.layer}</span></td>
+      <td>${(() => {
+        const tk = (s.ticker||'').replace('&','%26');
+        const uv = typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.find(m => m.t === tk || m.t === s.ticker) : null;
+        const cap = uv ? uv.c : (s.mcap > 50000 ? 'L' : s.mcap > 10000 ? 'M' : s.mcap > 2000 ? 'S' : s.mcap > 0 ? 'X' : '?');
+        const capLbl = cap==='L'?'LARGE':cap==='M'?'MID':cap==='S'?'SMALL':cap==='X'?'MICRO':'—';
+        const capClr = cap==='L'?'#3b82f6':cap==='M'?'#8b5cf6':cap==='S'?'#f59e0b':cap==='X'?'#ef4444':'#888';
+        return '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:'+capClr+'22;color:'+capClr+';letter-spacing:0.5px">'+capLbl+'</span>';
+      })()}</td>
       <td style="font-size:12px">${s.sector}</td>
       <td style="font-weight:600">${cmpDisplay}</td>
       <td class="${cls}" style="font-weight:500">${chgDisplay}</td>
@@ -3510,7 +3518,7 @@ function paperSell(posIdx) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  AI QUANT AUTO-TRADE ENGINE v3.0 — MOVER-POWERED
+//  AI QUANT AUTO-TRADE ENGINE v6.0 — 360° UNIVERSE-POWERED
 // ═══════════════════════════════════════════════════════════
 async function runAIAutoTrade() {
   // ── PRE-STEP: Sync all dashboard intelligence before trading ──
