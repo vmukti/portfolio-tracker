@@ -3197,6 +3197,12 @@ function aiScore(s) {
     if (!s._cap) s._cap = _aiUv.c;
   }
 
+  // ── SAFE DEFAULTS for optional numeric fields ──
+  if (typeof s.changePct !== 'number' || isNaN(s.changePct)) s.changePct = 0;
+  if (typeof s.low52 !== 'number') s.low52 = 0;
+  if (typeof s.high52 !== 'number') s.high52 = 0;
+  if (typeof s.vol !== 'number') s.vol = 0;
+
   // ── MOMENTUM (0-25): price action + volume ──
   // 52W position: closer to low = more upside (contrarian)
   if (s.low52 && s.high52 && s.high52 > s.low52) {
@@ -3862,15 +3868,22 @@ async function runAIAutoTrade() {
     for (let i = 0; i < universeSymbols.length; i += batchSize) {
       const batch = universeSymbols.slice(i, i + batchSize);
       try {
-        const resp = await fetch(PROXY_URL + '?symbols=' + batch.join(',') + '&mode=all');
-        const data = await resp.json();
-        if (data.results) {
-          data.results.forEach(r => {
-            const tk = r.symbol.replace('.NS','').replace('.BO','');
-            if (r.price > 0) universePrices[tk] = r;
+        const resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(batch.join(',')) + '&mode=all', {signal: AbortSignal.timeout(20000)});
+        const json = await resp.json();
+        if (json && json.success && json.data && json.data.stocks) {
+          Object.entries(json.data.stocks).forEach(([sym, d]) => {
+            const tk = sym.replace('.NS','').replace('.BO','');
+            if (d.price > 0) universePrices[tk] = {
+              price: d.price,
+              prevClose: d.prevClose || 0,
+              high52: d.high52 || 0,
+              low52: d.low52 || 0,
+              volume: d.volume || 0
+            };
           });
         }
       } catch(e) { console.log('[UNIVERSE-TRADE] Batch fetch error:', e); }
+      if (i + batchSize < universeSymbols.length) await new Promise(r => setTimeout(r, 400));
     }
 
     topUniverse.forEach(m => {
