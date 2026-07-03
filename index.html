@@ -3882,9 +3882,10 @@ async function runAIAutoTrade() {
             };
           });
         }
-      } catch(e) { console.log('[UNIVERSE-TRADE] Batch fetch error:', e); }
+      } catch(e) { console.log('[UNIVERSE-TRADE] Batch fetch error:', e.message || e); }
       if (i + batchSize < universeSymbols.length) await new Promise(r => setTimeout(r, 400));
     }
+    console.log('[UNIVERSE-TRADE] Fetched prices for ' + Object.keys(universePrices).length + '/' + topUniverse.length + ' stocks');
 
     topUniverse.forEach(m => {
       const priceData = universePrices[m.t];
@@ -3907,8 +3908,18 @@ async function runAIAutoTrade() {
       // Mid/small cap alpha premium
       if (m.c === 'S') bonusScore += 4;
       else if (m.c === 'M') bonusScore += 2;
+      // Fundamental quality bonus (universe stocks lack full dashboard data,
+      // so reward the enriched PE+ROCE we DO have)
+      if (m.pe > 0 && m.pe < 15 && m.ro >= 20) { bonusScore += 6; sc.factors.push('Value-Quality combo PE<15 + ROCE≥20'); }
+      else if (m.pe > 0 && m.pe < 25 && m.ro >= 15) { bonusScore += 3; sc.factors.push('Reasonable PE + decent ROCE'); }
+      // 52W proximity bonus from actual price data
+      if (priceData.high52 > 0 && priceData.low52 > 0 && priceData.high52 > priceData.low52) {
+        const pos52 = (priceData.price - priceData.low52) / (priceData.high52 - priceData.low52);
+        if (pos52 < 0.25) { bonusScore += 5; sc.factors.push('Near 52W low — deep value'); }
+        else if (pos52 < 0.4) { bonusScore += 3; sc.factors.push('Lower 52W band'); }
+      }
 
-      if (bonusScore >= 55) {
+      if (bonusScore >= 42) {
         universeScored.push({
           stock: synthStock,
           sc: { total: Math.min(100, Math.max(0, bonusScore)), factors: sc.factors },
