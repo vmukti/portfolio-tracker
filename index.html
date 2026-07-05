@@ -2424,7 +2424,7 @@ async function predictDailyMovers() {
 // ============================================================
 
 // ── Ethical exclusion filters (MUST PRESERVE) ──
-const EXCLUDED_SECTORS = ['defence','defense','pharma','pharmaceutical','non-veg','meat','poultry','seafood','leather'];
+const EXCLUDED_SECTORS = ['defence','defense','pharma','pharmaceutical','non-veg','meat','poultry','seafood','leather','fmcg','tobacco','liquor','alcohol','brewery'];
 function isEthicallyExcluded(sectorOrName) {
   const t = (sectorOrName || '').toLowerCase();
   return EXCLUDED_SECTORS.some(ex => t.includes(ex));
