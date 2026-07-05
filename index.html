@@ -3652,6 +3652,19 @@ async function runAIAutoTrade() {
       else if (returnPct > bearProfit) { shouldSell = true; reason = '🐻 BEAR REGIME: Early profit booking at ' + returnPct.toFixed(1) + '%'; }
     }
 
+    // ── Stale underperformer exit: free slots for higher-conviction universe/screener picks ──
+    if (!shouldSell && w.positions.length >= 14) {
+      const holdDays = pos.buyDate ? (now.getTime() - new Date(pos.buyDate).getTime()) / 86400000 : 0;
+      if (holdDays >= 2 && sc.total < 60 && returnPct < 0) {
+        shouldSell = true;
+        reason = '🔄 ROTATION EXIT: Score ' + sc.total + ' + P&L ' + returnPct.toFixed(1) + '% after ' + Math.round(holdDays) + 'd — freeing slot';
+      }
+      else if (holdDays >= 3 && sc.total < 62 && returnPct < -2) {
+        shouldSell = true;
+        reason = '🔄 ROTATION EXIT: Underperforming ' + returnPct.toFixed(1) + '% over ' + Math.round(holdDays) + 'd (score ' + sc.total + ')';
+      }
+    }
+
     if (shouldSell) {
       const proceeds = sellPrice * pos.qty;
       const pnl = (sellPrice - pos.avgPrice) * pos.qty;
@@ -3933,30 +3946,70 @@ async function runAIAutoTrade() {
     aiLog.push('🌐 Universe: ' + universeScored.length + ' auto-scanned candidates');
   }
 
-  // ═══ PHASE 3: AGGRESSIVE REBALANCE ═══
+  // ═══ PHASE 3: AGGRESSIVE REBALANCE (up to 3 rotation swaps) ═══
   const allScored = [...portfolioScored, ...moverScored, ...screenerScored, ...universeScored];
+  const rebalanceGap = 12; // v8.4: lowered from 20 for active rotation
+  const maxSwaps = 3;
+  let swapsDone = 0;
   if (w.positions.length >= 8 && allScored.length > 0) {
-    let weakestIdx = -1, weakestScore = 999;
-    w.positions.forEach((p, i) => {
-      const s = stocks.find(st => st.ticker === p.ticker);
-      if (s) {
-        const sc = aiScore(s);
-        if (sc.total < weakestScore) { weakestScore = sc.total; weakestIdx = i; }
+    for (let _swap = 0; _swap < maxSwaps; _swap++) {
+      let weakestIdx = -1, weakestScore = 999;
+      w.positions.forEach((p, i) => {
+        const s = stocks.find(st => st.ticker === p.ticker);
+        if (s) {
+          const sc = aiScore(s);
+          if (sc.total < weakestScore) { weakestScore = sc.total; weakestIdx = i; }
+        }
+      });
+      // Find best available candidate not already held
+      const bestCandidate = allScored.find(c => !heldTickers.has(c.stock.ticker));
+      if (!bestCandidate) break;
+      if (weakestIdx >= 0 && bestCandidate.sc.total - weakestScore >= rebalanceGap) {
+        const weakPos = w.positions[weakestIdx];
+        const weakStock = stocks.find(s => s.ticker === weakPos.ticker);
+        const sellPrice = weakStock ? weakStock.cmp : weakPos.avgPrice;
+        const pnl = (sellPrice - weakPos.avgPrice) * weakPos.qty;
+        w.cash += sellPrice * weakPos.qty;
+        const swapTarget = bestCandidate;
+        const swapLabel = swapTarget.source === 'mover' ? '🔥MOVER ' : swapTarget.source === 'screener' ? '🎯SCREENER ' : swapTarget.source === 'universe' ? '🌐UNIVERSE ' : '';
+        w.trades.push({ type: 'SELL', ticker: weakPos.ticker, qty: weakPos.qty, price: sellPrice, pnl: Math.round(pnl), aiScore: weakestScore, reason: 'AI REBALANCE: Score ' + weakestScore + ' → swapped for ' + swapLabel + swapTarget.stock.ticker + ' (' + swapTarget.sc.total + ')', source: weakPos.source || 'portfolio', time: now.toISOString() });
+        w.positions.splice(weakestIdx, 1);
+        tradesMade++;
+        swapsDone++;
+        heldTickers.delete(weakPos.ticker);
+        log.push('REBALANCE: sold ' + weakPos.ticker + '(' + weakestScore + ') for ' + swapLabel + swapTarget.stock.ticker + '(' + swapTarget.sc.total + ')');
+      } else break;
+    }
+    if (swapsDone > 0) aiLog.push('🔄 Rebalanced ' + swapsDone + ' position(s)');
+  }
+
+  // ═══ PHASE 3.5: UNIVERSE ROTATION — force swap when at capacity with high-scoring universe picks ═══
+  if (w.positions.length >= 15 && universeScored.length > 0) {
+    const bestUniverse = universeScored.find(c => !heldTickers.has(c.stock.ticker));
+    if (bestUniverse && bestUniverse.sc.total >= 48) {
+      let weakestIdx = -1, weakestScore = 999;
+      w.positions.forEach((p, i) => {
+        const s = stocks.find(st => st.ticker === p.ticker);
+        if (s) {
+          const sc = aiScore(s);
+          const returnPct = (s.cmp - p.avgPrice) / p.avgPrice * 100;
+          // Only consider underperformers for universe rotation
+          if (sc.total < weakestScore && returnPct < 3) { weakestScore = sc.total; weakestIdx = i; }
+        }
+      });
+      if (weakestIdx >= 0 && bestUniverse.sc.total > weakestScore) {
+        const weakPos = w.positions[weakestIdx];
+        const weakStock = stocks.find(s => s.ticker === weakPos.ticker);
+        const sellPrice = weakStock ? weakStock.cmp : weakPos.avgPrice;
+        const pnl = (sellPrice - weakPos.avgPrice) * weakPos.qty;
+        w.cash += sellPrice * weakPos.qty;
+        w.trades.push({ type: 'SELL', ticker: weakPos.ticker, qty: weakPos.qty, price: sellPrice, pnl: Math.round(pnl), aiScore: weakestScore, reason: '🌐 UNIVERSE ROTATION: Score ' + weakestScore + ' → ' + bestUniverse.stock.ticker + ' (' + bestUniverse.sc.total + ')', source: weakPos.source || 'portfolio', time: now.toISOString() });
+        w.positions.splice(weakestIdx, 1);
+        tradesMade++;
+        heldTickers.delete(weakPos.ticker);
+        aiLog.push('🌐 Universe rotation: sold ' + weakPos.ticker + '(' + weakestScore + ') for ' + bestUniverse.stock.ticker + '(' + bestUniverse.sc.total + ')');
+        log.push('🌐UNIVERSE ROTATION: sold ' + weakPos.ticker + '(' + weakestScore + ') → ' + bestUniverse.stock.ticker + '(' + bestUniverse.sc.total + ')');
       }
-    });
-    if (weakestIdx >= 0 && allScored[0].sc.total - weakestScore >= 20) {
-      const weakPos = w.positions[weakestIdx];
-      const weakStock = stocks.find(s => s.ticker === weakPos.ticker);
-      const sellPrice = weakStock ? weakStock.cmp : weakPos.avgPrice;
-      const pnl = (sellPrice - weakPos.avgPrice) * weakPos.qty;
-      w.cash += sellPrice * weakPos.qty;
-      const swapTarget = allScored[0];
-      const swapLabel = swapTarget.source === 'mover' ? '🔥MOVER ' : swapTarget.source === 'screener' ? '🎯SCREENER ' : swapTarget.source === 'universe' ? '🌐UNIVERSE ' : '';
-      w.trades.push({ type: 'SELL', ticker: weakPos.ticker, qty: weakPos.qty, price: sellPrice, pnl: Math.round(pnl), aiScore: weakestScore, reason: 'AI REBALANCE: Score ' + weakestScore + ' → swapped for ' + swapLabel + swapTarget.stock.ticker + ' (' + swapTarget.sc.total + ')', source: weakPos.source || 'portfolio', time: now.toISOString() });
-      w.positions.splice(weakestIdx, 1);
-      tradesMade++;
-      heldTickers.delete(weakPos.ticker);
-      log.push('REBALANCE: sold ' + weakPos.ticker + '(' + weakestScore + ') for ' + swapLabel + swapTarget.stock.ticker + '(' + swapTarget.sc.total + ')');
     }
   }
 
@@ -4099,12 +4152,12 @@ async function runAIAutoTrade() {
   const posBreakdown = portfolioCount + ' core' + (moverCount > 0 ? ' + ' + moverCount + ' mover' : '') + (screenerCount > 0 ? ' + ' + screenerCount + ' screener' : '');
   const universeTag = (screenerScored.length > 0 || universeScored.length > 0) ? ' | 🎯 300-Universe' : (moverActive ? ' | 🔥 Mover-Powered' : '');
   if (tradesMade === 0) {
-    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' <b>' + regime.mode + '</b> | ' + posBreakdown + ' | ⏰' + timing.window + universeTag + intelTag + ' | 🧠 360° v6.0';
+    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' <b>' + regime.mode + '</b> | ' + posBreakdown + ' | ⏰' + timing.window + universeTag + intelTag + ' | 🧠 360° v8.4';
   } else {
     const tradeBreakdown = tradesMade + ' AI trades' + (moverBuys > 0 ? ' (' + moverBuys + ' mover)' : '') + (screenerBuys > 0 ? ' (' + screenerBuys + ' screener)' : '');
-    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' ' + tradeBreakdown + ' | ' + regime.mode + ' | ⏰' + timing.window + universeTag + intelTag + ' | Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0}) + ' | 🧠 360° v6.0';
+    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' ' + tradeBreakdown + ' | ' + regime.mode + ' | ⏰' + timing.window + universeTag + intelTag + ' | Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0}) + ' | 🧠 360° v8.4';
   }
-  console.log('[AI-ENGINE v6.0 360°] Intel:' + intelSources.join(',') + ' | ' + aiLog.join(' | ') + ' | Trades: ' + tradesMade);
+  console.log('[AI-ENGINE v8.4 360°] Intel:' + intelSources.join(',') + ' | ' + aiLog.join(' | ') + ' | Trades: ' + tradesMade);
 }
 
 // Check if mover scan data is fresh (same trading day, < 4 hours old)
