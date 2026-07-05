@@ -430,6 +430,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <div class="tab" onclick="switchTab('scorer',this)">&#128270; Stock Scorer</div>
   <div class="tab" onclick="switchTab('portfolioai',this)">&#129302; Portfolio AI</div>
   <div class="tab" onclick="switchTab('papertrade',this)">&#128176; Paper Trade</div>
+  <div class="tab" onclick="switchTab('daytrade',this)">&#9889; Day Trade</div>
   <div class="tab" onclick="switchTab('config',this)">&#9881;&#65039; Alert Settings</div>
 </div>
 
@@ -1102,6 +1103,63 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     </div>
   </div>
 
+  <div id="tab-daytrade" style="display:none">
+    <div style="text-align:center;padding:20px 0 10px">
+      <h2 style="margin:0;font-size:22px">&#9889; AI Day Trade Simulator v1.0</h2>
+      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">Intraday Only &mdash; Buy at Open, Square-Off by Close &mdash; No Overnight Positions</p>
+      <div id="dtStatusBadge" style="display:inline-block;margin-top:8px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#4f8cff22;color:#4f8cff;border:1px solid #4f8cff44">&#128337; STATUS: No positions &mdash; Market ready</div>
+    </div>
+
+    <!-- Wallet Summary Cards -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">
+      <div class="metric-card"><div class="metric-label">CASH BALANCE</div><div class="metric-value" id="dtCash">&#8377;2,00,000</div></div>
+      <div class="metric-card"><div class="metric-label">TODAY'S POSITIONS</div><div class="metric-value" id="dtPositionCount">0</div></div>
+      <div class="metric-card"><div class="metric-label">TODAY'S P&amp;L</div><div class="metric-value" id="dtTodayPnl" style="color:#22c55e">&#8377;0</div></div>
+      <div class="metric-card"><div class="metric-label">WIN RATE</div><div class="metric-value" id="dtWinRate">0%</div></div>
+      <div class="metric-card"><div class="metric-label">TOTAL RETURN</div><div class="metric-value" id="dtTotalReturn" style="color:#22c55e">0.00%</div></div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+      <button id="dtRunBtn" onclick="runDayTradeAI()" style="padding:10px 24px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">&#9889; Run Day Trade AI</button>
+      <button id="dtSquareOffBtn" onclick="squareOffAll()" style="padding:10px 20px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px">&#128274; Square Off All</button>
+      <button onclick="resetDayTrade()" style="padding:10px 18px;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128260; Reset Day Trade</button>
+      <span id="dtLastAction" style="color:var(--muted);font-size:12px;margin-left:auto">No trades today</span>
+    </div>
+
+    <!-- Current Positions Table -->
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin:0 0 12px;font-size:16px">&#128200; Current Intraday Positions</h3>
+      <div id="dtPositionsTable" style="font-size:13px">
+        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. Click &quot;Run Day Trade AI&quot; to scan and buy.</div>
+      </div>
+    </div>
+
+    <!-- Today's Trades -->
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin:0 0 12px;font-size:16px">&#128220; Today's Trades <span id="dtTodayTradeCount" style="color:var(--muted);font-size:12px">(0 trades)</span></h3>
+      <div id="dtTodayTrades" style="font-size:12px;max-height:250px;overflow-y:auto">
+        <div style="color:var(--muted);text-align:center;padding:20px">Today's trade log will appear here</div>
+      </div>
+    </div>
+
+    <!-- Daily P&L History -->
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin:0 0 12px;font-size:16px">&#128197; Daily P&amp;L History <span id="dtHistoryCount" style="color:var(--muted);font-size:12px">(0 days)</span></h3>
+      <div id="dtHistory" style="font-size:13px;max-height:350px;overflow-y:auto">
+        <div style="color:var(--muted);text-align:center;padding:20px">Daily history will appear after square-off</div>
+      </div>
+    </div>
+
+    <!-- Equity Curve Chart -->
+    <div class="card">
+      <h3 style="margin:0 0 12px;font-size:16px">&#128200; Equity Curve</h3>
+      <div style="position:relative;height:250px">
+        <canvas id="dtEquityChart"></canvas>
+      </div>
+    </div>
+  </div>
+
   <div id="tab-config" style="display:none">
     <div class="config-panel">
       <h3>&#128276; Alert configuration</h3>
@@ -1749,7 +1807,8 @@ function switchTab(tab, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   if (tab === 'papertrade') loadPaperTrade();
-  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','config'].forEach(t => {
+  if (tab === 'daytrade') loadDayTrade();
+  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','daytrade','config'].forEach(t => {
     const d = document.getElementById('tab-'+t);
     if(d) d.style.display = t===tab ? 'block' : 'none';
   });
@@ -7520,6 +7579,753 @@ document.addEventListener('DOMContentLoaded', function() {
     updateWatchlistBadge();
   }, 1000);
 });
+
+// ============================================================
+//  DAY TRADE SIMULATOR v1.0 — INTRADAY AI ENGINE
+// ============================================================
+var DT_KEY = 'dayTradeWallet_v1';
+var DT_START = 200000;
+var _dtEquityChart = null;
+
+function getDT() {
+  try {
+    var d = JSON.parse(localStorage.getItem(DT_KEY));
+    if (d && d.cash !== undefined) return d;
+  } catch(e) {}
+  return {
+    cash: DT_START,
+    positions: [],
+    trades: [],
+    startDate: new Date().toISOString(),
+    dailyHistory: [],
+    todayDate: ''
+  };
+}
+
+function saveDT(w) {
+  localStorage.setItem(DT_KEY, JSON.stringify(w));
+}
+
+function resetDayTrade() {
+  if (!confirm('Reset day trade wallet to 2,00,000? All positions & trade history will be cleared.')) return;
+  localStorage.removeItem(DT_KEY);
+  loadDayTrade();
+}
+
+// ---------------------------------------------------------------
+//  Day Trade Scoring — rates a stock for intraday opportunity
+// ---------------------------------------------------------------
+function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector) {
+  var score = 0;
+
+  // 1. Intraday momentum (0-30): bigger move = better opportunity
+  var changePct = prevClose > 0 ? ((price - prevClose) / prevClose * 100) : 0;
+  var absChange = Math.abs(changePct);
+  if (absChange >= 3) score += 30;
+  else if (absChange >= 2) score += 25;
+  else if (absChange >= 1) score += 18;
+  else if (absChange >= 0.5) score += 10;
+  else score += 3;
+
+  // 2. Direction confidence (0-20): trending UP stocks = better for long-only
+  if (changePct > 0) score += Math.min(20, changePct * 6);
+  else score += Math.max(0, 5 + changePct * 2);
+
+  // 3. 52-week proximity (0-20): near 52W high = breakout potential
+  var range52 = high52 - low52;
+  var pos52 = range52 > 0 ? (price - low52) / range52 : 0.5;
+  if (pos52 >= 0.85) score += 20;
+  else if (pos52 >= 0.7) score += 15;
+  else if (pos52 <= 0.15) score += 12;
+  else score += 8;
+
+  // 4. Volume signal (0-15): higher volume = more liquid = better for day trade
+  if (volume > 5000000) score += 15;
+  else if (volume > 2000000) score += 12;
+  else if (volume > 500000) score += 8;
+  else if (volume > 100000) score += 5;
+  else score += 2;
+
+  // 5. Price band (0-15): stocks between 100-5000 are ideal for day trading
+  if (price >= 100 && price <= 5000) score += 15;
+  else if (price >= 50 && price <= 10000) score += 10;
+  else score += 5;
+
+  return { total: Math.round(score), momentum: changePct.toFixed(2), vol: volume };
+}
+
+// ---------------------------------------------------------------
+//  Load & Render Day Trade Tab
+// ---------------------------------------------------------------
+function loadDayTrade() {
+  var w = getDT();
+  updateDTDisplay(w);
+}
+
+function updateDTDisplay(w) {
+  // --- Calculate live P&L for open positions ---
+  var todayPnl = 0;
+  var invested = 0;
+  w.positions.forEach(function(p) {
+    var stock = stocks.find(function(s) { return s.ticker === p.ticker; });
+    var livePrice = (stock && stock.cmp > 0) ? stock.cmp : p.buyPrice;
+    p.currentPrice = livePrice;
+    p.currentValue = livePrice * p.qty;
+    p.pnl = (livePrice - p.buyPrice) * p.qty;
+    p.pnlPct = p.buyPrice > 0 ? ((livePrice - p.buyPrice) / p.buyPrice * 100) : 0;
+    todayPnl += p.pnl;
+    invested += p.buyPrice * p.qty;
+  });
+
+  // --- Calculate total return from dailyHistory ---
+  var totalNetPnl = 0;
+  w.dailyHistory.forEach(function(d) { totalNetPnl += (d.netPnl || 0); });
+  totalNetPnl += todayPnl;
+  var totalReturnPct = DT_START > 0 ? (totalNetPnl / DT_START * 100) : 0;
+
+  // --- Calculate win rate from history ---
+  var totalWins = 0, totalTrades = 0;
+  w.dailyHistory.forEach(function(d) {
+    totalWins += (d.winners || 0);
+    totalTrades += (d.trades || 0);
+  });
+  var winRate = totalTrades > 0 ? Math.round(totalWins / totalTrades * 100) : 0;
+
+  // --- Update summary cards ---
+  var elCash = document.getElementById('dtCash');
+  if (elCash) elCash.textContent = '₹' + w.cash.toLocaleString('en-IN', {maximumFractionDigits: 0});
+
+  var elPos = document.getElementById('dtPositionCount');
+  if (elPos) elPos.textContent = w.positions.length;
+
+  var elPnl = document.getElementById('dtTodayPnl');
+  if (elPnl) {
+    elPnl.textContent = (todayPnl >= 0 ? '+' : '') + '₹' + Math.abs(todayPnl).toLocaleString('en-IN', {maximumFractionDigits: 0});
+    elPnl.style.color = todayPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  var elWin = document.getElementById('dtWinRate');
+  if (elWin) elWin.textContent = winRate + '%';
+
+  var elRet = document.getElementById('dtTotalReturn');
+  if (elRet) {
+    elRet.textContent = (totalReturnPct >= 0 ? '+' : '') + totalReturnPct.toFixed(2) + '%';
+    elRet.style.color = totalReturnPct >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  // --- Status badge ---
+  var badge = document.getElementById('dtStatusBadge');
+  if (badge) {
+    if (w.positions.length > 0) {
+      badge.style.background = '#22c55e22';
+      badge.style.color = '#22c55e';
+      badge.style.borderColor = '#22c55e44';
+      badge.innerHTML = '&#128994; LIVE: ' + w.positions.length + ' positions open | P&L: ' + (todayPnl >= 0 ? '+' : '') + '₹' + Math.abs(todayPnl).toLocaleString('en-IN', {maximumFractionDigits: 0});
+    } else {
+      badge.style.background = '#4f8cff22';
+      badge.style.color = '#4f8cff';
+      badge.style.borderColor = '#4f8cff44';
+      badge.innerHTML = '&#128337; STATUS: No positions &mdash; Market ready';
+    }
+  }
+
+  // --- Positions Table ---
+  var ptEl = document.getElementById('dtPositionsTable');
+  if (ptEl) {
+    if (w.positions.length === 0) {
+      ptEl.innerHTML = '<div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. Click "Run Day Trade AI" to scan and buy.</div>';
+    } else {
+      var rows = [];
+      rows.push('<div class="tbl-wrap"><table>');
+      rows.push('<thead><tr><th>STOCK</th><th>BUY PRICE</th><th>CMP</th><th>QTY</th><th>INVESTED</th><th>CURRENT</th><th>P&L</th><th>P&L%</th><th>ACTION</th></tr></thead>');
+      rows.push('<tbody>');
+      w.positions.forEach(function(p) {
+        var pnlClass = p.pnl >= 0 ? 'up' : 'down';
+        var pnlSign = p.pnl >= 0 ? '+' : '';
+        rows.push('<tr>');
+        rows.push('<td><span class="ticker">' + p.ticker + '</span><div style="font-size:10px;color:var(--muted)">' + (p.name || '') + '</div></td>');
+        rows.push('<td>₹' + p.buyPrice.toLocaleString('en-IN', {maximumFractionDigits: 2}) + '</td>');
+        rows.push('<td>₹' + p.currentPrice.toLocaleString('en-IN', {maximumFractionDigits: 2}) + '</td>');
+        rows.push('<td>' + p.qty + '</td>');
+        rows.push('<td>₹' + (p.buyPrice * p.qty).toLocaleString('en-IN', {maximumFractionDigits: 0}) + '</td>');
+        rows.push('<td>₹' + p.currentValue.toLocaleString('en-IN', {maximumFractionDigits: 0}) + '</td>');
+        rows.push('<td class="' + pnlClass + '">' + pnlSign + '₹' + Math.abs(p.pnl).toLocaleString('en-IN', {maximumFractionDigits: 0}) + '</td>');
+        rows.push('<td class="' + pnlClass + '">' + pnlSign + p.pnlPct.toFixed(2) + '%</td>');
+        rows.push("<td><button onclick=\"squareOffOne('" + p.ticker + "')\" style=\"padding:4px 12px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600\">SELL</button></td>");
+        rows.push('</tr>');
+      });
+      rows.push('</tbody></table></div>');
+      ptEl.innerHTML = rows.join('\n');
+    }
+  }
+
+  // --- Today's Trades Log ---
+  var ttEl = document.getElementById('dtTodayTrades');
+  var ttCount = document.getElementById('dtTodayTradeCount');
+  if (ttEl) {
+    var todayStr = new Date().toISOString().slice(0, 10);
+    var todayTrades = w.trades.filter(function(t) {
+      return t.time && t.time.slice(0, 10) === todayStr;
+    });
+    if (ttCount) ttCount.textContent = '(' + todayTrades.length + ' trades)';
+    if (todayTrades.length === 0) {
+      ttEl.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">No trades today</div>';
+    } else {
+      var logLines = [];
+      todayTrades.slice().reverse().forEach(function(t) {
+        var isBuy = t.type === 'BUY';
+        var bgColor = isBuy ? '#22c55e15' : '#ef444415';
+        var icon = isBuy ? '&#128994;' : '&#128308;';
+        var pnlStr = '';
+        if (!isBuy && t.pnl !== undefined) {
+          var pnlColor = t.pnl >= 0 ? 'var(--green)' : 'var(--red)';
+          var pnlSign2 = t.pnl >= 0 ? '+' : '';
+          pnlStr = ' | <span style="color:' + pnlColor + '">' + pnlSign2 + '₹' + Math.abs(t.pnl).toLocaleString('en-IN', {maximumFractionDigits: 0}) + '</span>';
+        }
+        var timeStr = t.time ? new Date(t.time).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) : '';
+        logLines.push('<div style="padding:6px 10px;margin:2px 0;border-radius:6px;background:' + bgColor + ';border-left:3px solid ' + (isBuy ? 'var(--green)' : 'var(--red)') + '">');
+        logLines.push(icon + ' <strong>' + t.type + '</strong> ' + t.ticker + ' x' + t.qty + ' @ ₹' + t.price.toLocaleString('en-IN', {maximumFractionDigits: 2}) + pnlStr);
+        logLines.push(' <span style="color:var(--muted);font-size:10px;float:right">' + timeStr + '</span>');
+        if (t.reason) logLines.push('<div style="font-size:10px;color:var(--muted);margin-top:2px">' + t.reason + '</div>');
+        logLines.push('</div>');
+      });
+      ttEl.innerHTML = logLines.join('\n');
+    }
+  }
+
+  // --- Daily P&L History ---
+  var dhEl = document.getElementById('dtHistory');
+  var dhCount = document.getElementById('dtHistoryCount');
+  if (dhEl) {
+    if (dhCount) dhCount.textContent = '(' + w.dailyHistory.length + ' days)';
+    if (w.dailyHistory.length === 0) {
+      dhEl.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">Daily history will appear after square-off</div>';
+    } else {
+      var hRows = [];
+      hRows.push('<div class="tbl-wrap"><table>');
+      hRows.push('<thead><tr><th>DATE</th><th>TRADES</th><th>GROSS P&L</th><th>NET P&L</th><th>WINNERS</th><th>LOSERS</th><th>BEST TRADE</th><th>WORST TRADE</th></tr></thead>');
+      hRows.push('<tbody>');
+      w.dailyHistory.slice().reverse().slice(0, 30).forEach(function(d) {
+        var netClass = d.netPnl >= 0 ? 'up' : 'down';
+        var netSign = d.netPnl >= 0 ? '+' : '';
+        var grossSign = d.grossPnl >= 0 ? '+' : '';
+        hRows.push('<tr>');
+        hRows.push('<td>' + d.date + '</td>');
+        hRows.push('<td>' + d.trades + '</td>');
+        hRows.push('<td class="' + (d.grossPnl >= 0 ? 'up' : 'down') + '">' + grossSign + '₹' + Math.abs(d.grossPnl || 0).toLocaleString('en-IN', {maximumFractionDigits: 0}) + '</td>');
+        hRows.push('<td class="' + netClass + '">' + netSign + '₹' + Math.abs(d.netPnl || 0).toLocaleString('en-IN', {maximumFractionDigits: 0}) + '</td>');
+        hRows.push('<td style="color:var(--green)">' + (d.winners || 0) + '</td>');
+        hRows.push('<td style="color:var(--red)">' + (d.losers || 0) + '</td>');
+        hRows.push('<td class="up">' + (d.bestTrade || '--') + '</td>');
+        hRows.push('<td class="down">' + (d.worstTrade || '--') + '</td>');
+        hRows.push('</tr>');
+      });
+      hRows.push('</tbody></table></div>');
+      dhEl.innerHTML = hRows.join('\n');
+    }
+  }
+
+  // --- Equity Curve ---
+  renderDTEquityCurve(w);
+}
+
+// ---------------------------------------------------------------
+//  Equity Curve Chart
+// ---------------------------------------------------------------
+function renderDTEquityCurve(w) {
+  var canvas = document.getElementById('dtEquityChart');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+
+  if (_dtEquityChart) {
+    _dtEquityChart.destroy();
+    _dtEquityChart = null;
+  }
+
+  if (w.dailyHistory.length < 2) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '13px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Equity curve will appear after 2+ trading days', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+
+  var labels = [];
+  var equityData = [];
+  var cumulative = DT_START;
+  labels.push('Start');
+  equityData.push(DT_START);
+  w.dailyHistory.forEach(function(d) {
+    cumulative += (d.netPnl || 0);
+    labels.push(d.date.slice(5));
+    equityData.push(Math.round(cumulative));
+  });
+
+  var lineColor = cumulative >= DT_START ? '#22c55e' : '#ef4444';
+  var bgColor2 = cumulative >= DT_START ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
+
+  _dtEquityChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Equity',
+        data: equityData,
+        borderColor: lineColor,
+        backgroundColor: bgColor2,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        pointBackgroundColor: lineColor,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(c) {
+              return '₹' + c.parsed.y.toLocaleString('en-IN');
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#94a3b8', font: { size: 10 } },
+          grid: { color: '#2d314822' }
+        },
+        y: {
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 10 },
+            callback: function(v) { return '₹' + (v / 1000).toFixed(0) + 'K'; }
+          },
+          grid: { color: '#2d314833' }
+        }
+      }
+    }
+  });
+}
+
+// ---------------------------------------------------------------
+//  Run Day Trade AI — Morning Buy Phase
+// ---------------------------------------------------------------
+async function runDayTradeAI() {
+  var w = getDT();
+
+  if (w.positions.length > 0) {
+    alert('You already have ' + w.positions.length + ' open positions. Square off first before running again.');
+    return;
+  }
+
+  if (w.cash < 15000) {
+    alert('Insufficient cash. Need at least 15,000 for a day trade.');
+    return;
+  }
+
+  var btn = document.getElementById('dtRunBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Scanning...';
+  }
+  var statusBadge = document.getElementById('dtStatusBadge');
+  if (statusBadge) {
+    statusBadge.style.background = '#f59e0b22';
+    statusBadge.style.color = '#f59e0b';
+    statusBadge.style.borderColor = '#f59e0b44';
+    statusBadge.innerHTML = '&#9889; SCANNING: Fetching prices for 300+ stocks...';
+  }
+
+  try {
+    // === STEP 1: Gather all candidate tickers ===
+    var candidates = {};
+
+    // From portfolio stocks (40)
+    stocks.forEach(function(s) {
+      if (!s.ticker || !s.cmp || s.cmp <= 0) return;
+      if (isEthicallyExcluded(s.sector || '') || isEthicallyExcluded(s.name || '')) return;
+      candidates[s.ticker] = {
+        ticker: s.ticker,
+        name: s.name || s.ticker,
+        sector: s.sector || '',
+        price: s.cmp,
+        prevClose: s.prevClose || s.cmp,
+        high52: s.high52 || 0,
+        low52: s.low52 || 0,
+        volume: s.volume || 0,
+        source: 'portfolio'
+      };
+    });
+
+    // From MOVER_UNIVERSE (300)
+    var universeToFetch = [];
+    if (typeof MOVER_UNIVERSE !== 'undefined' && MOVER_UNIVERSE.length > 0) {
+      MOVER_UNIVERSE.forEach(function(m) {
+        if (m.c === 'X') return;
+        if (isEthicallyExcluded(m.s || '') || isEthicallyExcluded(m.n || '')) return;
+        if (candidates[m.t]) return;
+        universeToFetch.push(m);
+      });
+
+      universeToFetch.sort(function(a, b) {
+        var sa = (a.ro / Math.max(1, a.pe)) * (a.c === 'M' || a.c === 'S' ? 1.2 : 1);
+        var sb = (b.ro / Math.max(1, b.pe)) * (b.c === 'M' || b.c === 'S' ? 1.2 : 1);
+        return sb - sa;
+      });
+      universeToFetch = universeToFetch.slice(0, 60);
+
+      var batchSize = 10;
+      for (var i = 0; i < universeToFetch.length; i += batchSize) {
+        var batch = universeToFetch.slice(i, i + batchSize);
+        var symbolStr = batch.map(function(m) { return m.t + '.NS'; }).join(',');
+        try {
+          var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbolStr) + '&mode=all', {signal: AbortSignal.timeout(20000)});
+          var json = await resp.json();
+          if (json && json.success && json.data && json.data.stocks) {
+            Object.entries(json.data.stocks).forEach(function(entry) {
+              var sym = entry[0];
+              var d = entry[1];
+              var tk = sym.replace('.NS', '').replace('.BO', '');
+              if (d.price > 0) {
+                var uvEntry = batch.find(function(m) { return m.t === tk; });
+                candidates[tk] = {
+                  ticker: tk,
+                  name: uvEntry ? uvEntry.n : tk,
+                  sector: uvEntry ? uvEntry.s : '',
+                  price: d.price,
+                  prevClose: d.prevClose || d.price,
+                  high52: d.high52 || 0,
+                  low52: d.low52 || 0,
+                  volume: d.volume || 0,
+                  source: 'universe'
+                };
+              }
+            });
+          }
+        } catch(e) {
+          console.log('[DAY-TRADE] Batch fetch error:', e.message || e);
+        }
+        if (i + batchSize < universeToFetch.length) {
+          await new Promise(function(r) { setTimeout(r, 400); });
+        }
+
+        if (statusBadge) {
+          var fetched = Math.min(i + batchSize, universeToFetch.length);
+          statusBadge.innerHTML = '&#9889; SCANNING: Fetched ' + fetched + '/' + universeToFetch.length + ' universe stocks...';
+        }
+      }
+    }
+
+    // === STEP 2: Score all candidates ===
+    var scored = [];
+    Object.values(candidates).forEach(function(c) {
+      var changePct = c.prevClose > 0 ? ((c.price - c.prevClose) / c.prevClose * 100) : 0;
+      var dtScore = dayTradeScore(c.ticker, c.price, c.prevClose, c.high52, c.low52, c.volume, c.sector);
+      scored.push({
+        ticker: c.ticker,
+        name: c.name,
+        sector: c.sector,
+        price: c.price,
+        prevClose: c.prevClose,
+        high52: c.high52,
+        low52: c.low52,
+        volume: c.volume,
+        changePct: changePct,
+        dtScore: dtScore.total,
+        momentum: dtScore.momentum,
+        source: c.source
+      });
+    });
+
+    scored.sort(function(a, b) { return b.dtScore - a.dtScore; });
+
+    console.log('[DAY-TRADE] Scored ' + scored.length + ' candidates. Top 10:');
+    scored.slice(0, 10).forEach(function(s, idx) {
+      console.log('  ' + (idx + 1) + '. ' + s.ticker + ' score=' + s.dtScore + ' chg=' + s.changePct.toFixed(2) + '% vol=' + s.volume);
+    });
+
+    // === STEP 3: Pick top 5-10 and allocate ===
+    var picks = scored.filter(function(s) {
+      return s.dtScore >= 40 && parseFloat(s.momentum) > 0;
+    }).slice(0, 8);
+
+    if (picks.length < 3) {
+      picks = scored.filter(function(s) {
+        return s.dtScore >= 25;
+      }).slice(0, 6);
+    }
+
+    if (picks.length === 0) {
+      alert('No suitable day trade candidates found. Market may be flat or all stocks are down.');
+      if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
+      if (statusBadge) {
+        statusBadge.style.background = '#ef444422';
+        statusBadge.style.color = '#ef4444';
+        statusBadge.style.borderColor = '#ef444444';
+        statusBadge.innerHTML = '&#10060; No candidates found &mdash; market may be flat';
+      }
+      return;
+    }
+
+    var maxPerTrade = Math.min(25000, Math.floor(w.cash / picks.length));
+    var minPerTrade = 15000;
+    if (maxPerTrade < minPerTrade) {
+      picks = picks.slice(0, Math.floor(w.cash / minPerTrade));
+      maxPerTrade = Math.min(25000, Math.floor(w.cash / picks.length));
+    }
+
+    if (picks.length === 0) {
+      alert('Insufficient cash for any day trade. Cash: ' + w.cash.toLocaleString('en-IN'));
+      if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
+      return;
+    }
+
+    var tradeAmount = Math.floor(w.cash / picks.length);
+    tradeAmount = Math.max(minPerTrade, Math.min(maxPerTrade, tradeAmount));
+
+    // === STEP 4: Execute BUY trades ===
+    var todayStr = new Date().toISOString().slice(0, 10);
+    var buyCount = 0;
+    picks.forEach(function(pick) {
+      if (w.cash < minPerTrade) return;
+      var amt = Math.min(tradeAmount, w.cash);
+      var qty = Math.floor(amt / pick.price);
+      if (qty <= 0) return;
+      var cost = qty * pick.price;
+
+      w.positions.push({
+        ticker: pick.ticker,
+        name: pick.name,
+        sector: pick.sector,
+        buyPrice: pick.price,
+        currentPrice: pick.price,
+        qty: qty,
+        currentValue: cost,
+        pnl: 0,
+        pnlPct: 0,
+        dtScore: pick.dtScore,
+        momentum: pick.momentum,
+        source: pick.source,
+        buyTime: new Date().toISOString()
+      });
+
+      w.trades.push({
+        type: 'BUY',
+        ticker: pick.ticker,
+        name: pick.name,
+        qty: qty,
+        price: pick.price,
+        dtScore: pick.dtScore,
+        reason: '⚡ DT Score ' + pick.dtScore + '/100 | Momentum ' + pick.momentum + '% | Vol ' + (pick.volume > 1000000 ? (pick.volume / 1000000).toFixed(1) + 'M' : (pick.volume / 1000).toFixed(0) + 'K') + ' | ' + pick.source,
+        source: 'daytrade',
+        time: new Date().toISOString()
+      });
+
+      w.cash -= cost;
+      buyCount++;
+    });
+
+    w.todayDate = todayStr;
+    saveDT(w);
+
+    var lastAction = document.getElementById('dtLastAction');
+    if (lastAction) {
+      lastAction.innerHTML = '&#128994; Bought ' + buyCount + ' stocks at ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'});
+    }
+
+    console.log('[DAY-TRADE] Bought ' + buyCount + ' stocks. Cash remaining: ' + w.cash.toLocaleString('en-IN'));
+
+  } catch(err) {
+    console.error('[DAY-TRADE] Error:', err);
+    alert('Day Trade AI error: ' + (err.message || err));
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '⚡ Run Day Trade AI';
+  }
+
+  updateDTDisplay(getDT());
+}
+
+// ---------------------------------------------------------------
+//  Square Off All — Evening Close Phase
+// ---------------------------------------------------------------
+async function squareOffAll() {
+  var w = getDT();
+  if (w.positions.length === 0) {
+    alert('No open positions to square off.');
+    return;
+  }
+
+  if (!confirm('Square off all ' + w.positions.length + ' positions at current prices?')) return;
+
+  var sqBtn = document.getElementById('dtSquareOffBtn');
+  if (sqBtn) {
+    sqBtn.disabled = true;
+    sqBtn.textContent = 'Closing...';
+  }
+
+  var positionTickers = w.positions.map(function(p) { return p.ticker + '.NS'; });
+  var freshPrices = {};
+  try {
+    var batchSize2 = 10;
+    for (var i = 0; i < positionTickers.length; i += batchSize2) {
+      var batch2 = positionTickers.slice(i, i + batchSize2);
+      var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(batch2.join(',')) + '&mode=all', {signal: AbortSignal.timeout(20000)});
+      var json = await resp.json();
+      if (json && json.success && json.data && json.data.stocks) {
+        Object.entries(json.data.stocks).forEach(function(entry) {
+          var sym = entry[0];
+          var d = entry[1];
+          var tk = sym.replace('.NS', '').replace('.BO', '');
+          if (d.price > 0) freshPrices[tk] = d.price;
+        });
+      }
+      if (i + batchSize2 < positionTickers.length) {
+        await new Promise(function(r) { setTimeout(r, 400); });
+      }
+    }
+  } catch(e) {
+    console.log('[DAY-TRADE] Fresh price fetch error, using cached:', e.message || e);
+  }
+
+  var dayGrossPnl = 0;
+  var winners = 0, losers = 0;
+  var bestPnl = -Infinity, worstPnl = Infinity;
+  var bestTrade = '--', worstTrade = '--';
+  var todayStr = new Date().toISOString().slice(0, 10);
+
+  w.positions.forEach(function(p) {
+    var sellPrice = freshPrices[p.ticker] || p.currentPrice || p.buyPrice;
+    var pnl = (sellPrice - p.buyPrice) * p.qty;
+    var pnlPct = p.buyPrice > 0 ? ((sellPrice - p.buyPrice) / p.buyPrice * 100) : 0;
+
+    w.trades.push({
+      type: 'SELL',
+      ticker: p.ticker,
+      name: p.name,
+      qty: p.qty,
+      price: sellPrice,
+      buyPrice: p.buyPrice,
+      pnl: Math.round(pnl),
+      pnlPct: pnlPct.toFixed(2),
+      reason: '&#128274; Square-off | ' + (pnl >= 0 ? 'Profit' : 'Loss') + ': ' + (pnl >= 0 ? '+' : '') + '₹' + Math.abs(pnl).toLocaleString('en-IN', {maximumFractionDigits: 0}) + ' (' + (pnl >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%)',
+      source: 'daytrade',
+      time: new Date().toISOString()
+    });
+
+    w.cash += sellPrice * p.qty;
+    dayGrossPnl += pnl;
+
+    if (pnl > 0) winners++;
+    else losers++;
+
+    if (pnl > bestPnl) {
+      bestPnl = pnl;
+      bestTrade = p.ticker + ' +₹' + Math.abs(pnl).toLocaleString('en-IN', {maximumFractionDigits: 0});
+    }
+    if (pnl < worstPnl) {
+      worstPnl = pnl;
+      worstTrade = p.ticker + ' ' + (pnl >= 0 ? '+' : '-') + '₹' + Math.abs(pnl).toLocaleString('en-IN', {maximumFractionDigits: 0});
+    }
+  });
+
+  var totalTrades = w.positions.length;
+  var netPnl = dayGrossPnl;
+  w.dailyHistory.push({
+    date: todayStr,
+    trades: totalTrades,
+    grossPnl: Math.round(dayGrossPnl),
+    netPnl: Math.round(netPnl),
+    winners: winners,
+    losers: losers,
+    bestTrade: bestTrade,
+    worstTrade: worstTrade
+  });
+
+  w.positions = [];
+  w.todayDate = todayStr;
+  saveDT(w);
+
+  var lastAction = document.getElementById('dtLastAction');
+  if (lastAction) {
+    var pnlSign3 = netPnl >= 0 ? '+' : '';
+    lastAction.innerHTML = '&#128274; Squared off ' + totalTrades + ' positions | Day P&L: <span class="' + (netPnl >= 0 ? 'up' : 'down') + '">' + pnlSign3 + '₹' + Math.abs(netPnl).toLocaleString('en-IN', {maximumFractionDigits: 0}) + '</span>';
+  }
+
+  if (sqBtn) {
+    sqBtn.disabled = false;
+    sqBtn.textContent = '🔒 Square Off All';
+  }
+
+  console.log('[DAY-TRADE] Squared off ' + totalTrades + ' positions. Day P&L: ' + netPnl.toLocaleString('en-IN'));
+  updateDTDisplay(getDT());
+}
+
+// ---------------------------------------------------------------
+//  Square Off One — Sell a single position
+// ---------------------------------------------------------------
+async function squareOffOne(ticker) {
+  var w = getDT();
+  var posIdx = -1;
+  for (var i = 0; i < w.positions.length; i++) {
+    if (w.positions[i].ticker === ticker) { posIdx = i; break; }
+  }
+  if (posIdx === -1) {
+    alert('Position not found for ' + ticker);
+    return;
+  }
+
+  var p = w.positions[posIdx];
+
+  var sellPrice = p.currentPrice || p.buyPrice;
+  try {
+    var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(ticker + '.NS') + '&mode=all', {signal: AbortSignal.timeout(15000)});
+    var json = await resp.json();
+    if (json && json.success && json.data && json.data.stocks) {
+      var key = ticker + '.NS';
+      if (json.data.stocks[key] && json.data.stocks[key].price > 0) {
+        sellPrice = json.data.stocks[key].price;
+      }
+    }
+  } catch(e) {
+    console.log('[DAY-TRADE] Fresh price fetch failed for ' + ticker + ', using cached');
+  }
+
+  var pnl = (sellPrice - p.buyPrice) * p.qty;
+  var pnlPct = p.buyPrice > 0 ? ((sellPrice - p.buyPrice) / p.buyPrice * 100) : 0;
+
+  w.trades.push({
+    type: 'SELL',
+    ticker: p.ticker,
+    name: p.name,
+    qty: p.qty,
+    price: sellPrice,
+    buyPrice: p.buyPrice,
+    pnl: Math.round(pnl),
+    pnlPct: pnlPct.toFixed(2),
+    reason: '&#128274; Manual square-off | ' + (pnl >= 0 ? 'Profit' : 'Loss') + ': ' + (pnl >= 0 ? '+' : '') + '₹' + Math.abs(pnl).toLocaleString('en-IN', {maximumFractionDigits: 0}),
+    source: 'daytrade',
+    time: new Date().toISOString()
+  });
+
+  w.cash += sellPrice * p.qty;
+
+  w.positions.splice(posIdx, 1);
+  saveDT(w);
+  updateDTDisplay(getDT());
+
+  console.log('[DAY-TRADE] Sold ' + ticker + ' | P&L: ' + pnl.toLocaleString('en-IN'));
+}
+// ============================================================
+//  END DAY TRADE SIMULATOR
+// ============================================================
 
 </script>
 </body>
