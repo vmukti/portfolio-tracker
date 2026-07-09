@@ -3212,7 +3212,10 @@ function getDashboardBonus(ticker) {
     sources++;
     const r = intel.ranking;
     if (r.grade === 'A+') { bonus += 5; factors.push('🏆 Rank: A+ (#' + r.rank + ')'); }
+    else if (r.grade === 'A') { bonus += 4; factors.push('🏆 Rank: A (#' + r.rank + ')'); }
     else if (r.grade === 'B+') { bonus += 2; }
+    else if (r.grade === 'B') { bonus += 1; }
+    else if (r.grade === 'C') { bonus -= 2; factors.push('🏆 Rank: C — weak'); }
     else if (r.grade === 'D') { bonus -= 4; factors.push('🏆 Rank: D — review'); }
   }
 
@@ -3263,13 +3266,15 @@ function aiScore(s) {
   if (typeof s.vol !== 'number') s.vol = 0;
 
   // ── MOMENTUM (0-25): price action + volume ──
-  // 52W position: closer to low = more upside (contrarian)
+  // 52W position: institutional sweet spot 50-85% (momentum > contrarian)
   if (s.low52 && s.high52 && s.high52 > s.low52) {
     const pos52 = (s.cmp - s.low52) / (s.high52 - s.low52); // 0=at low, 1=at high
-    if (pos52 < 0.3) { momentum += 10; factors.push('Near 52W low — deep value zone'); }
-    else if (pos52 < 0.5) { momentum += 7; factors.push('Lower half of 52W range'); }
-    else if (pos52 < 0.7) { momentum += 4; factors.push('Mid 52W range'); }
-    else { momentum += 1; factors.push('Near 52W high — stretched'); }
+    if (pos52 >= 0.5 && pos52 <= 0.85) { momentum += 10; factors.push('52W sweet spot ' + (pos52*100).toFixed(0) + '% — institutional zone'); }
+    else if (pos52 > 0.85 && pos52 <= 0.95) { momentum += 8; factors.push('Near 52W high — breakout zone'); }
+    else if (pos52 >= 0.35 && pos52 < 0.5) { momentum += 6; factors.push('Building momentum ' + (pos52*100).toFixed(0) + '%'); }
+    else if (pos52 > 0.95) { momentum += 4; factors.push('Exhaustion zone >95% — caution'); }
+    else if (pos52 >= 0.2 && pos52 < 0.35) { momentum += 3; factors.push('Weak position ' + (pos52*100).toFixed(0) + '%'); }
+    else { momentum += 1; factors.push('Near 52W low — potential value trap'); }
   }
   // Today's momentum
   if (s.changePct > 3) { momentum += 8; factors.push('Strong momentum +' + s.changePct.toFixed(1) + '%'); }
@@ -3283,7 +3288,7 @@ function aiScore(s) {
     if (volRatio > 2) { momentum += 7; factors.push('Volume spike ' + volRatio.toFixed(1) + 'x avg'); }
     else if (volRatio > 1.3) { momentum += 5; factors.push('Above-avg volume'); }
     else { momentum += 2; }
-  } else { momentum += 3; }
+  } else { momentum += 1; factors.push('No volume data — unverified'); }
 
   // ── VALUE (0-25): PE, PB, EPS growth, sector comparison ──
   // PE vs sector average
@@ -3293,20 +3298,26 @@ function aiScore(s) {
     else if (peDiscount > 0.2) { value += 6; factors.push('PE below sector avg'); }
     else if (peDiscount > 0) { value += 4; }
     else { value += 1; factors.push('PE above sector avg — premium'); }
-  } else { value += 3; }
+  } else if (s.pe && s.pe > 0) {
+    // No sector avg but have absolute PE
+    if (s.pe < 15) { value += 7; factors.push('PE ' + s.pe + ' — absolute value'); }
+    else if (s.pe < 25) { value += 5; }
+    else if (s.pe < 40) { value += 3; }
+    else { value += 1; }
+  } else { value += 1; factors.push('No PE data — unverified value'); }
   // PB ratio
   if (s.pb) {
     if (s.pb < 2) { value += 6; factors.push('PB ' + s.pb + ' — asset-light value'); }
     else if (s.pb < 5) { value += 4; }
     else { value += 1; }
-  } else { value += 3; }
+  } else { value += 1; }
   // EPS growth
   if (s.epsgr) {
     if (s.epsgr > 30) { value += 7; factors.push('EPS growth ' + s.epsgr + '% — hypergrowth'); }
     else if (s.epsgr > 15) { value += 5; factors.push('EPS growth ' + s.epsgr + '%'); }
     else if (s.epsgr > 0) { value += 3; }
     else { value += 0; factors.push('Negative EPS growth'); }
-  } else { value += 2; }
+  } else { value += 1; }
   // Market cap preference (mid-caps have more alpha)
   if (s.mcap) {
     if (s.mcap > 5000 && s.mcap < 50000) { value += 4; factors.push('Mid-cap sweet spot'); }
@@ -3320,22 +3331,22 @@ function aiScore(s) {
     else if (s.roce > 15) { quality += 6; }
     else if (s.roce > 10) { quality += 3; }
     else { quality += 1; }
-  } else { quality += 2; }
+  } else { quality += 0; factors.push('No ROCE data'); }
   if (s.roe) {
     if (s.roe > 20) { quality += 6; factors.push('ROE ' + s.roe + '%'); }
     else if (s.roe > 12) { quality += 4; }
     else { quality += 2; }
-  } else { quality += 2; }
+  } else { quality += 0; }
   if (s.debtEquity !== undefined) {
     if (s.debtEquity < 0.3) { quality += 6; factors.push('Almost debt-free D/E ' + s.debtEquity); }
     else if (s.debtEquity < 1) { quality += 4; }
     else { quality += 1; factors.push('High debt D/E ' + s.debtEquity); }
-  } else { quality += 3; }
+  } else { quality += 1; }
   if (s.promoterHold) {
     if (s.promoterHold > 60) { quality += 5; factors.push('Promoter ' + s.promoterHold + '% — high skin in game'); }
     else if (s.promoterHold > 40) { quality += 3; }
     else { quality += 1; }
-  } else { quality += 2; }
+  } else { quality += 1; }
 
   // ── SIGNAL (0-25): scan status, catalyst, layer ──
   if (s.scanStatus === 'STRENGTHENING') { signal += 10; factors.push('STRONG signal active'); }
@@ -3348,12 +3359,18 @@ function aiScore(s) {
       signal += 8; factors.push('Corporate action catalyst');
     } else if (catUpper.includes('RESULTS') || catUpper.includes('ORDER WIN') || catUpper.includes('APPROVAL')) {
       signal += 6; factors.push('Near-term catalyst');
+    } else if (catUpper.includes('MONOPOLY') || catUpper.includes('MOAT') || catUpper.includes('PRICING POWER')) {
+      signal += 7; factors.push('Structural advantage');
     } else { signal += 4; }
   }
-  // Layer (Immediate > 1-Month > Long-Term for short-term trading)
-  if (s.layer === 'Immediate') { signal += 7; factors.push('Immediate-action layer'); }
-  else if (s.layer === '1-Month') { signal += 5; }
-  else { signal += 3; }
+  // Revenue/margin momentum (if available from fundamentals)
+  if (s.revGrowth && s.revGrowth > 20) { signal += 5; factors.push('Revenue growth ' + s.revGrowth + '%'); }
+  else if (s.revGrowth && s.revGrowth > 10) { signal += 3; }
+  else { signal += 2; }
+  // Layer bonus (reduced weight to break circular dependency)
+  if (s.layer === 'Immediate') { signal += 5; }
+  else if (s.layer === '1-Month') { signal += 3; }
+  else { signal += 2; }
 
   const baseTotal = Math.min(25, momentum) + Math.min(25, value) + Math.min(25, quality) + Math.min(25, signal);
 
@@ -3674,9 +3691,9 @@ async function runAIAutoTrade() {
     let shouldSell = false, reason = '';
 
     const isMoverPos = pos.source === 'mover';
-    const trailPct = isMoverPos ? 0.95 : 0.93;
-    const stopLoss = isMoverPos ? -5 : -7;
-    const profitBook = isMoverPos ? 15 : 25;
+    const trailPct = isMoverPos ? 0.93 : 0.91;
+    const stopLoss = isMoverPos ? -4 : -5;
+    const profitBook = isMoverPos ? 12 : 18;
 
     // ── Layer 4: Smart Exit Signals (check FIRST — catches what old rules miss) ──
     const exitSignals = getSmartExitSignal(pos);
@@ -3698,7 +3715,7 @@ async function runAIAutoTrade() {
         if (currentMover && currentMover.moverScore < 20) { shouldSell = true; reason = 'MOVER EXIT: Momentum died (score ' + currentMover.moverScore + ')'; }
       }
       else if (!isMoverPos && stock.scanStatus === 'WEAKENING' && stock.changePct < -1) { shouldSell = true; reason = 'AI EXIT: WEAK + falling -' + Math.abs(stock.changePct).toFixed(1) + '%'; }
-      else if (returnPct > 10 && sellPrice < pos.peakPrice * trailPct) { shouldSell = true; reason = (isMoverPos ? 'MOVER' : 'AI') + ' EXIT: Trailing stop from peak'; }
+      else if (returnPct > 4 && sellPrice < pos.peakPrice * trailPct) { shouldSell = true; reason = (isMoverPos ? 'MOVER' : 'AI') + ' EXIT: Trailing stop from peak (' + returnPct.toFixed(1) + '% return, peak trail)'; }
       else if (returnPct <= 0 && returnPct < stopLoss) { shouldSell = true; reason = (isMoverPos ? 'MOVER' : 'AI') + ' EXIT: Stop-loss ' + Math.abs(stopLoss) + '% hit'; }
       else if (returnPct > profitBook) { shouldSell = true; reason = (isMoverPos ? 'MOVER' : 'AI') + ' EXIT: Profit booking ' + profitBook + '%+ return'; }
     }
@@ -4442,8 +4459,8 @@ function checkCircuitBreaker(w) {
   }, 0);
   const todayPnlPct = totalVal > 0 ? (todayPnl / totalVal * 100) : 0;
 
-  // Daily loss limit: -2%
-  if (todayPnlPct < -2) {
+  // Daily loss limit: -3% (widened from -2% — Indian markets are volatile)
+  if (todayPnlPct < -3) {
     cb.halt = true;
     cb.reason = 'DAILY LOSS LIMIT: Portfolio down ' + todayPnlPct.toFixed(1) + '% today. No new buys.';
     cbState.haltDate = today;
@@ -4452,8 +4469,15 @@ function checkCircuitBreaker(w) {
     return cb;
   }
 
-  // Max drawdown: -5% total → sell everything
-  if (totalReturn < -5) {
+  // Drawdown warning: -5% total → halt new buys, exits only (preserve capital without panic liquidation)
+  if (totalReturn < -5 && totalReturn >= -8) {
+    cb.halt = true;
+    cb.reason = 'DRAWDOWN WARNING: Total return ' + totalReturn.toFixed(1) + '%. Exits only mode — no new buys until recovery.';
+    return cb;
+  }
+
+  // Max drawdown: -8% total → sell everything (nuclear option)
+  if (totalReturn < -8) {
     cb.halt = true;
     cb.sellAll = true;
     cb.reason = 'MAX DRAWDOWN BREACHED: Total return ' + totalReturn.toFixed(1) + '%. Liquidating all positions to preserve capital.';
@@ -6565,27 +6589,38 @@ function computeScore(data, yfTicker, portfolioStock) {
     else strengthScore = 1;
   }
 
-  // === 6. VALUATION (0-15) ===
-  let valScore = 8;
+  // === 6. VALUATION (0-12) ===
+  let valScore = 3;
   if (pe > 0) {
-    if (pe < 10) valScore = 15;
-    else if (pe < 15) valScore = 14;
-    else if (pe < 20) valScore = 12;
-    else if (pe < 30) valScore = 9;
-    else if (pe < 50) valScore = 6;
-    else if (pe < 80) valScore = 4;
-    else valScore = 2;
+    if (pe < 10) valScore = 12;
+    else if (pe < 15) valScore = 11;
+    else if (pe < 20) valScore = 10;
+    else if (pe < 30) valScore = 7;
+    else if (pe < 50) valScore = 5;
+    else if (pe < 80) valScore = 3;
+    else valScore = 1;
   }
 
-  // === 7. QUALITY (0-15) ===
-  let qualScore = 8;
+  // === 6B. VOLUME CONFIRMATION (0-8) — NEW ===
+  let volScore = 2;
+  if (volume > 0 && data.avgVolume && data.avgVolume > 0) {
+    const vr = volume / data.avgVolume;
+    if (vr > 2.5) volScore = 8;
+    else if (vr > 1.5) volScore = 6;
+    else if (vr > 1.0) volScore = 4;
+    else volScore = 2;
+  } else if (volume > 500000) { volScore = 5; }
+  else if (volume > 100000) { volScore = 3; }
+
+  // === 7. QUALITY (0-12) ===
+  let qualScore = 2;
   if (roce > 0) {
-    if (roce >= 35) qualScore = 15;
-    else if (roce >= 25) qualScore = 13;
-    else if (roce >= 20) qualScore = 11;
-    else if (roce >= 15) qualScore = 9;
-    else if (roce >= 10) qualScore = 7;
-    else qualScore = 4;
+    if (roce >= 35) qualScore = 12;
+    else if (roce >= 25) qualScore = 11;
+    else if (roce >= 20) qualScore = 9;
+    else if (roce >= 15) qualScore = 7;
+    else if (roce >= 10) qualScore = 5;
+    else qualScore = 3;
   }
 
   // === 8. INTELLIGENCE BONUS (0-10) ===
@@ -6610,7 +6645,7 @@ function computeScore(data, yfTicker, portfolioStock) {
     intelScore = Math.max(0, Math.min(10, 5 + boost));
   }
 
-  const totalScore = trendScore + momScore + breakoutScore + compressionScore + strengthScore + valScore + qualScore + intelScore;
+  const totalScore = trendScore + momScore + breakoutScore + compressionScore + strengthScore + valScore + volScore + qualScore + intelScore;
 
   let grade, gradeClass, verdict, verdictClass;
   if (totalScore >= 80) { grade = 'A+'; gradeClass = 'grade-a'; verdict = 'STRONG BUY'; verdictClass = 'verdict-buy'; }
@@ -6623,7 +6658,7 @@ function computeScore(data, yfTicker, portfolioStock) {
   return {
     price, prevClose, changePct, high52, low52, volume, pe, roce, mcap,
     trendScore, momScore, breakoutScore, compressionScore, strengthScore,
-    valScore, qualScore, intelScore, totalScore,
+    valScore, volScore, qualScore, intelScore, totalScore,
     grade, gradeClass, verdict, verdictClass, posIn52W,
     sizeScore: compressionScore + strengthScore
   };
@@ -8373,6 +8408,154 @@ async function runDayTradeAI() {
   }
 
   updateDTDisplay(getDT());
+}
+
+// ---------------------------------------------------------------
+//  SMART DAY TRADE EXIT ENGINE — Auto stop-loss, trailing stop, time exit
+// ---------------------------------------------------------------
+async function runDayTradeSmartExits() {
+  var w = getDT();
+  if (w.positions.length === 0) return;
+
+  var now = new Date();
+  var hrs = now.getHours();
+  var mins = now.getMinutes();
+  var timeMinutes = hrs * 60 + mins;
+
+  // Fetch fresh prices for all positions
+  var tickers = w.positions.map(function(p) { return p.ticker + '.NS'; });
+  var freshPrices = {};
+  try {
+    var batchSz = 10;
+    for (var bi = 0; bi < tickers.length; bi += batchSz) {
+      var batch = tickers.slice(bi, bi + batchSz);
+      var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(batch.join(',')) + '&mode=all', {signal: AbortSignal.timeout(15000)});
+      var json = await resp.json();
+      if (json && json.success && json.data && json.data.stocks) {
+        Object.entries(json.data.stocks).forEach(function(entry) {
+          var sym = entry[0]; var d = entry[1];
+          var tk = sym.replace('.NS', '').replace('.BO', '');
+          if (d.price > 0) freshPrices[tk] = d.price;
+        });
+      }
+      if (bi + batchSz < tickers.length) await new Promise(function(r) { setTimeout(r, 300); });
+    }
+  } catch(e) { console.log('[DT-EXITS] Price fetch error:', e.message); }
+
+  var exitCount = 0;
+  var exitLog = [];
+
+  // Check each position for exit signals
+  for (var i = w.positions.length - 1; i >= 0; i--) {
+    var pos = w.positions[i];
+    var livePrice = freshPrices[pos.ticker] || pos.currentPrice || pos.buyPrice;
+    var returnPct = pos.buyPrice > 0 ? ((livePrice - pos.buyPrice) / pos.buyPrice * 100) : 0;
+    var shouldExit = false;
+    var exitReason = '';
+
+    // Update peak price tracking
+    if (!pos.peakPrice || livePrice > pos.peakPrice) pos.peakPrice = livePrice;
+
+    // EXIT 1: Hard stop-loss at -1.5%
+    if (returnPct <= -1.5) {
+      shouldExit = true;
+      exitReason = 'STOP-LOSS: ' + returnPct.toFixed(2) + '% (limit -1.5%)';
+    }
+
+    // EXIT 2: Trailing stop — activates at +1.5%, trails at 60% of peak gain
+    if (!shouldExit && pos.peakPrice && pos.peakPrice > pos.buyPrice) {
+      var peakReturn = (pos.peakPrice - pos.buyPrice) / pos.buyPrice * 100;
+      if (peakReturn >= 1.5) {
+        var trailLevel = pos.buyPrice * (1 + peakReturn * 0.006); // Keep 60% of peak gain
+        if (livePrice < trailLevel) {
+          shouldExit = true;
+          exitReason = 'TRAIL-STOP: Peak +' + peakReturn.toFixed(1) + '%, now +' + returnPct.toFixed(1) + '% (trail at 60% of peak)';
+        }
+      }
+    }
+
+    // EXIT 3: Time-based — auto square-off at 3:10 PM
+    if (!shouldExit && timeMinutes >= 910) {
+      shouldExit = true;
+      exitReason = 'TIME EXIT: 3:10 PM auto square-off | P&L ' + (returnPct >= 0 ? '+' : '') + returnPct.toFixed(2) + '%';
+    }
+
+    // EXIT 4: Partial profit booking at +3% — sell half
+    if (!shouldExit && returnPct >= 3 && pos.qty > 1 && !pos.partialBooked) {
+      var halfQty = Math.floor(pos.qty / 2);
+      if (halfQty >= 1) {
+        var partialPnl = (livePrice - pos.buyPrice) * halfQty;
+        w.cash += livePrice * halfQty;
+        w.trades.push({
+          type: 'SELL', ticker: pos.ticker, name: pos.name || pos.ticker,
+          qty: halfQty, price: livePrice, buyPrice: pos.buyPrice,
+          pnl: Math.round(partialPnl),
+          pnlPct: returnPct.toFixed(2),
+          reason: 'PARTIAL BOOK: +' + returnPct.toFixed(1) + '% — sold 50% (' + halfQty + ' qty)',
+          source: 'daytrade', time: now.toISOString()
+        });
+        pos.qty -= halfQty;
+        pos.partialBooked = true;
+        exitCount++;
+        exitLog.push('PARTIAL ' + pos.ticker + ' ' + halfQty + 'qty @ +' + returnPct.toFixed(1) + '%');
+        console.log('[DT-EXIT] Partial book: ' + pos.ticker + ' ' + halfQty + 'qty at +' + returnPct.toFixed(1) + '%');
+      }
+      continue; // Don't fully exit — keep remaining half
+    }
+
+    if (shouldExit) {
+      var pnl = (livePrice - pos.buyPrice) * pos.qty;
+      w.cash += livePrice * pos.qty;
+      w.trades.push({
+        type: 'SELL', ticker: pos.ticker, name: pos.name || pos.ticker,
+        qty: pos.qty, price: livePrice, buyPrice: pos.buyPrice,
+        pnl: Math.round(pnl),
+        pnlPct: returnPct.toFixed(2),
+        reason: exitReason,
+        source: 'daytrade', time: now.toISOString()
+      });
+      w.positions.splice(i, 1);
+      exitCount++;
+      exitLog.push(exitReason.split(':')[0] + ' ' + pos.ticker + ' @ ' + (returnPct >= 0 ? '+' : '') + returnPct.toFixed(1) + '%');
+      console.log('[DT-EXIT] ' + pos.ticker + ': ' + exitReason);
+    }
+  }
+
+  if (exitCount > 0) {
+    saveDT(w);
+    updateDTDisplay(w);
+    var lastAction = document.getElementById('dtLastAction');
+    if (lastAction) {
+      lastAction.innerHTML = '&#9889; Smart Exit: ' + exitCount + ' actions | ' + exitLog.slice(0, 3).join(', ');
+    }
+    console.log('[DT-EXIT] ' + exitCount + ' smart exits executed');
+  }
+
+  return exitCount;
+}
+
+// Auto-run smart exits every 2 minutes during market hours
+var _dtExitInterval = null;
+function startDayTradeExitMonitor() {
+  if (_dtExitInterval) clearInterval(_dtExitInterval);
+  _dtExitInterval = setInterval(function() {
+    var now = new Date();
+    var hrs = now.getHours();
+    var mins = now.getMinutes();
+    var timeMin = hrs * 60 + mins;
+    // Only run during market hours 9:15 - 15:30
+    if (timeMin >= 555 && timeMin <= 930) {
+      var w = getDT();
+      if (w.positions.length > 0) {
+        console.log('[DT-MONITOR] Checking ' + w.positions.length + ' positions for exits...');
+        runDayTradeSmartExits();
+      }
+    }
+  }, 120000); // Every 2 minutes
+}
+// Start monitor on page load
+if (typeof window !== 'undefined') {
+  setTimeout(startDayTradeExitMonitor, 5000);
 }
 
 // ---------------------------------------------------------------
