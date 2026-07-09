@@ -7761,6 +7761,70 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
 function loadDayTrade() {
   var w = getDT();
   updateDTDisplay(w);
+  // Auto-refresh day trade prices every 30 seconds during market hours
+  if (!window._dtPriceInterval) {
+    window._dtPriceInterval = setInterval(function() {
+      var now = new Date();
+      var hrs = now.getHours();
+      var mins = now.getMinutes();
+      var timeMin = hrs * 60 + mins;
+      var dtW = getDT();
+      // Only refresh during market hours and if on day trade tab and positions exist
+      if (timeMin >= 555 && timeMin <= 940 && dtW.positions.length > 0) {
+        refreshDayTradePrices();
+      }
+    }, 30000);
+  }
+  // Also do initial price refresh if positions exist
+  if (w.positions.length > 0) {
+    refreshDayTradePrices();
+  }
+}
+
+// Fetch live prices for all day trade positions from API
+async function refreshDayTradePrices() {
+  var w = getDT();
+  if (w.positions.length === 0) return;
+
+  var tickers = w.positions.map(function(p) { return p.ticker + '.NS'; });
+  try {
+    var batchSz = 10;
+    for (var bi = 0; bi < tickers.length; bi += batchSz) {
+      var batch = tickers.slice(bi, bi + batchSz);
+      var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(batch.join(',')) + '&mode=all', {signal: AbortSignal.timeout(15000)});
+      var json = await resp.json();
+      if (json && json.success && json.data && json.data.stocks) {
+        Object.entries(json.data.stocks).forEach(function(entry) {
+          var sym = entry[0];
+          var d = entry[1];
+          var tk = sym.replace('.NS', '').replace('.BO', '');
+          if (d.price > 0) {
+            // Update position with live price
+            var pos = w.positions.find(function(p) { return p.ticker === tk; });
+            if (pos) {
+              pos.currentPrice = d.price;
+              pos.currentValue = d.price * pos.qty;
+              pos.pnl = (d.price - pos.buyPrice) * pos.qty;
+              pos.pnlPct = pos.buyPrice > 0 ? ((d.price - pos.buyPrice) / pos.buyPrice * 100) : 0;
+              // Track peak price for trailing stop
+              if (!pos.peakPrice || d.price > pos.peakPrice) pos.peakPrice = d.price;
+            }
+            // Also store in global cache for updateDTDisplay fallback
+            if (!window._dtLivePrices) window._dtLivePrices = {};
+            window._dtLivePrices[tk] = d.price;
+          }
+        });
+      }
+      if (bi + batchSz < tickers.length) {
+        await new Promise(function(r) { setTimeout(r, 300); });
+      }
+    }
+    saveDT(w);
+    updateDTDisplay(w);
+    console.log('[DT-REFRESH] Updated ' + w.positions.length + ' position prices');
+  } catch(e) {
+    console.log('[DT-REFRESH] Price fetch error:', e.message || e);
+  }
 }
 
 function updateDTDisplay(w) {
@@ -7769,7 +7833,8 @@ function updateDTDisplay(w) {
   var invested = 0;
   w.positions.forEach(function(p) {
     var stock = stocks.find(function(s) { return s.ticker === p.ticker; });
-    var livePrice = (stock && stock.cmp > 0) ? stock.cmp : p.buyPrice;
+    var cachedPrice = (window._dtLivePrices && window._dtLivePrices[p.ticker]) || 0;
+    var livePrice = (stock && stock.cmp > 0) ? stock.cmp : (cachedPrice > 0 ? cachedPrice : (p.currentPrice > 0 ? p.currentPrice : p.buyPrice));
     p.currentPrice = livePrice;
     p.currentValue = livePrice * p.qty;
     p.pnl = (livePrice - p.buyPrice) * p.qty;
