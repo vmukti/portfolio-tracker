@@ -1263,7 +1263,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v8.0 &mdash; Full Intelligence Edition &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v9.1 &mdash; Full Market Engine (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -2203,7 +2203,178 @@ const MOVER_UNIVERSE = [
   // ---- HIGH BETA / MISC (5) ----
   {t:'YESBANK',n:'Yes Bank',s:'Banking',c:'M',pe:35,ro:4,mc:42000},{t:'RPOWER',n:'Reliance Power',s:'Power',c:'S',pe:0,ro:0,mc:4500},
   {t:'JPPOWER',n:'Jaiprakash Power',s:'Power',c:'S',pe:15,ro:6,mc:3000},{t:'ABCAPITAL',n:'Aditya Birla Capital',s:'Financial Services',c:'M',pe:15,ro:10,mc:30000},
-  {t:'BLS',n:'BLS International',s:'Services',c:'S',pe:22,ro:25,mc:8000}
+  {t:'BLS',n:'BLS International',s:'Services',c:'S',pe:22,ro:25,mc:8000},
+  // ---- NEW ADDITIONS: BANKING & NBFC (30) ----
+  {t:'KARURVYSYA',n:'Karur Vysya Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},{t:'CUB',n:'City Union Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},
+  {t:'CSB',n:'CSB Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},{t:'TMBL',n:'Tamilnad Mercantile Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},
+  {t:'ESAFSFB',n:'ESAF Small Finance Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},{t:'SURYODAY',n:'Suryoday SFB',s:'Banking',c:'S',pe:0,ro:0,mc:0},
+  {t:'UTKARSHBNK',n:'Utkarsh SFB',s:'Banking',c:'S',pe:0,ro:0,mc:0},{t:'FINPIPE',n:'Finolex Industries',s:'Pipes',c:'M',pe:0,ro:0,mc:0},
+  {t:'IIFL',n:'IIFL Finance',s:'Financial Services',c:'M',pe:0,ro:0,mc:0},{t:'SUNDARMFIN',n:'Sundaram Finance',s:'Financial Services',c:'M',pe:0,ro:0,mc:0},
+  {t:'MASFIN',n:'MAS Financial Services',s:'NBFC',c:'S',pe:0,ro:0,mc:0},{t:'JMFINANCIL',n:'JM Financial',s:'Financial Services',c:'S',pe:0,ro:0,mc:0},
+  {t:'MOTILALOFS',n:'Motilal Oswal Financial',s:'Financial Services',c:'M',pe:0,ro:0,mc:0},{t:'FIVESTAR',n:'Five-Star Business Finance',s:'NBFC',c:'M',pe:0,ro:0,mc:0},
+  {t:'EDELWEISS',n:'Edelweiss Financial',s:'Financial Services',c:'S',pe:0,ro:0,mc:0},
+  {t:'ICICIPRULIFE',n:'ICICI Prudential Life',s:'Insurance',c:'L',pe:0,ro:0,mc:0},{t:'MFSL',n:'Max Financial Services',s:'Insurance',c:'M',pe:0,ro:0,mc:0},
+  {t:'ICICIPRULI',n:'ICICI Pru Life',s:'Insurance',c:'L',pe:0,ro:0,mc:0},{t:'NUVAMA',n:'Nuvama Wealth',s:'Financial Services',c:'M',pe:0,ro:0,mc:0},
+  {t:'ANANDRATHI',n:'Anand Rathi Wealth',s:'Financial Services',c:'S',pe:0,ro:0,mc:0},{t:'ABSLAMC',n:'Aditya Birla Sun Life AMC',s:'AMC',c:'S',pe:0,ro:0,mc:0},
+  {t:'PAISALO',n:'Paisalo Digital',s:'NBFC',c:'S',pe:0,ro:0,mc:0},{t:'SBFC',n:'SBFC Finance',s:'NBFC',c:'S',pe:0,ro:0,mc:0},
+  {t:'BAJAJHFL',n:'Bajaj Housing Finance',s:'Housing Finance',c:'L',pe:0,ro:0,mc:0},{t:'JAIBALAJI',n:'Jai Balaji Industries',s:'Steel',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: IT & TECHNOLOGY (25) ----
+  {t:'ROUTE',n:'Route Mobile',s:'IT/Cloud',c:'S',pe:0,ro:0,mc:0},{t:'SAKSOFT',n:'Saksoft',s:'IT',c:'S',pe:0,ro:0,mc:0},
+  {t:'NETWEB',n:'Netweb Technologies',s:'IT Hardware',c:'S',pe:0,ro:0,mc:0},{t:'TATATECH',n:'Tata Technologies',s:'IT/Engineering',c:'M',pe:0,ro:0,mc:0},
+  {t:'DATAPATTNS',n:'Data Patterns',s:'Electronics/Defence',c:'S',pe:0,ro:0,mc:0},{t:'QUICKHEAL',n:'Quick Heal Technologies',s:'IT/Cybersecurity',c:'S',pe:0,ro:0,mc:0},
+  {t:'NIITLTD',n:'NIIT',s:'IT Training',c:'S',pe:0,ro:0,mc:0},{t:'SUBEXLTD',n:'Subex',s:'IT/Telecom',c:'S',pe:0,ro:0,mc:0},
+  {t:'FIRSTSOURCE',n:'Firstsource Solutions',s:'IT/BPO',c:'M',pe:0,ro:0,mc:0},{t:'BSOFT',n:'BFSI Software (Birlasoft)',s:'IT',c:'M',pe:0,ro:0,mc:0},
+  {t:'LTTS',n:'L&T Technology Services',s:'IT/Engineering',c:'M',pe:0,ro:0,mc:0},{t:'NAUKRI',n:'Info Edge (Naukri)',s:'Internet',c:'L',pe:0,ro:0,mc:0},
+  {t:'JUSTDIAL',n:'Just Dial',s:'Internet',c:'S',pe:0,ro:0,mc:0},{t:'CARTRADE',n:'CarTrade Tech',s:'Internet',c:'S',pe:0,ro:0,mc:0},
+  {t:'YATHARTH',n:'Yatharth Hospital',s:'Healthcare',c:'S',pe:0,ro:0,mc:0},{t:'SENCO',n:'Senco Gold',s:'Jewellery',c:'S',pe:0,ro:0,mc:0},
+  {t:'OPTIEMUS',n:'Optiemus Infracom',s:'Electronics',c:'S',pe:0,ro:0,mc:0},{t:'CMSINFO',n:'CMS Info Systems',s:'IT/Cash Mgmt',c:'S',pe:0,ro:0,mc:0},
+  {t:'ORIENTTECH',n:'Orient Technologies',s:'IT',c:'S',pe:0,ro:0,mc:0},{t:'ZAGGLE',n:'Zaggle Prepaid',s:'Fintech',c:'S',pe:0,ro:0,mc:0},
+  {t:'ABORELTECH',n:'ABR Infra (Abohar Elec)',s:'IT',c:'S',pe:0,ro:0,mc:0},{t:'ZENSARTECH',n:'Zensar Technologies',s:'IT',c:'M',pe:0,ro:0,mc:0},
+  {t:'OFSS',n:'Oracle Financial Services',s:'IT/BFSI',c:'L',pe:0,ro:0,mc:0},{t:'MANYAVAR',n:'Vedant Fashions (Manyavar)',s:'Apparel',c:'M',pe:0,ro:0,mc:0},
+  {t:'SAPPHIRE',n:'Sapphire Foods',s:'QSR',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: CAPITAL GOODS / ENGINEERING (35) ----
+  {t:'GRSE',n:'Garden Reach Shipbuilders',s:'Shipbuilding',c:'M',pe:0,ro:0,mc:0},{t:'COCHINSHIP',n:'Cochin Shipyard',s:'Shipbuilding',c:'M',pe:0,ro:0,mc:0},
+  {t:'ELECON',n:'Elecon Engineering',s:'Capital Goods',c:'S',pe:0,ro:0,mc:0},{t:'JYOTICNC',n:'Jyoti CNC Automation',s:'Capital Goods',c:'S',pe:0,ro:0,mc:0},
+  {t:'AMIORG',n:'Ami Organics',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},{t:'GRINDWELL',n:'Grindwell Norton',s:'Abrasives',c:'M',pe:0,ro:0,mc:0},
+  {t:'TITAGARH',n:'Titagarh Rail Systems',s:'Railway/Capital Goods',c:'M',pe:0,ro:0,mc:0},{t:'TEXRAIL',n:'Texmaco Rail',s:'Railway',c:'S',pe:0,ro:0,mc:0},
+  {t:'RITES',n:'RITES',s:'Railway/Consulting',c:'M',pe:0,ro:0,mc:0},{t:'BEML',n:'BEML',s:'Capital Goods',c:'M',pe:0,ro:0,mc:0},
+  {t:'PRAJIND',n:'Praj Industries',s:'Capital Goods/Ethanol',c:'S',pe:0,ro:0,mc:0},{t:'ISGEC',n:'ISGEC Heavy Engineering',s:'Capital Goods',c:'S',pe:0,ro:0,mc:0},
+  {t:'CUMMINS',n:'Cummins India',s:'Capital Goods',c:'L',pe:0,ro:0,mc:0},{t:'VOLTAMP',n:'Voltamp Transformers',s:'Transformers',c:'S',pe:0,ro:0,mc:0},
+  {t:'TDPOWER',n:'TD Power Systems',s:'Generators',c:'S',pe:0,ro:0,mc:0},{t:'ANURAS',n:'Anupam Rasayan',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'TTKPRESTIG',n:'TTK Prestige',s:'Consumer Durables',c:'M',pe:0,ro:0,mc:0},{t:'IFBIND',n:'IFB Industries',s:'Consumer Durables',c:'S',pe:0,ro:0,mc:0},
+  {t:'GEPIL',n:'GE T&D India',s:'Power Equipment',c:'S',pe:0,ro:0,mc:0},
+  {t:'GREAVESCOT',n:'Greaves Cotton',s:'Engineering',c:'S',pe:0,ro:0,mc:0},
+  {t:'VOLTAS',n:'Voltas',s:'Consumer Durables',c:'L',pe:0,ro:0,mc:0},{t:'INGERRAND',n:'Ingersoll-Rand India',s:'Capital Goods',c:'M',pe:0,ro:0,mc:0},
+  {t:'TIMKEN',n:'Timken India',s:'Bearings',c:'M',pe:0,ro:0,mc:0},{t:'SKFIND',n:'SKF India',s:'Bearings',c:'M',pe:0,ro:0,mc:0},
+  {t:'NBEIND',n:'NB India (Nord)',s:'Power Transmission',c:'S',pe:0,ro:0,mc:0},{t:'JBMA',n:'JBM Auto',s:'Auto Ancillary/EV',c:'M',pe:0,ro:0,mc:0},
+  {t:'CARBORUNIV',n:'Carborundum Universal',s:'Abrasives',c:'M',pe:0,ro:0,mc:0},{t:'KENNAMETAL',n:'Kennametal India',s:'Tools',c:'S',pe:0,ro:0,mc:0},
+  {t:'ASTRAZEN',n:'AstraZeneca Pharma',s:'MNC',c:'S',pe:0,ro:0,mc:0},{t:'KIRLOSENG',n:'Kirloskar Oil Engines',s:'Engineering',c:'M',pe:0,ro:0,mc:0},
+  {t:'GPPL',n:'Gujarat Pipavav Port',s:'Ports',c:'S',pe:0,ro:0,mc:0},{t:'AARTI',n:'Aarti Industries (Check)',s:'Chemicals',c:'M',pe:0,ro:0,mc:0},
+  {t:'WELSPUNLIV',n:'Welspun Living',s:'Textiles/Home',c:'M',pe:0,ro:0,mc:0},
+  // ---- NEW: INFRASTRUCTURE / CONSTRUCTION (25) ----
+  {t:'ASHOKA',n:'Ashoka Buildcon',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},{t:'CAPACITE',n:'Capacit e Infraprojects',s:'Construction',c:'S',pe:0,ro:0,mc:0},
+  {t:'AHLUWALIA',n:'Ahluwalia Contracts',s:'Construction',c:'S',pe:0,ro:0,mc:0},{t:'JMCPROJECT',n:'JMC Projects',s:'Construction',c:'S',pe:0,ro:0,mc:0},
+  {t:'NRBBEARING',n:'NRB Bearings',s:'Bearings',c:'S',pe:0,ro:0,mc:0},
+  {t:'TATACONSUM',n:'Tata Consumer Products',s:'Consumer',c:'L',pe:0,ro:0,mc:0},
+  {t:'JUNIPER',n:'Juniper Hotels',s:'Hotels',c:'S',pe:0,ro:0,mc:0},{t:'DEVYANI',n:'Devyani International',s:'QSR',c:'M',pe:0,ro:0,mc:0},
+  {t:'RBA',n:'Restaurant Brands Asia',s:'QSR',c:'S',pe:0,ro:0,mc:0},{t:'IRBINFRA',n:'IRB Infrastructure',s:'Infrastructure',c:'M',pe:0,ro:0,mc:0},
+  {t:'PGHL',n:'Procter & Gamble Hygiene',s:'MNC',c:'M',pe:0,ro:0,mc:0},{t:'JKLAKSHMI',n:'JK Lakshmi Cement',s:'Cement',c:'S',pe:0,ro:0,mc:0},
+  {t:'STARCEMENT',n:'Star Cement',s:'Cement',c:'S',pe:0,ro:0,mc:0},{t:'SAGCEM',n:'Sagar Cements',s:'Cement',c:'S',pe:0,ro:0,mc:0},
+  {t:'ORIENTCEM',n:'Orient Cement',s:'Cement',c:'S',pe:0,ro:0,mc:0},{t:'NUVOCO',n:'Nuvoco Vistas',s:'Cement',c:'M',pe:0,ro:0,mc:0},
+  {t:'PRSMJOHNSN',n:'Prism Johnson',s:'Building Materials',c:'S',pe:0,ro:0,mc:0},{t:'HIL',n:'HIL Ltd',s:'Building Materials',c:'S',pe:0,ro:0,mc:0},
+  {t:'MAHSEAMLES',n:'Maharashtra Seamless',s:'Steel Pipes',c:'S',pe:0,ro:0,mc:0},{t:'MANINFRA',n:'Man Infraconstruction',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},
+  {t:'GPIL',n:'Godawari Power & Ispat',s:'Steel/Power',c:'S',pe:0,ro:0,mc:0},{t:'JSWHL',n:'JSW Holdings',s:'Holding Company',c:'S',pe:0,ro:0,mc:0},
+  {t:'JPASSOCIAT',n:'Jaiprakash Associates',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: POWER / ENERGY / UTILITIES (20) ----
+  {t:'TORNTPHARM',n:'Torrent Power',s:'Power',c:'L',pe:0,ro:0,mc:0},
+  {t:'GIPCL',n:'Gujarat Industries Power',s:'Power',c:'S',pe:0,ro:0,mc:0},
+  {t:'KECL',n:'KEC International',s:'Power T&D',c:'M',pe:0,ro:0,mc:0},{t:'KALPATPOWR',n:'Kalpataru Projects',s:'Power T&D',c:'M',pe:0,ro:0,mc:0},
+  {t:'HITECHCORP',n:'Hitech Corp',s:'Power',c:'S',pe:0,ro:0,mc:0},{t:'RELINFRA',n:'Reliance Infrastructure',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},
+  {t:'ADANIENSOL',n:'Adani Energy Solutions',s:'Power T&D',c:'L',pe:0,ro:0,mc:0},{t:'WABAG',n:'VA Tech Wabag',s:'Water Treatment',c:'S',pe:0,ro:0,mc:0},
+  {t:'IPCALAB',n:'IPCA Laboratories',s:'Specialty Chem',c:'M',pe:0,ro:0,mc:0},{t:'APARINDS',n:'Apar Industries',s:'Cables/Conductors',c:'M',pe:0,ro:0,mc:0},
+  {t:'KPIGREEN',n:'KPI Green Energy',s:'Renewable Energy',c:'S',pe:0,ro:0,mc:0},{t:'WAAREEENER',n:'Waaree Energies',s:'Solar',c:'L',pe:0,ro:0,mc:0},
+  {t:'PREMIERENE',n:'Premier Energies',s:'Solar',c:'M',pe:0,ro:0,mc:0},{t:'AVADHSUGAR',n:'Avadh Sugar',s:'Sugar/Ethanol',c:'S',pe:0,ro:0,mc:0},
+  {t:'DWARIKESH',n:'Dwarikesh Sugar',s:'Sugar/Ethanol',c:'S',pe:0,ro:0,mc:0},{t:'SHREERENUKA',n:'Shree Renuka Sugar',s:'Sugar',c:'S',pe:0,ro:0,mc:0},
+  {t:'BANARISUG',n:'Bannari Amman Sugar',s:'Sugar',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: CHEMICALS / SPECIALTY CHEM (30) ----
+  {t:'ALKYLAMINE',n:'Alkyl Amines',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},{t:'GALAXYSURF',n:'Galaxy Surfactants',s:'Chemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'NOCIL',n:'NOCIL',s:'Rubber Chemicals',c:'S',pe:0,ro:0,mc:0},{t:'TATVA',n:'Tatva Chintan',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'NEOGEN',n:'Neogen Chemicals',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},{t:'ANANTRAJ',n:'Anant Raj',s:'Real Estate',c:'S',pe:0,ro:0,mc:0},
+  {t:'SYNGENE',n:'Syngene International',s:'CRAMS',c:'M',pe:0,ro:0,mc:0},{t:'IONEXCHANG',n:'Ion Exchange',s:'Water Treatment',c:'S',pe:0,ro:0,mc:0},
+  {t:'SUMICHEM',n:'Sumitomo Chemical India',s:'Agrochemicals',c:'M',pe:0,ro:0,mc:0},{t:'ASTERDM',n:'Aster DM Healthcare',s:'Healthcare',c:'M',pe:0,ro:0,mc:0},
+  {t:'LALPATHLAB',n:'Dr Lal PathLabs',s:'Diagnostics',c:'M',pe:0,ro:0,mc:0},{t:'METROPOLIS',n:'Metropolis Healthcare',s:'Diagnostics',c:'M',pe:0,ro:0,mc:0},
+  {t:'VINATIORGA',n:'Vinati Organics',s:'Specialty Chemicals',c:'M',pe:0,ro:0,mc:0},{t:'CHEMPLASTS',n:'Chemplast Sanmar',s:'Chemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'PCBL',n:'PCBL (Phillips Carbon)',s:'Carbon Black',c:'S',pe:0,ro:0,mc:0},{t:'RAIN',n:'Rain Industries',s:'Carbon/Chemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'EPL',n:'EPL Ltd',s:'Packaging',c:'S',pe:0,ro:0,mc:0},{t:'HUHTAMAKI',n:'Huhtamaki India',s:'Packaging',c:'S',pe:0,ro:0,mc:0},
+  {t:'UFLEX',n:'UFlex',s:'Packaging',c:'S',pe:0,ro:0,mc:0},{t:'MOLDTKPAC',n:'Mold-Tek Packaging',s:'Packaging',c:'S',pe:0,ro:0,mc:0},
+  {t:'SUDARSCHEM',n:'Sudarshan Chemical',s:'Pigments',c:'S',pe:0,ro:0,mc:0},{t:'GHCL',n:'GHCL',s:'Chemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'BASF',n:'BASF India',s:'Chemicals/MNC',c:'S',pe:0,ro:0,mc:0},{t:'BALAMINES',n:'Balaji Amines',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'AETHER',n:'Aether Industries',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'JUBLINGREA',n:'Jubilant Ingrevia',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'SOLARINDS',n:'Solar Industries',s:'Explosives/Mining',c:'M',pe:0,ro:0,mc:0},{t:'CRISIL',n:'CRISIL',s:'Rating/Analytics',c:'M',pe:0,ro:0,mc:0},
+  // ---- NEW: METALS & MINING (20) ----
+  {t:'HINDZINC',n:'Hindustan Zinc',s:'Mining/Zinc',c:'L',pe:0,ro:0,mc:0},{t:'AARTIDRUGS',n:'Aarti Drugs',s:'API/Chemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'TATASTLBSL',n:'Tata Steel BSL',s:'Steel',c:'S',pe:0,ro:0,mc:0},
+  {t:'MISHRA',n:'Mishra Dhatu Nigam',s:'Special Metals',c:'S',pe:0,ro:0,mc:0},{t:'RAJESHEXPO',n:'Rajesh Exports',s:'Gold/Jewellery',c:'S',pe:0,ro:0,mc:0},
+  {t:'HLEGLAS',n:'HLE Glascoat',s:'Glass Equipment',c:'S',pe:0,ro:0,mc:0},{t:'TINPLATE',n:'Tinplate Co of India',s:'Steel/Packaging',c:'S',pe:0,ro:0,mc:0},
+  {t:'JAMNAAUTO',n:'Jamna Auto Industries',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},{t:'SHYAMMETL',n:'Shyam Metalics',s:'Steel',c:'M',pe:0,ro:0,mc:0},
+  {t:'GALLANTT',n:'Gallantt Ispat',s:'Steel',c:'S',pe:0,ro:0,mc:0},{t:'LSIND',n:'Lloyds Steels Industries',s:'Steel/EPC',c:'S',pe:0,ro:0,mc:0},
+  {t:'KIOCL',n:'KIOCL (Kudremukh)',s:'Iron Ore',c:'S',pe:0,ro:0,mc:0},
+  {t:'JSWISPL',n:'JSW Ispat Special',s:'Steel',c:'S',pe:0,ro:0,mc:0},{t:'SARDAEN',n:'Sarda Energy',s:'Steel/Power',c:'S',pe:0,ro:0,mc:0},
+  {t:'GODAWARI',n:'Godawari Power',s:'Steel/Mining',c:'S',pe:0,ro:0,mc:0},{t:'WELSPUNIND',n:'Welspun India',s:'Textiles',c:'M',pe:0,ro:0,mc:0},
+  {t:'MANAKSIA',n:'Manaksia Aluminium',s:'Aluminium',c:'S',pe:0,ro:0,mc:0},{t:'NALCO',n:'National Aluminium',s:'Aluminium',c:'M',pe:0,ro:0,mc:0},
+  // ---- NEW: REAL ESTATE (15) ----
+  {t:'SIGNATURE',n:'Signature Global',s:'Real Estate',c:'S',pe:0,ro:0,mc:0},
+  {t:'KEYSTONE',n:'Keystone Realtors (Rustomjee)',s:'Real Estate',c:'S',pe:0,ro:0,mc:0},{t:'MAXESTATES',n:'Max Estates',s:'Real Estate',c:'S',pe:0,ro:0,mc:0},
+  {t:'SURAJEST',n:'Suraj Estate Developers',s:'Real Estate',c:'S',pe:0,ro:0,mc:0},{t:'SHOBHA',n:'Sobha Ltd (Check)',s:'Real Estate',c:'M',pe:0,ro:0,mc:0},
+  {t:'MAHINDCIE',n:'Mahindra CIE Auto',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},
+  {t:'MINDACORP',n:'Minda Corporation',s:'Auto Ancillary',c:'M',pe:0,ro:0,mc:0},{t:'SWARAJENG',n:'Swaraj Engines',s:'Auto/Tractors',c:'S',pe:0,ro:0,mc:0},
+  {t:'SANDHAR',n:'Sandhar Technologies',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},{t:'SUPRAJIT',n:'Suprajit Engineering',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},
+  {t:'SUNDARMHLD',n:'Sundaram Clayton',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: TEXTILES & APPAREL (15) ----
+  {t:'PGEL',n:'PG Electroplast',s:'EMS',c:'S',pe:0,ro:0,mc:0},{t:'SYRMA',n:'Syrma SGS Tech',s:'EMS',c:'S',pe:0,ro:0,mc:0},
+  {t:'AVALON',n:'Avalon Technologies',s:'EMS',c:'S',pe:0,ro:0,mc:0},{t:'CENTUM',n:'Centum Electronics',s:'EMS',c:'S',pe:0,ro:0,mc:0},
+  {t:'AMBER',n:'Amber Enterprises',s:'AC Components',c:'M',pe:0,ro:0,mc:0},{t:'VMART',n:'V-Mart Retail',s:'Retail',c:'S',pe:0,ro:0,mc:0},
+  {t:'GARFIBRES',n:'Garware Technical Fibres',s:'Technical Textiles',c:'S',pe:0,ro:0,mc:0},{t:'INDOCOUNT',n:'Indo Count Industries',s:'Textiles/Home',c:'S',pe:0,ro:0,mc:0},
+  {t:'HIMATSEIDE',n:'Himatsingka Seide',s:'Textiles/Home',c:'S',pe:0,ro:0,mc:0},{t:'KITEX',n:'Kitex Garments',s:'Textiles',c:'S',pe:0,ro:0,mc:0},
+  {t:'DONEAR',n:'Donear Industries',s:'Textiles',c:'S',pe:0,ro:0,mc:0},{t:'NITIRAJ',n:'Nitin Spinners',s:'Textiles',c:'S',pe:0,ro:0,mc:0},
+  {t:'SPAL',n:'S.P. Apparels',s:'Textiles',c:'S',pe:0,ro:0,mc:0},{t:'WOCKPHARMA',n:'Wockhardt',s:'Pharma/Turnaround',c:'S',pe:0,ro:0,mc:0},
+  {t:'DELTACORP',n:'Delta Corp',s:'Gaming/Hotels',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: LOGISTICS & TRANSPORT (12) ----
+  {t:'MAHLOG',n:'Mahindra Logistics',s:'Logistics',c:'S',pe:0,ro:0,mc:0},{t:'TCIEXP',n:'TCI Express',s:'Express Logistics',c:'S',pe:0,ro:0,mc:0},
+  {t:'GATEWAY',n:'Gateway Distriparks',s:'Logistics',c:'S',pe:0,ro:0,mc:0},{t:'AEGISLOG',n:'Aegis Logistics',s:'LPG Logistics',c:'M',pe:0,ro:0,mc:0},
+  {t:'JETAIRWAYS',n:'Jet Airways (Check)',s:'Airlines',c:'S',pe:0,ro:0,mc:0},{t:'GLOBUSSPR',n:'Globus Spirits',s:'Ethanol/Spirits',c:'S',pe:0,ro:0,mc:0},
+  {t:'RADICO',n:'Radico Khaitan',s:'Spirits',c:'M',pe:0,ro:0,mc:0},{t:'GESHIP',n:'Great Eastern Shipping',s:'Shipping',c:'M',pe:0,ro:0,mc:0},
+  {t:'SCI',n:'Shipping Corp of India',s:'Shipping',c:'S',pe:0,ro:0,mc:0},{t:'STARLOG',n:'Star Log (Check)',s:'Logistics',c:'S',pe:0,ro:0,mc:0},
+  {t:'NAVNETEDUL',n:'Navneet Education',s:'Education/Print',c:'S',pe:0,ro:0,mc:0},{t:'SKYGOLD',n:'Sky Gold',s:'Jewellery',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: TELECOM / MEDIA (10) ----
+  {t:'INDIAMART',n:'IndiaMART InterMeSH',s:'Internet/B2B',c:'M',pe:0,ro:0,mc:0},{t:'HATHWAY',n:'Hathway Cable',s:'Cable/Broadband',c:'S',pe:0,ro:0,mc:0},
+  {t:'DEN',n:'DEN Networks',s:'Cable/Media',c:'S',pe:0,ro:0,mc:0},{t:'PVR',n:'PVR INOX (Check)',s:'Entertainment',c:'M',pe:0,ro:0,mc:0},
+  {t:'TIPS',n:'Tips Music',s:'Media/Music',c:'S',pe:0,ro:0,mc:0},{t:'SHEMAROO',n:'Shemaroo Entertainment',s:'Media',c:'S',pe:0,ro:0,mc:0},
+  {t:'TVTODAY',n:'TV Today Network',s:'Media',c:'S',pe:0,ro:0,mc:0},{t:'DBCORP',n:'DB Corp',s:'Media/Print',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: OIL & GAS / REFINING (10) ----
+  {t:'MRPL',n:'MRPL (Mangalore Refinery)',s:'Refining',c:'M',pe:0,ro:0,mc:0},{t:'CHENNPETRO',n:'Chennai Petroleum',s:'Refining',c:'S',pe:0,ro:0,mc:0},
+  {t:'GUJGAS',n:'Gujarat Gas',s:'City Gas',c:'M',pe:0,ro:0,mc:0},{t:'GSPL',n:'Gujarat State Petronet',s:'Gas Pipeline',c:'S',pe:0,ro:0,mc:0},
+  {t:'CASTROLIND',n:'Castrol India',s:'Lubricants',c:'M',pe:0,ro:0,mc:0},
+  {t:'GUJPETRO',n:'Gujarat Petrosynthese',s:'Petrochemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'TATAINVEST',n:'Tata Investment Corp',s:'Investment',c:'S',pe:0,ro:0,mc:0},{t:'MAZDOCK',n:'Mazagon Dock Shipbuilders',s:'Shipbuilding',c:'M',pe:0,ro:0,mc:0},
+  // ---- NEW: CONSUMER DURABLES / ELECTRONICS (15) ----
+  {t:'BLUESTAR',n:'Blue Star',s:'AC/Cooling',c:'M',pe:0,ro:0,mc:0},{t:'JOHNSONCON',n:'Johnson Controls-Hitachi',s:'AC/Cooling',c:'S',pe:0,ro:0,mc:0},
+  {t:'BAJAJELEC',n:'Bajaj Electricals',s:'Consumer Durables',c:'S',pe:0,ro:0,mc:0},
+  {t:'STOVEKRAFT',n:'Stove Kraft',s:'Kitchen Appliances',c:'S',pe:0,ro:0,mc:0},{t:'BUTTERFLY',n:'Butterfly Gandhimathi',s:'Kitchen Appliances',c:'S',pe:0,ro:0,mc:0},
+  {t:'LUMAXTECH',n:'Lumax Auto Technologies',s:'Auto Lighting',c:'S',pe:0,ro:0,mc:0},{t:'LUMAXIND',n:'Lumax Industries',s:'Auto Lighting',c:'S',pe:0,ro:0,mc:0},
+  {t:'CENTURL',n:'Century Textiles & Ind',s:'Diversified',c:'M',pe:0,ro:0,mc:0},{t:'SHRIRAMCIT',n:'Shriram City Union',s:'NBFC',c:'M',pe:0,ro:0,mc:0},
+  {t:'RAJRATAN',n:'Rajratan Global Wire',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},{t:'MTARTECH',n:'MTAR Technologies',s:'Precision Eng',c:'S',pe:0,ro:0,mc:0},
+  {t:'MIDHANI',n:'Mishra Dhatu Nigam',s:'Special Alloys',c:'S',pe:0,ro:0,mc:0},{t:'TECHNOE',n:'Techno Electric',s:'Power EPC',c:'S',pe:0,ro:0,mc:0},
+  {t:'GENUSPOWER',n:'Genus Power Infra',s:'Smart Meters',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: FERTILIZER & AGRI (12) ----
+  {t:'FACT',n:'Fertilisers & Chemicals',s:'Fertilizer',c:'S',pe:0,ro:0,mc:0},{t:'GSFC',n:'Gujarat State Fertilizers',s:'Fertilizer',c:'S',pe:0,ro:0,mc:0},
+  {t:'KSCL',n:'Kaveri Seed Company',s:'Seeds/Agri',c:'S',pe:0,ro:0,mc:0},{t:'RALLIS',n:'Rallis India',s:'Agrochemicals',c:'S',pe:0,ro:0,mc:0},
+  {t:'BECTORFOOD',n:'Bector Food Specialties',s:'Food Processing',c:'S',pe:0,ro:0,mc:0},{t:'JUBLPHARMA',n:'Jubilant Pharmova',s:'Pharma/CRAMS',c:'M',pe:0,ro:0,mc:0},
+  {t:'KRBL',n:'KRBL (India Gate Rice)',s:'Food/Rice',c:'S',pe:0,ro:0,mc:0},{t:'LTFOODS',n:'LT Foods (Daawat)',s:'Food/Rice',c:'S',pe:0,ro:0,mc:0},
+  {t:'JYOTHYLAB',n:'Jyothy Labs',s:'Home Care',c:'S',pe:0,ro:0,mc:0},{t:'ZYDUSWELL',n:'Zydus Wellness',s:'Consumer',c:'S',pe:0,ro:0,mc:0},
+  {t:'CCL',n:'CCL Products',s:'Coffee/Agri',c:'S',pe:0,ro:0,mc:0},{t:'AVANTIFEED',n:'Avanti Feeds',s:'Aquaculture',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: RAILWAY & DEFENCE-ADJACENT (10) ----
+  {t:'JUPITERICE',n:'Jupiter Life Line Hospitals (Check)',s:'Hospital',c:'S',pe:0,ro:0,mc:0},{t:'MAZAGON',n:'Mazagon Dock',s:'Shipbuilding',c:'L',pe:0,ro:0,mc:0},
+  {t:'IFCI',n:'IFCI Ltd',s:'DFI',c:'S',pe:0,ro:0,mc:0},{t:'MMTC',n:'MMTC',s:'Trading/PSU',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: PSU & MISCELLANEOUS (30) ----
+  {t:'OIL',n:'Oil India',s:'Oil Exploration',c:'M',pe:0,ro:0,mc:0},
+  // ---- NEW: ADDITIONAL HIGH-BETA / POPULAR TRADED (40) ----
+  {t:'RNAM',n:'Nippon Life India AMC',s:'AMC',c:'M',pe:0,ro:0,mc:0},
+  {t:'SWSOLAR',n:'Sterling & Wilson Solar',s:'Solar EPC',c:'S',pe:0,ro:0,mc:0},{t:'CELLO',n:'Cello World',s:'Consumer Products',c:'M',pe:0,ro:0,mc:0},
+  {t:'BOSCHLTD',n:'Bosch India',s:'Auto Ancillary/MNC',c:'L',pe:0,ro:0,mc:0},
+  {t:'3MINDIA',n:'3M India',s:'MNC/Diversified',c:'M',pe:0,ro:0,mc:0},
+  {t:'AKZOINDIA',n:'Akzo Nobel India',s:'Paints/MNC',c:'M',pe:0,ro:0,mc:0},{t:'INDIPAINT',n:'Indigo Paints',s:'Paints',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: MORE LIQUID STOCKS (40) ----
+  {t:'KEI',n:'KEI Industries',s:'Cables/Wires',c:'M',pe:0,ro:0,mc:0},
+  {t:'FINOLEX',n:'Finolex Cables',s:'Cables/Wires',c:'M',pe:0,ro:0,mc:0},
+  {t:'INOXINDIA',n:'INOX India',s:'Cryogenic/LNG',c:'M',pe:0,ro:0,mc:0},
+  {t:'VRL',n:'VRL Logistics',s:'Logistics',c:'S',pe:0,ro:0,mc:0},
+  // ---- NEW: EXCHANGE-TRADED POPULAR (15) ----
+  {t:'JINDALSTEL',n:'Jindal Steel & Power',s:'Steel',c:'L',pe:0,ro:0,mc:0},
+  {t:'ABFRL',n:'Aditya Birla Fashion',s:'Retail/Fashion',c:'M',pe:0,ro:0,mc:0},
+  {t:'IDBI',n:'IDBI Bank',s:'Banking',c:'M',pe:0,ro:0,mc:0},{t:'J%26KBANK',n:'J&K Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},
+  {t:'FEDRAL',n:'Federal-Mogul',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0}
 ];
 
 async function predictDailyMovers() {
@@ -5598,6 +5769,7 @@ var newsTriggersData = [];
 var nseAnnouncementsData = [];
 var newsApiUrl = localStorage.getItem('newsApiUrl') || 'https://script.google.com/macros/s/AKfycbxQuaffSeoi2FypmiAdHlOPB6jb_qKHNDahhKK4xhWipdhlcAr9ujgrCIyAujwd7kM/exec';
 const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
+const CORS_PROXY_FALLBACK = 'https://api.allorigins.win/raw?url=';
 
 // ---- News API URL Management ----
 function saveNewsApiUrl() {
@@ -5639,7 +5811,7 @@ async function fetchNewsViaProxy() {
   if (!newsApiUrl) return false;
   try {
     const symbols = stocks.map(s => s.yf).join(',');
-    const resp = await fetch(newsApiUrl + '?mode=all&limit=40&symbols=' + encodeURIComponent(symbols), {signal: AbortSignal.timeout(25000)});
+    const resp = await fetch(newsApiUrl + '?mode=all&limit=40&symbols=' + encodeURIComponent(symbols), {signal: AbortSignal.timeout(12000)});
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     if (!data.success || !data.data) throw new Error(data.error || 'Bad response');
@@ -5673,7 +5845,7 @@ async function fetchTriggersViaProxy() {
   if (!newsApiUrl) return [];
   try {
     const symbols = stocks.map(s => s.yf).join(',');
-    const resp = await fetch(newsApiUrl + '?mode=triggers&symbols=' + encodeURIComponent(symbols), {signal: AbortSignal.timeout(20000)});
+    const resp = await fetch(newsApiUrl + '?mode=triggers&symbols=' + encodeURIComponent(symbols), {signal: AbortSignal.timeout(10000)});
     if (!resp.ok) return [];
     const data = await resp.json();
     if (data.success && data.data?.triggers) return data.data.triggers;
@@ -5685,7 +5857,7 @@ async function fetchTriggersViaProxy() {
 async function fetchNSEViaProxy() {
   if (!newsApiUrl) return [];
   try {
-    const resp = await fetch(newsApiUrl + '?mode=announcements', {signal: AbortSignal.timeout(20000)});
+    const resp = await fetch(newsApiUrl + '?mode=announcements', {signal: AbortSignal.timeout(10000)});
     if (!resp.ok) return [];
     const data = await resp.json();
     if (data.success && data.data?.announcements) return data.data.announcements;
@@ -5718,23 +5890,52 @@ function detectNewsTagLabel(title, source) {
   return source || 'News';
 }
 
-// ---- FALLBACK: rss2json for Google News ----
+// ---- FALLBACK: rss2json for Google News (with CORS proxy fallback) ----
 async function fetchNewsViaRss2Json(query, tag, tagLabel) {
-  const rssUrl = 'https://news.google.com/rss/search?q='+encodeURIComponent(query)+'&hl=en-IN&gl=IN&ceid=IN:en';
+  var rssUrl = 'https://news.google.com/rss/search?q='+encodeURIComponent(query)+'&hl=en-IN&gl=IN&ceid=IN:en';
+
+  // Try rss2json first
   try {
-    const resp = await fetch(RSS2JSON + encodeURIComponent(rssUrl), {signal:AbortSignal.timeout(10000)});
-    if (!resp.ok) return [];
-    const data = await resp.json();
-    if (data.status !== 'ok' || !data.items) return [];
-    return data.items.slice(0,8).map(item => ({
-      title: item.title || '',
-      link: item.link || '#',
-      pubDate: item.pubDate || '',
-      source: item.author || extractSource(item.title),
-      tag, tagLabel,
-      desc: (item.description || '').replace(/<[^>]*>/g,'').substring(0,120)
-    }));
-  } catch(e) { return []; }
+    var resp = await fetch(RSS2JSON + encodeURIComponent(rssUrl), {signal:AbortSignal.timeout(8000)});
+    if (resp.ok) {
+      var data = await resp.json();
+      if (data.status === 'ok' && data.items && data.items.length > 0) {
+        return data.items.slice(0,8).map(function(item) { return {
+          title: item.title || '', link: item.link || '#', pubDate: item.pubDate || '',
+          source: item.author || extractSource(item.title), tag: tag, tagLabel: tagLabel,
+          desc: (item.description || '').replace(/<[^>]*>/g,'').substring(0,120)
+        }; });
+      }
+    }
+  } catch(e) { console.log('[rss2json] Primary failed for '+tag+':', e.message); }
+
+  // Fallback: AllOrigins CORS proxy + parse raw XML
+  try {
+    var resp2 = await fetch(CORS_PROXY_FALLBACK + encodeURIComponent(rssUrl), {signal:AbortSignal.timeout(8000)});
+    if (!resp2.ok) return [];
+    var xml = await resp2.text();
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(xml, 'text/xml');
+    var items = doc.querySelectorAll('item');
+    var results = [];
+    items.forEach(function(item, idx) {
+      if (idx >= 8) return;
+      var titleEl = item.querySelector('title');
+      var linkEl = item.querySelector('link');
+      var dateEl = item.querySelector('pubDate');
+      var descEl = item.querySelector('description');
+      if (titleEl) {
+        results.push({
+          title: titleEl.textContent || '', link: linkEl ? linkEl.textContent : '#',
+          pubDate: dateEl ? dateEl.textContent : '', source: extractSource(titleEl.textContent || ''),
+          tag: tag, tagLabel: tagLabel,
+          desc: descEl ? descEl.textContent.replace(/<[^>]*>/g,'').substring(0,120) : ''
+        });
+      }
+    });
+    if (results.length > 0) console.log('[rss2json] CORS fallback success for '+tag+': '+results.length+' items');
+    return results;
+  } catch(e2) { console.log('[rss2json] CORS fallback also failed for '+tag+':', e2.message); return []; }
 }
 
 function extractSource(title) {
@@ -5938,94 +6139,133 @@ async function loadNewsIntelTab() {
   newsIntData = [...curatedItems];
   renderNewsInt('all');
 
-  // Phase 1: Try NewsIntelProxy (real-time RSS from BS, NDTV, Mint, ET + NSE)
   const newsApiBadge = document.getElementById('newsApiBadge');
-  if (newsApiUrl) {
-    if (newsApiBadge) { newsApiBadge.textContent = 'CONNECTING'; newsApiBadge.className = 'api-badge off'; }
+  const badge = document.getElementById('newsCountBadge');
 
-    // Fetch news, triggers, and NSE announcements in parallel
-    const [proxyNews, triggers, nseAnnouncements] = await Promise.all([
-      fetchNewsViaProxy(),
-      fetchTriggersViaProxy(),
-      fetchNSEViaProxy()
-    ]);
+  // v3.0: Run BOTH proxy and rss2json in PARALLEL — don't wait for proxy to fail
+  const marketSearches = [
+    {q:'India stock market Sensex Nifty today', tag:'india', label:'India'},
+    {q:'S&P 500 NASDAQ Wall Street market today', tag:'global', label:'Global'},
+    {q:'RBI interest rate inflation monetary policy', tag:'macro', label:'Macro'},
+    {q:'crude oil gold commodity prices today', tag:'commodity', label:'Commodity'},
+  ];
 
-    if (proxyNews && proxyNews.length > 0) {
-      if (newsApiBadge) { newsApiBadge.textContent = 'LIVE NEWS API'; newsApiBadge.className = 'api-badge live'; }
-      // Merge proxy news with curated, dedup
-      const merged = [...curatedItems, ...proxyNews];
-      const seen = new Set();
-      newsIntData = merged.filter(n => {
-        const key = n.title.substring(0,40).toLowerCase().replace(/[^a-z0-9]/g,'');
-        if (seen.has(key)) return false;
-        seen.add(key); return true;
-      }).sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
-    } else {
-      if (newsApiBadge) { newsApiBadge.textContent = 'PROXY FAIL'; newsApiBadge.className = 'api-badge off'; }
+  // Helper: merge items into newsIntData with dedup
+  function mergeNews(newItems, source) {
+    if (!newItems || newItems.length === 0) return 0;
+    var added = 0;
+    var seen = new Set(newsIntData.map(function(n) { return n.title.substring(0,40).toLowerCase().replace(/[^a-z0-9]/g,''); }));
+    newItems.forEach(function(n) {
+      var key = n.title.substring(0,40).toLowerCase().replace(/[^a-z0-9]/g,'');
+      if (!seen.has(key)) {
+        seen.add(key);
+        newsIntData.push(n);
+        added++;
+      }
+    });
+    if (added > 0) {
+      newsIntData.sort(function(a,b) { return new Date(b.pubDate) - new Date(a.pubDate); });
+      if (badge) badge.textContent = newsIntData.length + ' stories';
+      renderNewsInt(currentNewsFilter || 'all');
+      console.log('[NewsIntel] +' + added + ' items from ' + source);
     }
-
-    // Render triggers
-    if (triggers && triggers.length > 0) {
-      newsTriggersData = triggers;
-      renderTriggers(triggers);
-      // Also add triggers as news items
-      triggers.forEach(t => {
-        const sym = t.symbol.replace('.NS','');
-        const stock = stocks.find(s => s.yf === t.symbol || s.ticker === sym);
-        newsIntData.push({
-          title: (stock?stock.name:sym) + ': ' + t.message,
-          link: '#', pubDate: new Date().toISOString(), source: 'Trigger Engine',
-          tag: 'trigger', tagLabel: t.type, desc: 'Severity: ' + t.severity,
-          impact: t.type === 'BIG_DROP' || t.type === 'NEAR_LOW' ? 'bearish' : 'bullish',
-          impactText: t.type, matchedStocks: [stock?stock.name:sym], trigger: true
-        });
-      });
-    }
-
-    // Render NSE announcements
-    if (nseAnnouncements && nseAnnouncements.length > 0) {
-      nseAnnouncementsData = nseAnnouncements;
-      renderNSEAnnouncements(nseAnnouncements);
-    }
+    return added;
   }
 
-  // Update count badge
-  const badge = document.getElementById('newsCountBadge');
+  // TRACK 1: Apps Script proxy (non-blocking)
+  var proxyDone = false;
+  var proxyPromise = (async function() {
+    if (!newsApiUrl) return;
+    if (newsApiBadge) { newsApiBadge.textContent = 'LOADING...'; newsApiBadge.className = 'api-badge off'; }
+    try {
+      var results = await Promise.all([
+        fetchNewsViaProxy(),
+        fetchTriggersViaProxy(),
+        fetchNSEViaProxy()
+      ]);
+      var proxyNews = results[0];
+      var triggers = results[1];
+      var nseAnnouncements = results[2];
+
+      if (proxyNews && proxyNews.length > 0) {
+        if (newsApiBadge) { newsApiBadge.textContent = 'LIVE'; newsApiBadge.className = 'api-badge live'; }
+        mergeNews(proxyNews, 'NewsProxy');
+        proxyDone = true;
+      } else {
+        if (newsApiBadge) { newsApiBadge.textContent = 'NO DATA'; newsApiBadge.className = 'api-badge off'; }
+      }
+
+      // Render triggers
+      if (triggers && triggers.length > 0) {
+        newsTriggersData = triggers;
+        renderTriggers(triggers);
+        var triggerItems = [];
+        triggers.forEach(function(t) {
+          var sym = t.symbol.replace('.NS','');
+          var stock = stocks.find(function(s) { return s.yf === t.symbol || s.ticker === sym; });
+          triggerItems.push({
+            title: (stock?stock.name:sym) + ': ' + t.message,
+            link: '#', pubDate: new Date().toISOString(), source: 'Trigger Engine',
+            tag: 'trigger', tagLabel: t.type, desc: 'Severity: ' + t.severity,
+            impact: t.type === 'BIG_DROP' || t.type === 'NEAR_LOW' ? 'bearish' : 'bullish',
+            impactText: t.type, matchedStocks: [stock?stock.name:sym], trigger: true
+          });
+        });
+        mergeNews(triggerItems, 'Triggers');
+      }
+
+      // Render NSE announcements
+      if (nseAnnouncements && nseAnnouncements.length > 0) {
+        nseAnnouncementsData = nseAnnouncements;
+        renderNSEAnnouncements(nseAnnouncements);
+      }
+    } catch(e) {
+      console.warn('[NewsIntel] Proxy failed:', e.message);
+      if (newsApiBadge) { newsApiBadge.textContent = 'OFFLINE'; newsApiBadge.className = 'api-badge off'; }
+    }
+  })();
+
+  // TRACK 2: rss2json Google News (runs IN PARALLEL with proxy)
+  var rssPromise = (async function() {
+    try {
+      var liveResults = [];
+      for (var i = 0; i < marketSearches.length; i += 2) {
+        var batch = marketSearches.slice(i, i+2);
+        var results = await Promise.all(batch.map(function(s) { return fetchNewsViaRss2Json(s.q, s.tag, s.label); }));
+        results.forEach(function(r) { liveResults = liveResults.concat(r); });
+        if (i + 2 < marketSearches.length) await new Promise(function(r) { setTimeout(r, 800); });
+      }
+      var added = mergeNews(liveResults, 'rss2json');
+      // If proxy also failed, at least rss2json gives us live news
+      if (added > 0 && !proxyDone && newsApiBadge) {
+        newsApiBadge.textContent = 'RSS LIVE';
+        newsApiBadge.className = 'api-badge live';
+      }
+    } catch(e) { console.log('[NewsIntel] rss2json fallback error:', e); }
+  })();
+
+  // TRACK 3: Stock-specific Google News for top movers
+  var stockNewsPromise = (async function() {
+    try {
+      var queries = getStockNewsQueries();
+      if (queries.length === 0) return;
+      var stockResults = [];
+      for (var i = 0; i < Math.min(queries.length, 6); i += 2) {
+        var batch = queries.slice(i, i+2);
+        var results = await Promise.all(batch.map(function(q) { return fetchNewsViaRss2Json(q.q, q.tag, q.label); }));
+        results.forEach(function(r) { stockResults = stockResults.concat(r); });
+        if (i + 2 < queries.length) await new Promise(function(r) { setTimeout(r, 600); });
+      }
+      mergeNews(stockResults, 'StockNews');
+    } catch(e) { console.log('[NewsIntel] stock news error:', e); }
+  })();
+
+  // Wait for all tracks to complete
+  await Promise.allSettled([proxyPromise, rssPromise, stockNewsPromise]);
+
+  // Final render and sync
   if (badge) badge.textContent = newsIntData.length + ' stories';
   renderNewsInt(currentNewsFilter || 'all');
-
-  // Phase 2: Also fetch via rss2json in background for additional coverage
-  setTimeout(async () => {
-    try {
-      const marketSearches = [
-        {q:'India stock market Sensex Nifty today', tag:'india', label:'India'},
-        {q:'S&P 500 NASDAQ Wall Street market today', tag:'global', label:'Global'},
-        {q:'RBI interest rate inflation monetary policy', tag:'macro', label:'Macro'},
-        {q:'crude oil gold commodity prices today', tag:'commodity', label:'Commodity'},
-      ];
-      const liveResults = [];
-      for (let i = 0; i < marketSearches.length; i += 2) {
-        const batch = marketSearches.slice(i, i+2);
-        const results = await Promise.all(batch.map(s => fetchNewsViaRss2Json(s.q, s.tag, s.label)));
-        liveResults.push(...results.flat());
-        if (i + 2 < marketSearches.length) await new Promise(r => setTimeout(r, 1200));
-      }
-      if (liveResults.length > 0) {
-        const seen = new Set(newsIntData.map(n => n.title.substring(0,40).toLowerCase().replace(/[^a-z0-9]/g,'')));
-        const newItems = liveResults.filter(n => {
-          const key = n.title.substring(0,40).toLowerCase().replace(/[^a-z0-9]/g,'');
-          if (seen.has(key)) return false;
-          seen.add(key); return true;
-        });
-        newsIntData = [...newsIntData, ...newItems].sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
-        if (badge) badge.textContent = newsIntData.length + ' stories';
-        renderNewsInt(currentNewsFilter || 'all');
-      }
-    } catch(e) { console.log('rss2json fallback error:', e); }
-    // Sync news intel after all sources fetched
-    syncNewsIntel();
-  }, 1000);
-  // Auto-sync news intelligence to global store (initial pass)
   syncNewsIntel();
 }
 
@@ -7196,33 +7436,52 @@ async function fetchAllIntelligence(ticker, companyName) {
 }
 
 async function fetchGNewsRSS(query, srcType, limit) {
+  const rssUrl = 'https://news.google.com/rss/search?q=' + encodeURIComponent(query) + '&hl=en-IN&gl=IN&ceid=IN:en';
+  function parseGNewsItem(item, srcType) {
+    const title = typeof item === 'string' ? item : (item.title || '');
+    let detectedSrc = srcType;
+    const titleLower = title.toLowerCase();
+    const sourceName = ((item.author || item.source) ? (item.author || item.source) : extractSource(title) || '').toLowerCase();
+    if (titleLower.includes('reddit') || titleLower.includes('r/india') || sourceName.includes('reddit')) detectedSrc = 'reddit';
+    else if (titleLower.includes('youtube') || sourceName.includes('youtube')) detectedSrc = 'youtube';
+    else if (titleLower.includes('x.com') || titleLower.includes('twitter') || sourceName.includes('twitter') || sourceName.includes('x.com')) detectedSrc = 'x';
+    else if (sourceName.includes('bse') || sourceName.includes('nse') || titleLower.includes('bseindia') || titleLower.includes('nseindia')) detectedSrc = 'filing';
+    else if (sourceName.includes('moneycontrol') || sourceName.includes('screener') || sourceName.includes('trendlyne')) detectedSrc = 'forum';
+    return {
+      title, link: item.link || '#', pubDate: item.pubDate || '',
+      source: item.author || extractSource(title),
+      srcType: detectedSrc,
+      signals: detectSignals(title),
+      signalCat: classifySignalCategory(title)
+    };
+  }
+  // Try rss2json first
   try {
-    const rssUrl = 'https://news.google.com/rss/search?q=' + encodeURIComponent(query) + '&hl=en-IN&gl=IN&ceid=IN:en';
     const resp = await fetch(RSS2JSON + encodeURIComponent(rssUrl), {signal: AbortSignal.timeout(8000)});
-    if (!resp.ok) return [];
-    const data = await resp.json();
-    if (data.status !== 'ok' || !data.items) return [];
-    return data.items.slice(0, limit || 6).map(item => {
-      const title = item.title || '';
-      // Detect actual source from title suffix (Google News format: "Headline - Source")
-      let detectedSrc = srcType;
-      const titleLower = title.toLowerCase();
-      const sourceName = (item.author || extractSource(title) || '').toLowerCase();
-      // Override srcType based on actual content source
-      if (titleLower.includes('reddit') || titleLower.includes('r/india') || sourceName.includes('reddit')) detectedSrc = 'reddit';
-      else if (titleLower.includes('youtube') || sourceName.includes('youtube')) detectedSrc = 'youtube';
-      else if (titleLower.includes('x.com') || titleLower.includes('twitter') || sourceName.includes('twitter') || sourceName.includes('x.com')) detectedSrc = 'x';
-      else if (sourceName.includes('bse') || sourceName.includes('nse') || titleLower.includes('bseindia') || titleLower.includes('nseindia')) detectedSrc = 'filing';
-      else if (sourceName.includes('moneycontrol') || sourceName.includes('screener') || sourceName.includes('trendlyne')) detectedSrc = 'forum';
-      return {
-        title, link: item.link || '#', pubDate: item.pubDate || '',
-        source: item.author || extractSource(title),
-        srcType: detectedSrc,
-        signals: detectSignals(title),
-        signalCat: classifySignalCategory(title)
-      };
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.status === 'ok' && data.items && data.items.length > 0) {
+        return data.items.slice(0, limit || 6).map(item => parseGNewsItem(item, srcType));
+      }
+    }
+  } catch(e) { /* fall through to CORS proxy */ }
+  // Fallback: AllOrigins CORS proxy + parse raw XML
+  try {
+    const resp2 = await fetch(CORS_PROXY_FALLBACK + encodeURIComponent(rssUrl), {signal: AbortSignal.timeout(8000)});
+    if (!resp2.ok) return [];
+    const xml = await resp2.text();
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const items = doc.querySelectorAll('item');
+    const results = [];
+    items.forEach((el, idx) => {
+      if (idx >= (limit || 6)) return;
+      const t = el.querySelector('title');
+      const l = el.querySelector('link');
+      const d = el.querySelector('pubDate');
+      if (t) results.push(parseGNewsItem({title: t.textContent, link: l?l.textContent:'#', pubDate: d?d.textContent:'', author: extractSource(t.textContent)}, srcType));
     });
-  } catch(e) { return []; }
+    return results;
+  } catch(e2) { return []; }
 }
 
 // ── Enhanced signal detection ──
@@ -7648,7 +7907,9 @@ function resetDayTrade() {
 }
 
 // ---------------------------------------------------------------
-//  Day Trade Scoring v2.0 — CATALYST MOMENTUM ENGINE
+//  Day Trade Scoring v3.0 — FULL MARKET MOMENTUM ENGINE
+//  CHANGES: Removed PE/ROCE filter, replaced with cap-size liquidity score,
+//  mid-caps get highest score (best risk/reward for day trade)
 //  Strategy: Gap-and-Go + Volume Spike + Breakout + Sector Heat
 //  Target: 3-5% daily on concentrated 3-5 stock picks
 // ---------------------------------------------------------------
@@ -7693,34 +7954,32 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
   else if (pos52 <= 0.25 && changePct > 1.5) { score += 12; signals.push('REVERSAL'); }
   else { score += 5; }
 
-  // ═══ FACTOR 4: FUNDAMENTAL QUALITY (0-15) ═══
-  // Quality stocks move cleanly — junk stocks have erratic action
+  // ═══ FACTOR 4: LIQUIDITY & TRADABILITY (0-15) — v3.0 ═══
+  // For day trading: liquidity matters more than fundamentals
+  // Large/mid caps move cleaner, small caps = higher reward but slippage risk
   if (extraData) {
-    var pe = extraData.pe || 0;
-    var roce = extraData.ro || 0;
-    if (roce >= 20 && pe > 0 && pe < 35) { score += 15; signals.push('QUALITY'); }
-    else if (roce >= 15 && pe > 0 && pe < 50) { score += 12; }
-    else if (roce >= 10 && pe > 0 && pe < 60) { score += 8; }
-    else if (pe > 0) { score += 4; }
-    else { score += 2; }
+    var capType = extraData.c || 'S';
+    if (capType === 'L') { score += 12; signals.push('LARGE-CAP'); }
+    else if (capType === 'M') { score += 15; signals.push('MID-CAP'); } // Mid-caps: best risk/reward for day trade
+    else if (capType === 'S') { score += 10; }
+    else { score += 5; } // Micro-cap: thin liquidity
   } else {
     // Portfolio stocks — check if data exists on the stock object
     var pStock = stocks.find(function(s) { return s.ticker === ticker; });
     if (pStock) {
-      var pRoce = pStock.roce || 0;
-      var pPe = pStock.pe || 0;
-      if (pRoce >= 15 && pPe > 0 && pPe < 50) { score += 12; }
-      else if (pPe > 0) { score += 6; }
-      else { score += 4; }
-      // Catalyst bonus from portfolio data
+      // Catalyst bonus from portfolio data — this is valuable real intel
       if (pStock.catalyst && pStock.catalyst.length > 5) {
         var catUp = pStock.catalyst.toUpperCase();
         if (catUp.includes('BUYBACK') || catUp.includes('SPLIT') || catUp.includes('BONUS') || catUp.includes('ORDER WIN') || catUp.includes('APPROVAL') || catUp.includes('RESULTS')) {
-          score += 5; signals.push('CATALYST');
+          score += 10; signals.push('CATALYST');
+        } else {
+          score += 7;
         }
+      } else {
+        score += 7;
       }
     } else {
-      score += 5;
+      score += 7; // Unknown stock — neutral score, let momentum decide
     }
   }
 
@@ -8090,7 +8349,10 @@ function renderDTEquityCurve(w) {
 }
 
 // ---------------------------------------------------------------
-//  Run Day Trade AI v2.0 — CATALYST MOMENTUM ENGINE
+//  Run Day Trade AI v3.0 — FULL MARKET DISCOVERY ENGINE
+//  WHAT CHANGED from v2: No quality filter, no top-80 limit,
+//  scans ALL universe stocks, larger batches, lower volume floor,
+//  Indian market-aware scoring
 //  Strategy: Concentrated bets on 3-5 highest-conviction picks
 //  Selection: Gap-and-Go + Volume Spike + Sector Heat + Dashboard Intel
 //  Allocation: Conviction-weighted (top pick gets 35%, not equal)
@@ -8119,7 +8381,7 @@ async function runDayTradeAI() {
     statusBadge.style.background = '#f59e0b22';
     statusBadge.style.color = '#f59e0b';
     statusBadge.style.borderColor = '#f59e0b44';
-    statusBadge.innerHTML = '&#9889; v2.0 ENGINE: Scanning 300+ stocks for catalyst momentum...';
+    statusBadge.innerHTML = '&#9889; v3.0 FULL MARKET ENGINE: Scanning ' + (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.length : 300) + '+ stocks...';
   }
 
   try {
@@ -8149,34 +8411,32 @@ async function runDayTradeAI() {
       };
     });
 
-    // Universe stocks (300) — fetch live prices for top candidates
+    // ══════════════════════════════════════════════════════════
+    //  UNIVERSE SCAN v3.0 — FULL MARKET DISCOVERY
+    //  NO quality filter. NO top-80 limit. Scan ALL universe stocks.
+    //  Only ethical exclusion applies. Let price action decide, not PE/ROCE.
+    //  Day trading = momentum, not fundamentals.
+    // ══════════════════════════════════════════════════════════
     var universeToFetch = [];
     if (typeof MOVER_UNIVERSE !== 'undefined' && MOVER_UNIVERSE.length > 0) {
       MOVER_UNIVERSE.forEach(function(m) {
-        if (m.c === 'X') return; // Skip micro-caps
         if (isEthicallyExcluded(m.s || '') || isEthicallyExcluded(m.n || '')) return;
         if (candidates[m.t]) return;
-        // Quality filter: only fetch stocks with decent fundamentals
-        if (m.pe > 0 && m.pe < 60 && m.ro >= 10) {
-          universeToFetch.push(m);
-        }
+        // v3.0: NO quality filter — fetch ALL stocks regardless of PE/ROCE
+        // Day trading cares about momentum, volume, price action — NOT fundamentals
+        universeToFetch.push(m);
       });
 
-      // Sort by ROCE/PE ratio — higher = better value for money
-      universeToFetch.sort(function(a, b) {
-        var sa = (a.ro / Math.max(1, a.pe)) * (a.c === 'M' || a.c === 'S' ? 1.3 : 1);
-        var sb = (b.ro / Math.max(1, b.pe)) * (b.c === 'M' || b.c === 'S' ? 1.3 : 1);
-        return sb - sa;
-      });
-      // Fetch more stocks to find the best movers — top 80 by quality
-      universeToFetch = universeToFetch.slice(0, 80);
+      // v3.0: NO sorting by fundamentals, NO top-80 limit
+      // Scan the ENTIRE universe to find real movers
+      console.log('[DT-v3] Scanning full universe: ' + universeToFetch.length + ' stocks (no quality filter)');
 
-      var batchSize = 10;
+      var batchSize = 25; // v3.0: Larger batches for faster scanning
       for (var i = 0; i < universeToFetch.length; i += batchSize) {
         var batch = universeToFetch.slice(i, i + batchSize);
         var symbolStr = batch.map(function(m) { return m.t + '.NS'; }).join(',');
         try {
-          var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbolStr) + '&mode=all', {signal: AbortSignal.timeout(20000)});
+          var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbolStr) + '&mode=all', {signal: AbortSignal.timeout(25000)});
           var json = await resp.json();
           if (json && json.success && json.data && json.data.stocks) {
             Object.entries(json.data.stocks).forEach(function(entry) {
@@ -8185,7 +8445,7 @@ async function runDayTradeAI() {
               var tk = sym.replace('.NS', '').replace('.BO', '');
               if (d.price > 0) {
                 var changePct2 = d.prevClose > 0 ? ((d.price - d.prevClose) / d.prevClose * 100) : 0;
-                // PRE-FILTER: skip flat/down stocks
+                // PRE-FILTER: skip flat/down stocks — no edge for day trade
                 if (changePct2 < 0.3) return;
                 var uvEntry = batch.find(function(m) { return m.t === tk; });
                 candidates[tk] = {
@@ -8204,27 +8464,29 @@ async function runDayTradeAI() {
             });
           }
         } catch(e) {
-          console.log('[DT-v2] Batch fetch error:', e.message || e);
+          console.log('[DT-v3] Batch fetch error:', e.message || e);
         }
         if (i + batchSize < universeToFetch.length) {
-          await new Promise(function(r) { setTimeout(r, 350); });
+          await new Promise(function(r) { setTimeout(r, 300); });
         }
 
         if (statusBadge) {
           var fetched = Math.min(i + batchSize, universeToFetch.length);
-          statusBadge.innerHTML = '&#9889; v2.0: Fetched ' + fetched + '/' + universeToFetch.length + ' | Found ' + Object.keys(candidates).length + ' green stocks...';
+          var pct = Math.round(fetched / universeToFetch.length * 100);
+          statusBadge.innerHTML = '&#9889; v3.0 FULL SCAN: ' + fetched + '/' + universeToFetch.length + ' (' + pct + '%) | ' + Object.keys(candidates).length + ' green stocks found...';
         }
       }
     }
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 2: SCORE ALL CANDIDATES with v2 engine
+    //  STEP 2: SCORE ALL CANDIDATES with v3 engine
     // ══════════════════════════════════════════════════════════
     var scored = [];
     Object.values(candidates).forEach(function(c) {
       var changePct3 = c.prevClose > 0 ? ((c.price - c.prevClose) / c.prevClose * 100) : 0;
-      // Hard filter: must be green (>0.3%) and liquid (>200K volume)
-      if (changePct3 < 0.3 || c.volume < 200000) return;
+      // v3.0: Lower volume floor to 50K — many small/mid movers are thin early morning
+      // The scoring engine already penalizes low volume, so let it through
+      if (changePct3 < 0.3 || c.volume < 50000) return;
 
       var dtScore = dayTradeScore(c.ticker, c.price, c.prevClose, c.high52, c.low52, c.volume, c.sector, c.extraData);
       scored.push({
