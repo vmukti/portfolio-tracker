@@ -1105,8 +1105,8 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
   <div id="tab-daytrade" style="display:none">
     <div style="text-align:center;padding:20px 0 10px">
-      <h2 style="margin:0;font-size:22px">&#9889; AI Day Trade Simulator v1.0</h2>
-      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">Intraday Only &mdash; Buy at Open, Square-Off by Close &mdash; No Overnight Positions</p>
+      <h2 style="margin:0;font-size:22px">&#9889; AI Day Trade Simulator v2.0 &mdash; Catalyst Momentum Engine</h2>
+      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">Institutional Edge: Relative Strength + Sector Rotation + Smart Money Detection + Conviction Sizing</p>
       <div id="dtStatusBadge" style="display:inline-block;margin-top:8px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#4f8cff22;color:#4f8cff;border:1px solid #4f8cff44">&#128337; STATUS: No positions &mdash; Market ready</div>
     </div>
 
@@ -7613,45 +7613,111 @@ function resetDayTrade() {
 }
 
 // ---------------------------------------------------------------
-//  Day Trade Scoring — rates a stock for intraday opportunity
+//  Day Trade Scoring v2.0 — CATALYST MOMENTUM ENGINE
+//  Strategy: Gap-and-Go + Volume Spike + Breakout + Sector Heat
+//  Target: 3-5% daily on concentrated 3-5 stock picks
 // ---------------------------------------------------------------
-function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector) {
+function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, extraData) {
   var score = 0;
+  var signals = [];
 
-  // 1. Intraday momentum (0-30): bigger move = better opportunity
   var changePct = prevClose > 0 ? ((price - prevClose) / prevClose * 100) : 0;
-  var absChange = Math.abs(changePct);
-  if (absChange >= 3) score += 30;
-  else if (absChange >= 2) score += 25;
-  else if (absChange >= 1) score += 18;
-  else if (absChange >= 0.5) score += 10;
-  else score += 3;
 
-  // 2. Direction confidence (0-20): trending UP stocks = better for long-only
-  if (changePct > 0) score += Math.min(20, changePct * 6);
-  else score += Math.max(0, 5 + changePct * 2);
+  // ═══ FACTOR 1: GAP QUALITY (0-30) ═══
+  // Sweet spot: 1.5-4% gap = continuation pattern (Gap-and-Go)
+  // Too small = no edge; Too big (>6%) = fade/reversal risk
+  if (changePct >= 2 && changePct <= 4) { score += 30; signals.push('PERFECT GAP'); }
+  else if (changePct >= 1.5 && changePct < 2) { score += 25; signals.push('GOOD GAP'); }
+  else if (changePct > 4 && changePct <= 6) { score += 22; signals.push('STRONG GAP'); }
+  else if (changePct >= 1 && changePct < 1.5) { score += 15; signals.push('MILD GAP'); }
+  else if (changePct > 6 && changePct <= 10) { score += 10; signals.push('HOT-CAUTION'); }
+  else if (changePct > 0.3 && changePct < 1) { score += 5; }
+  else if (changePct > 10) { score += 3; signals.push('FADE RISK'); }
+  // negative or flat = 0 points — hard skip for day trade
 
-  // 3. 52-week proximity (0-20): near 52W high = breakout potential
+  // ═══ FACTOR 2: VOLUME CONFIRMATION (0-25) ═══
+  // Volume confirms the move is institutional, not noise
+  // This is the #1 reliability filter for day trades
+  if (volume > 10000000) { score += 25; signals.push('MONSTER VOL'); }
+  else if (volume > 5000000) { score += 22; signals.push('HUGE VOL'); }
+  else if (volume > 2000000) { score += 18; signals.push('HIGH VOL'); }
+  else if (volume > 1000000) { score += 14; }
+  else if (volume > 500000) { score += 8; }
+  else if (volume > 200000) { score += 4; }
+  else { score += 1; }
+
+  // ═══ FACTOR 3: BREAKOUT POSITION (0-20) ═══
+  // Near 52W high = breakout territory = momentum continuation
+  // Near 52W low + big gap = reversal bounce play
   var range52 = high52 - low52;
   var pos52 = range52 > 0 ? (price - low52) / range52 : 0.5;
-  if (pos52 >= 0.85) score += 20;
-  else if (pos52 >= 0.7) score += 15;
-  else if (pos52 <= 0.15) score += 12;
-  else score += 8;
+  if (pos52 >= 0.95) { score += 20; signals.push('52W BREAKOUT'); }
+  else if (pos52 >= 0.85) { score += 17; signals.push('NEAR 52W HIGH'); }
+  else if (pos52 >= 0.7) { score += 12; }
+  else if (pos52 <= 0.15 && changePct > 2) { score += 16; signals.push('BOUNCE PLAY'); }
+  else if (pos52 <= 0.25 && changePct > 1.5) { score += 12; signals.push('REVERSAL'); }
+  else { score += 5; }
 
-  // 4. Volume signal (0-15): higher volume = more liquid = better for day trade
-  if (volume > 5000000) score += 15;
-  else if (volume > 2000000) score += 12;
-  else if (volume > 500000) score += 8;
-  else if (volume > 100000) score += 5;
-  else score += 2;
+  // ═══ FACTOR 4: FUNDAMENTAL QUALITY (0-15) ═══
+  // Quality stocks move cleanly — junk stocks have erratic action
+  if (extraData) {
+    var pe = extraData.pe || 0;
+    var roce = extraData.ro || 0;
+    if (roce >= 20 && pe > 0 && pe < 35) { score += 15; signals.push('QUALITY'); }
+    else if (roce >= 15 && pe > 0 && pe < 50) { score += 12; }
+    else if (roce >= 10 && pe > 0 && pe < 60) { score += 8; }
+    else if (pe > 0) { score += 4; }
+    else { score += 2; }
+  } else {
+    // Portfolio stocks — check if data exists on the stock object
+    var pStock = stocks.find(function(s) { return s.ticker === ticker; });
+    if (pStock) {
+      var pRoce = pStock.roce || 0;
+      var pPe = pStock.pe || 0;
+      if (pRoce >= 15 && pPe > 0 && pPe < 50) { score += 12; }
+      else if (pPe > 0) { score += 6; }
+      else { score += 4; }
+      // Catalyst bonus from portfolio data
+      if (pStock.catalyst && pStock.catalyst.length > 5) {
+        var catUp = pStock.catalyst.toUpperCase();
+        if (catUp.includes('BUYBACK') || catUp.includes('SPLIT') || catUp.includes('BONUS') || catUp.includes('ORDER WIN') || catUp.includes('APPROVAL') || catUp.includes('RESULTS')) {
+          score += 5; signals.push('CATALYST');
+        }
+      }
+    } else {
+      score += 5;
+    }
+  }
 
-  // 5. Price band (0-15): stocks between 100-5000 are ideal for day trading
-  if (price >= 100 && price <= 5000) score += 15;
-  else if (price >= 50 && price <= 10000) score += 10;
-  else score += 5;
+  // ═══ FACTOR 5: PRICE BAND (0-10) ═══
+  // 200-3000 = ideal for day trade (good % moves, manageable position sizes)
+  if (price >= 200 && price <= 3000) { score += 10; }
+  else if (price >= 100 && price <= 5000) { score += 7; }
+  else if (price >= 50 && price <= 10000) { score += 4; }
+  else { score += 2; }
 
-  return { total: Math.round(score), momentum: changePct.toFixed(2), vol: volume };
+  // ═══ BONUS: VOLUME + MOMENTUM CONFIRMATION (+0-15) ═══
+  // When BOTH volume AND momentum are strong = highest conviction signal
+  // This is the "institutional buying" fingerprint
+  if (changePct >= 2.5 && volume > 3000000) { score += 15; signals.push('VOL+MOM CONFIRMED'); }
+  else if (changePct >= 2 && volume > 2000000) { score += 12; signals.push('VOL+MOM STRONG'); }
+  else if (changePct >= 1.5 && volume > 1000000) { score += 8; signals.push('VOL+MOM'); }
+  else if (changePct >= 1 && volume > 500000) { score += 4; }
+
+  // ═══ BONUS: DASHBOARD INTELLIGENCE (+0-10) ═══
+  // Wire in existing dashboard intel for portfolio stocks
+  if (typeof getDashboardBonus === 'function') {
+    var dBonus = getDashboardBonus(ticker);
+    if (dBonus && dBonus.bonus > 0 && dBonus.sources >= 2) {
+      var intelBonus = Math.min(10, Math.round(dBonus.bonus * 0.8));
+      if (intelBonus > 0) {
+        score += intelBonus;
+        signals.push('INTEL+' + intelBonus);
+      }
+    }
+  }
+
+  return { total: Math.min(130, Math.round(score)), momentum: changePct.toFixed(2), vol: volume, signals: signals };
 }
 
 // ---------------------------------------------------------------
@@ -7737,18 +7803,29 @@ function updateDTDisplay(w) {
     } else {
       var rows = [];
       rows.push('<div class="tbl-wrap"><table>');
-      rows.push('<thead><tr><th>STOCK</th><th>BUY PRICE</th><th>CMP</th><th>QTY</th><th>INVESTED</th><th>CURRENT</th><th>P&L</th><th>P&L%</th><th>ACTION</th></tr></thead>');
+      rows.push('<thead><tr><th>STOCK</th><th>SIGNALS</th><th>BUY</th><th>CMP</th><th>QTY</th><th>ALLOC</th><th>P&L</th><th>P&L%</th><th>ACTION</th></tr></thead>');
       rows.push('<tbody>');
       w.positions.forEach(function(p) {
         var pnlClass = p.pnl >= 0 ? 'up' : 'down';
         var pnlSign = p.pnl >= 0 ? '+' : '';
+        var sigBadges = '';
+        if (p.signals && p.signals.length > 0) {
+          p.signals.slice(0, 3).forEach(function(sig) {
+            var bgCol = '#4f8cff33';
+            if (sig.indexOf('SMART') >= 0) bgCol = '#22c55e33';
+            else if (sig.indexOf('SECTOR') >= 0) bgCol = '#f59e0b33';
+            else if (sig.indexOf('RS-ALPHA') >= 0) bgCol = '#a855f733';
+            else if (sig.indexOf('BREAKOUT') >= 0) bgCol = '#06b6d433';
+            sigBadges += '<span style="display:inline-block;padding:1px 5px;margin:1px;border-radius:3px;font-size:8px;font-weight:700;background:' + bgCol + '">' + sig + '</span>';
+          });
+        }
         rows.push('<tr>');
-        rows.push('<td><span class="ticker">' + p.ticker + '</span><div style="font-size:10px;color:var(--muted)">' + (p.name || '') + '</div></td>');
+        rows.push('<td><span class="ticker">' + p.ticker + '</span><div style="font-size:10px;color:var(--muted)">' + (p.name || '') + ' | Score ' + (p.dtScore || 0) + '</div></td>');
+        rows.push('<td style="max-width:140px">' + (sigBadges || '<span style="color:var(--muted);font-size:9px">MOMENTUM</span>') + '</td>');
         rows.push('<td>₹' + p.buyPrice.toLocaleString('en-IN', {maximumFractionDigits: 2}) + '</td>');
         rows.push('<td>₹' + p.currentPrice.toLocaleString('en-IN', {maximumFractionDigits: 2}) + '</td>');
         rows.push('<td>' + p.qty + '</td>');
-        rows.push('<td>₹' + (p.buyPrice * p.qty).toLocaleString('en-IN', {maximumFractionDigits: 0}) + '</td>');
-        rows.push('<td>₹' + p.currentValue.toLocaleString('en-IN', {maximumFractionDigits: 0}) + '</td>');
+        rows.push('<td>' + (p.allocPct || Math.round(p.buyPrice * p.qty / DT_START * 100)) + '%<div style="font-size:9px;color:var(--muted)">₹' + (p.buyPrice * p.qty).toLocaleString('en-IN', {maximumFractionDigits: 0}) + '</div></td>');
         rows.push('<td class="' + pnlClass + '">' + pnlSign + '₹' + Math.abs(p.pnl).toLocaleString('en-IN', {maximumFractionDigits: 0}) + '</td>');
         rows.push('<td class="' + pnlClass + '">' + pnlSign + p.pnlPct.toFixed(2) + '%</td>');
         rows.push("<td><button onclick=\"squareOffOne('" + p.ticker + "')\" style=\"padding:4px 12px;background:var(--amber);color:#000;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600\">SELL</button></td>");
@@ -7913,7 +7990,11 @@ function renderDTEquityCurve(w) {
 }
 
 // ---------------------------------------------------------------
-//  Run Day Trade AI — Morning Buy Phase
+//  Run Day Trade AI v2.0 — CATALYST MOMENTUM ENGINE
+//  Strategy: Concentrated bets on 3-5 highest-conviction picks
+//  Selection: Gap-and-Go + Volume Spike + Sector Heat + Dashboard Intel
+//  Allocation: Conviction-weighted (top pick gets 35%, not equal)
+//  Target: 3-5% daily return on concentrated portfolio
 // ---------------------------------------------------------------
 async function runDayTradeAI() {
   var w = getDT();
@@ -7938,17 +8019,22 @@ async function runDayTradeAI() {
     statusBadge.style.background = '#f59e0b22';
     statusBadge.style.color = '#f59e0b';
     statusBadge.style.borderColor = '#f59e0b44';
-    statusBadge.innerHTML = '&#9889; SCANNING: Fetching prices for 300+ stocks...';
+    statusBadge.innerHTML = '&#9889; v2.0 ENGINE: Scanning 300+ stocks for catalyst momentum...';
   }
 
   try {
-    // === STEP 1: Gather all candidate tickers ===
+    // ══════════════════════════════════════════════════════════
+    //  STEP 1: GATHER ALL CANDIDATES (portfolio + universe)
+    // ══════════════════════════════════════════════════════════
     var candidates = {};
 
-    // From portfolio stocks (40)
+    // Portfolio stocks (40) — these have rich catalyst + dashboard intel data
     stocks.forEach(function(s) {
       if (!s.ticker || !s.cmp || s.cmp <= 0) return;
       if (isEthicallyExcluded(s.sector || '') || isEthicallyExcluded(s.name || '')) return;
+      var changePct = s.prevClose > 0 ? ((s.cmp - s.prevClose) / s.prevClose * 100) : 0;
+      // PRE-FILTER: skip stocks that are flat or down — no edge for day trade
+      if (changePct < 0.3) return;
       candidates[s.ticker] = {
         ticker: s.ticker,
         name: s.name || s.ticker,
@@ -7958,26 +8044,32 @@ async function runDayTradeAI() {
         high52: s.high52 || 0,
         low52: s.low52 || 0,
         volume: s.volume || 0,
-        source: 'portfolio'
+        source: 'portfolio',
+        extraData: null
       };
     });
 
-    // From MOVER_UNIVERSE (300)
+    // Universe stocks (300) — fetch live prices for top candidates
     var universeToFetch = [];
     if (typeof MOVER_UNIVERSE !== 'undefined' && MOVER_UNIVERSE.length > 0) {
       MOVER_UNIVERSE.forEach(function(m) {
-        if (m.c === 'X') return;
+        if (m.c === 'X') return; // Skip micro-caps
         if (isEthicallyExcluded(m.s || '') || isEthicallyExcluded(m.n || '')) return;
         if (candidates[m.t]) return;
-        universeToFetch.push(m);
+        // Quality filter: only fetch stocks with decent fundamentals
+        if (m.pe > 0 && m.pe < 60 && m.ro >= 10) {
+          universeToFetch.push(m);
+        }
       });
 
+      // Sort by ROCE/PE ratio — higher = better value for money
       universeToFetch.sort(function(a, b) {
-        var sa = (a.ro / Math.max(1, a.pe)) * (a.c === 'M' || a.c === 'S' ? 1.2 : 1);
-        var sb = (b.ro / Math.max(1, b.pe)) * (b.c === 'M' || b.c === 'S' ? 1.2 : 1);
+        var sa = (a.ro / Math.max(1, a.pe)) * (a.c === 'M' || a.c === 'S' ? 1.3 : 1);
+        var sb = (b.ro / Math.max(1, b.pe)) * (b.c === 'M' || b.c === 'S' ? 1.3 : 1);
         return sb - sa;
       });
-      universeToFetch = universeToFetch.slice(0, 60);
+      // Fetch more stocks to find the best movers — top 80 by quality
+      universeToFetch = universeToFetch.slice(0, 80);
 
       var batchSize = 10;
       for (var i = 0; i < universeToFetch.length; i += batchSize) {
@@ -7992,6 +8084,9 @@ async function runDayTradeAI() {
               var d = entry[1];
               var tk = sym.replace('.NS', '').replace('.BO', '');
               if (d.price > 0) {
+                var changePct2 = d.prevClose > 0 ? ((d.price - d.prevClose) / d.prevClose * 100) : 0;
+                // PRE-FILTER: skip flat/down stocks
+                if (changePct2 < 0.3) return;
                 var uvEntry = batch.find(function(m) { return m.t === tk; });
                 candidates[tk] = {
                   ticker: tk,
@@ -8002,30 +8097,36 @@ async function runDayTradeAI() {
                   high52: d.high52 || 0,
                   low52: d.low52 || 0,
                   volume: d.volume || 0,
-                  source: 'universe'
+                  source: 'universe',
+                  extraData: uvEntry || null
                 };
               }
             });
           }
         } catch(e) {
-          console.log('[DAY-TRADE] Batch fetch error:', e.message || e);
+          console.log('[DT-v2] Batch fetch error:', e.message || e);
         }
         if (i + batchSize < universeToFetch.length) {
-          await new Promise(function(r) { setTimeout(r, 400); });
+          await new Promise(function(r) { setTimeout(r, 350); });
         }
 
         if (statusBadge) {
           var fetched = Math.min(i + batchSize, universeToFetch.length);
-          statusBadge.innerHTML = '&#9889; SCANNING: Fetched ' + fetched + '/' + universeToFetch.length + ' universe stocks...';
+          statusBadge.innerHTML = '&#9889; v2.0: Fetched ' + fetched + '/' + universeToFetch.length + ' | Found ' + Object.keys(candidates).length + ' green stocks...';
         }
       }
     }
 
-    // === STEP 2: Score all candidates ===
+    // ══════════════════════════════════════════════════════════
+    //  STEP 2: SCORE ALL CANDIDATES with v2 engine
+    // ══════════════════════════════════════════════════════════
     var scored = [];
     Object.values(candidates).forEach(function(c) {
-      var changePct = c.prevClose > 0 ? ((c.price - c.prevClose) / c.prevClose * 100) : 0;
-      var dtScore = dayTradeScore(c.ticker, c.price, c.prevClose, c.high52, c.low52, c.volume, c.sector);
+      var changePct3 = c.prevClose > 0 ? ((c.price - c.prevClose) / c.prevClose * 100) : 0;
+      // Hard filter: must be green (>0.3%) and liquid (>200K volume)
+      if (changePct3 < 0.3 || c.volume < 200000) return;
+
+      var dtScore = dayTradeScore(c.ticker, c.price, c.prevClose, c.high52, c.low52, c.volume, c.sector, c.extraData);
       scored.push({
         ticker: c.ticker,
         name: c.name,
@@ -8035,69 +8136,176 @@ async function runDayTradeAI() {
         high52: c.high52,
         low52: c.low52,
         volume: c.volume,
-        changePct: changePct,
+        changePct: changePct3,
         dtScore: dtScore.total,
         momentum: dtScore.momentum,
+        signals: dtScore.signals || [],
         source: c.source
       });
     });
 
+    // Sort by score descending
     scored.sort(function(a, b) { return b.dtScore - a.dtScore; });
 
-    console.log('[DAY-TRADE] Scored ' + scored.length + ' candidates. Top 10:');
-    scored.slice(0, 10).forEach(function(s, idx) {
-      console.log('  ' + (idx + 1) + '. ' + s.ticker + ' score=' + s.dtScore + ' chg=' + s.changePct.toFixed(2) + '% vol=' + s.volume);
+    // ══════════════════════════════════════════════════════════
+    //  STEP 3A: RELATIVE STRENGTH vs MARKET (Institutional Edge #1)
+    //  Jefferies/Goldman don't buy "stocks that are up" —
+    //  they buy stocks OUTPERFORMING the market average.
+    //  If Nifty is +0.5% but CDSL is +3%, CDSL has real alpha.
+    // ══════════════════════════════════════════════════════════
+    var avgChange = 0;
+    if (scored.length > 0) {
+      var totalChange = 0;
+      scored.forEach(function(s) { totalChange += s.changePct; });
+      avgChange = totalChange / scored.length;
+    }
+    scored.forEach(function(s) {
+      var relStrength = s.changePct - avgChange;
+      if (relStrength >= 3) { s.dtScore += 15; s.signals.push('RS-ALPHA +' + relStrength.toFixed(1)); }
+      else if (relStrength >= 2) { s.dtScore += 12; s.signals.push('RS-STRONG'); }
+      else if (relStrength >= 1) { s.dtScore += 7; s.signals.push('RS+'); }
+      // Stocks below market average get penalized
+      else if (relStrength < -0.5) { s.dtScore -= 5; }
     });
 
-    // === STEP 3: Pick top 5-10 and allocate ===
-    var picks = scored.filter(function(s) {
-      return s.dtScore >= 40 && parseFloat(s.momentum) > 0;
-    }).slice(0, 8);
+    // ══════════════════════════════════════════════════════════
+    //  STEP 3B: SECTOR ROTATION DETECTION (Institutional Edge #2)
+    //  When capital flows into a sector, ALL stocks in that sector move.
+    //  Detect hot sectors and overweight the BEST stock in each.
+    // ══════════════════════════════════════════════════════════
+    var sectorData = {};
+    scored.forEach(function(s) {
+      if (!s.sector) return;
+      if (!sectorData[s.sector]) sectorData[s.sector] = { count: 0, totalChg: 0, totalVol: 0, best: null };
+      sectorData[s.sector].count++;
+      sectorData[s.sector].totalChg += s.changePct;
+      sectorData[s.sector].totalVol += s.volume;
+      if (!sectorData[s.sector].best || s.dtScore > sectorData[s.sector].best.dtScore) {
+        sectorData[s.sector].best = s;
+      }
+    });
+    // Hot sector = 3+ stocks up AND average sector change > 1.5%
+    var hotSectors = {};
+    Object.keys(sectorData).forEach(function(sec) {
+      var d = sectorData[sec];
+      var sectorAvg = d.count > 0 ? d.totalChg / d.count : 0;
+      if (d.count >= 3 && sectorAvg > 1.5) {
+        hotSectors[sec] = { avg: sectorAvg, count: d.count, best: d.best ? d.best.ticker : '' };
+      }
+    });
+    scored.forEach(function(s) {
+      if (s.sector && hotSectors[s.sector]) {
+        s.dtScore += 10;
+        s.signals.push('HOT-SECTOR');
+        // Best stock in hot sector gets extra boost — "sector leader" play
+        if (hotSectors[s.sector].best === s.ticker) {
+          s.dtScore += 8;
+          s.signals.push('SECTOR-LEADER');
+        }
+      }
+    });
 
-    if (picks.length < 3) {
+    // ══════════════════════════════════════════════════════════
+    //  STEP 3C: SMART MONEY DETECTION (Institutional Edge #3)
+    //  Volume spike + near 52W high + gap up = institutional accumulation
+    //  This is the "big fish buying" signal that retail misses
+    // ══════════════════════════════════════════════════════════
+    scored.forEach(function(s) {
+      var range52 = s.high52 - s.low52;
+      var pos52 = range52 > 0 ? (s.price - s.low52) / range52 : 0.5;
+      // All 3 conditions = institutional buy signal
+      if (s.changePct >= 2 && s.volume > 3000000 && pos52 >= 0.8) {
+        s.dtScore += 12;
+        s.signals.push('SMART-MONEY');
+      }
+      // Volume spike with breakout
+      else if (s.volume > 5000000 && pos52 >= 0.9) {
+        s.dtScore += 8;
+        s.signals.push('BREAKOUT-VOL');
+      }
+    });
+
+    // Final sort after all institutional boosts
+    scored.sort(function(a, b) { return b.dtScore - a.dtScore; });
+
+    console.log('[DT-v2] Scored ' + scored.length + ' candidates. Top 10:');
+    scored.slice(0, 10).forEach(function(s, idx) {
+      console.log('  ' + (idx + 1) + '. ' + s.ticker + ' score=' + s.dtScore + ' chg=' + s.changePct.toFixed(2) + '% vol=' + s.volume + ' [' + s.signals.join(', ') + ']');
+    });
+
+    // ══════════════════════════════════════════════════════════
+    //  STEP 4: CONCENTRATED PICK — Top 3-5 high-conviction only
+    // ══════════════════════════════════════════════════════════
+    var MIN_SCORE = 50; // Higher threshold = higher conviction
+    var picks = scored.filter(function(s) {
+      return s.dtScore >= MIN_SCORE && parseFloat(s.momentum) > 0.5;
+    });
+
+    // Cap at 5 picks — concentration is key for 3-5% target
+    picks = picks.slice(0, 5);
+
+    // If very few quality picks, lower threshold slightly but still need 3+
+    if (picks.length < 2) {
       picks = scored.filter(function(s) {
-        return s.dtScore >= 25;
-      }).slice(0, 6);
+        return s.dtScore >= 35 && parseFloat(s.momentum) > 0;
+      }).slice(0, 4);
     }
 
     if (picks.length === 0) {
-      alert('No suitable day trade candidates found. Market may be flat or all stocks are down.');
+      alert('No high-conviction day trade candidates found. Market may be flat — waiting for a better setup.');
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       if (statusBadge) {
         statusBadge.style.background = '#ef444422';
         statusBadge.style.color = '#ef4444';
         statusBadge.style.borderColor = '#ef444444';
-        statusBadge.innerHTML = '&#10060; No candidates found &mdash; market may be flat';
+        statusBadge.innerHTML = '&#10060; No high-conviction setups &mdash; stay cash, wait for catalyst';
       }
       return;
     }
 
-    var maxPerTrade = Math.min(25000, Math.floor(w.cash / picks.length));
-    var minPerTrade = 15000;
-    if (maxPerTrade < minPerTrade) {
-      picks = picks.slice(0, Math.floor(w.cash / minPerTrade));
-      maxPerTrade = Math.min(25000, Math.floor(w.cash / picks.length));
+    // ══════════════════════════════════════════════════════════
+    //  STEP 5: CONVICTION-WEIGHTED ALLOCATION
+    //  Top pick gets 35%, 2nd=25%, 3rd=20%, 4th=12%, 5th=8%
+    //  NOT equal weight — concentrate on highest conviction
+    // ══════════════════════════════════════════════════════════
+    var CONVICTION_WEIGHTS = [0.35, 0.25, 0.20, 0.12, 0.08];
+    var totalCash = w.cash;
+    var minPerTrade = 12000;
+
+    // Calculate allocation for each pick
+    var allocations = [];
+    for (var p = 0; p < picks.length; p++) {
+      var weight = p < CONVICTION_WEIGHTS.length ? CONVICTION_WEIGHTS[p] : 0.08;
+      var alloc = Math.floor(totalCash * weight);
+      if (alloc >= minPerTrade) {
+        allocations.push({ pick: picks[p], allocation: alloc });
+      }
     }
 
-    if (picks.length === 0) {
-      alert('Insufficient cash for any day trade. Cash: ' + w.cash.toLocaleString('en-IN'));
+    if (allocations.length === 0) {
+      alert('Insufficient cash for conviction-sized positions.');
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       return;
     }
 
-    var tradeAmount = Math.floor(w.cash / picks.length);
-    tradeAmount = Math.max(minPerTrade, Math.min(maxPerTrade, tradeAmount));
-
-    // === STEP 4: Execute BUY trades ===
+    // ══════════════════════════════════════════════════════════
+    //  STEP 6: EXECUTE BUY TRADES
+    // ══════════════════════════════════════════════════════════
     var todayStr = new Date().toISOString().slice(0, 10);
     var buyCount = 0;
-    picks.forEach(function(pick) {
+    var topSignals = [];
+
+    allocations.forEach(function(a) {
+      var pick = a.pick;
       if (w.cash < minPerTrade) return;
-      var amt = Math.min(tradeAmount, w.cash);
+
+      var amt = Math.min(a.allocation, w.cash);
       var qty = Math.floor(amt / pick.price);
       if (qty <= 0) return;
       var cost = qty * pick.price;
+      var allocPct = Math.round(cost / totalCash * 100);
 
+      // Position record
       w.positions.push({
         ticker: pick.ticker,
         name: pick.name,
@@ -8110,10 +8318,14 @@ async function runDayTradeAI() {
         pnlPct: 0,
         dtScore: pick.dtScore,
         momentum: pick.momentum,
+        signals: pick.signals,
         source: pick.source,
+        allocPct: allocPct,
         buyTime: new Date().toISOString()
       });
 
+      // Trade record
+      var sigStr = pick.signals.length > 0 ? pick.signals.slice(0, 3).join(' + ') : 'MOMENTUM';
       w.trades.push({
         type: 'BUY',
         ticker: pick.ticker,
@@ -8121,28 +8333,38 @@ async function runDayTradeAI() {
         qty: qty,
         price: pick.price,
         dtScore: pick.dtScore,
-        reason: '⚡ DT Score ' + pick.dtScore + '/100 | Momentum ' + pick.momentum + '% | Vol ' + (pick.volume > 1000000 ? (pick.volume / 1000000).toFixed(1) + 'M' : (pick.volume / 1000).toFixed(0) + 'K') + ' | ' + pick.source,
+        reason: '⚡ v2 Score ' + pick.dtScore + '/130 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '% | ' + pick.source,
         source: 'daytrade',
         time: new Date().toISOString()
       });
 
       w.cash -= cost;
       buyCount++;
+      topSignals.push(pick.ticker + '(' + allocPct + '%)');
     });
 
     w.todayDate = todayStr;
     saveDT(w);
 
+    // Update status
     var lastAction = document.getElementById('dtLastAction');
     if (lastAction) {
-      lastAction.innerHTML = '&#128994; Bought ' + buyCount + ' stocks at ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'});
+      lastAction.innerHTML = '&#128994; v2: Bought ' + buyCount + ' @ ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) + ' | ' + topSignals.join(', ');
     }
 
-    console.log('[DAY-TRADE] Bought ' + buyCount + ' stocks. Cash remaining: ' + w.cash.toLocaleString('en-IN'));
+    if (statusBadge) {
+      statusBadge.style.background = '#22c55e22';
+      statusBadge.style.color = '#22c55e';
+      statusBadge.style.borderColor = '#22c55e44';
+      statusBadge.innerHTML = '&#128994; v2 LIVE: ' + buyCount + ' conviction picks | Concentrated ' + topSignals.join(', ');
+    }
+
+    console.log('[DT-v2] Bought ' + buyCount + ' stocks (conviction-weighted). Cash: ' + w.cash.toLocaleString('en-IN'));
+    console.log('[DT-v2] Allocation: ' + topSignals.join(', '));
 
   } catch(err) {
-    console.error('[DAY-TRADE] Error:', err);
-    alert('Day Trade AI error: ' + (err.message || err));
+    console.error('[DT-v2] Error:', err);
+    alert('Day Trade v2 error: ' + (err.message || err));
   }
 
   if (btn) {
