@@ -1263,7 +1263,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v9.1 &mdash; Full Market Engine (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v9.2 &mdash; News-Powered AI Engine (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -7907,10 +7907,11 @@ function resetDayTrade() {
 }
 
 // ---------------------------------------------------------------
-//  Day Trade Scoring v3.0 — FULL MARKET MOMENTUM ENGINE
-//  CHANGES: Removed PE/ROCE filter, replaced with cap-size liquidity score,
-//  mid-caps get highest score (best risk/reward for day trade)
-//  Strategy: Gap-and-Go + Volume Spike + Breakout + Sector Heat
+//  Day Trade Scoring v4.0 — NEWS-POWERED MOMENTUM ENGINE
+//  CHANGES from v3: Added Factor 6: News Catalyst (0-20+15 catalyst bonus)
+//  Live news sentiment from pre-scan headlines boosts/penalizes stocks
+//  6 Factors: Gap + Volume + Breakout + Liquidity + Price Band + News
+//  2 Bonuses: Vol+Mom Confirmed + Dashboard Intel
 //  Target: 3-5% daily on concentrated 3-5 stock picks
 // ---------------------------------------------------------------
 function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, extraData) {
@@ -8011,7 +8012,140 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
     }
   }
 
-  return { total: Math.min(130, Math.round(score)), momentum: changePct.toFixed(2), vol: volume, signals: signals };
+  // ═══ FACTOR 6: NEWS CATALYST (0-20) — v4.0 ═══
+  // Live news sentiment from pre-scan headlines
+  // Stocks with breaking positive catalysts get a significant edge
+  if (typeof _dtNewsSentiment !== 'undefined' && _dtNewsSentiment[ticker]) {
+    var nSent = _dtNewsSentiment[ticker];
+    if (nSent.score >= 3) { score += 20; signals.push('NEWS-HOT'); }
+    else if (nSent.score >= 2) { score += 16; signals.push('NEWS-BULL'); }
+    else if (nSent.score >= 1) { score += 10; signals.push('NEWS+'); }
+    else if (nSent.score <= -2) { score -= 10; signals.push('NEWS-WARN'); }
+    else if (nSent.score <= -1) { score -= 5; signals.push('NEWS-'); }
+    // Catalyst type bonus
+    if (nSent.catalysts && nSent.catalysts.length > 0) {
+      if (nSent.catalysts.indexOf('RESULTS') >= 0 || nSent.catalysts.indexOf('BEAT') >= 0 || nSent.catalysts.indexOf('PROFIT') >= 0) {
+        score += 5; signals.push('EARN-CAT');
+      }
+      if (nSent.catalysts.indexOf('ORDER WIN') >= 0 || nSent.catalysts.indexOf('DEAL') >= 0 || nSent.catalysts.indexOf('ACQUISITION') >= 0) {
+        score += 5; signals.push('BIZ-CAT');
+      }
+      if (nSent.catalysts.indexOf('BUYBACK') >= 0 || nSent.catalysts.indexOf('BONUS') >= 0 || nSent.catalysts.indexOf('SPLIT') >= 0 || nSent.catalysts.indexOf('DIVIDEND') >= 0) {
+        score += 5; signals.push('CORP-ACT');
+      }
+    }
+  }
+
+  return { total: Math.min(155, Math.round(score)), momentum: changePct.toFixed(2), vol: volume, signals: signals };
+}
+
+// ---------------------------------------------------------------
+//  News Pre-Scan for Day Trade AI v4.0
+//  Fetches live headlines and builds per-stock sentiment map
+//  Used by dayTradeScore() and runDayTradeAI() for news catalyst scoring
+// ---------------------------------------------------------------
+var _dtNewsSentiment = {};
+
+async function fetchDayTradeNews() {
+  _dtNewsSentiment = {};
+  var queries = [
+    {q: 'NSE stocks today gainers India', tag: 'market'},
+    {q: 'Indian stock market news results earnings', tag: 'earnings'},
+    {q: 'Nifty 50 top movers today India share', tag: 'nifty'},
+    {q: 'India company order win deal acquisition buyback', tag: 'catalyst'},
+    {q: 'banking stocks India news today', tag: 'sector'},
+    {q: 'IT stocks India results quarterly', tag: 'sector'},
+    {q: 'infrastructure stocks India order win', tag: 'sector'}
+  ];
+
+  var dtPosWords = ['surge','jump','rally','gain','profit','beat','strong','upgrade','expansion','deal','acquisition','approve','breakout','record','boost','growth','rise','outperform','buy','order win','partnership','bonus','split','demerger','buyback','dividend','results','winner','soar','climb','recover','rebound','bull'];
+  var dtNegWords = ['crash','fall','drop','loss','miss','weak','downgrade','fraud','scam','violation','penalty','debt','default','probe','investigation','sell','warning','negative','layoff','shutdown','ban','suspend','fine','downfall','decline','bear','tank','plunge','slump'];
+
+  // Build ticker lookup from MOVER_UNIVERSE + portfolio
+  var tickerLookup = {};
+  if (typeof MOVER_UNIVERSE !== 'undefined') {
+    MOVER_UNIVERSE.forEach(function(m) {
+      var nameParts = m.n.toLowerCase().split(' ');
+      tickerLookup[m.t.toLowerCase()] = m.t;
+      if (nameParts[0].length > 3) tickerLookup[nameParts[0]] = m.t;
+      if (nameParts.length > 1 && nameParts[0].length > 2) {
+        tickerLookup[nameParts[0] + ' ' + nameParts[1]] = m.t;
+      }
+    });
+  }
+  stocks.forEach(function(s) {
+    var tk = (s.ticker || '').replace('.NS','').replace('.BO','');
+    var nameParts = (s.name || '').toLowerCase().split(' ');
+    tickerLookup[tk.toLowerCase()] = tk;
+    if (nameParts[0] && nameParts[0].length > 3) tickerLookup[nameParts[0]] = tk;
+    if (nameParts.length > 1 && nameParts[0].length > 2) {
+      tickerLookup[nameParts[0] + ' ' + nameParts[1]] = tk;
+    }
+  });
+
+  // Fetch all queries in parallel via rss2json
+  var allItems = [];
+  var fetchPromises = [];
+  queries.forEach(function(qObj) {
+    var rssUrl3 = 'https://news.google.com/rss/search?q=' + encodeURIComponent(qObj.q) + '&hl=en-IN&gl=IN&ceid=IN:en';
+    var p = fetch(RSS2JSON + encodeURIComponent(rssUrl3), {signal: AbortSignal.timeout(6000)})
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status === 'ok' && data.items) {
+          data.items.slice(0, 6).forEach(function(item) {
+            allItems.push({title: item.title || '', tag: qObj.tag});
+          });
+        }
+      })
+      .catch(function() {});
+    fetchPromises.push(p);
+  });
+
+  // Also use existing newsIntData if already loaded
+  if (typeof newsIntData !== 'undefined' && newsIntData.length > 0) {
+    newsIntData.forEach(function(n) {
+      allItems.push({title: n.title || '', tag: n.tag || 'cached'});
+    });
+  }
+
+  await Promise.allSettled(fetchPromises);
+  console.log('[DT-NEWS] Fetched ' + allItems.length + ' headlines for sentiment scan');
+
+  // Match headlines to tickers and score sentiment
+  allItems.forEach(function(item) {
+    var headline = item.title.toLowerCase();
+    var matchedTickers = [];
+    Object.keys(tickerLookup).forEach(function(key) {
+      if (key.length < 4) return;
+      if (headline.indexOf(key) >= 0) {
+        var tk = tickerLookup[key];
+        if (matchedTickers.indexOf(tk) < 0) matchedTickers.push(tk);
+      }
+    });
+    if (matchedTickers.length === 0) return;
+
+    var pos3 = 0, neg3 = 0, cats = [];
+    dtPosWords.forEach(function(w) { if (headline.indexOf(w) >= 0) { pos3++; cats.push(w.toUpperCase()); } });
+    dtNegWords.forEach(function(w) { if (headline.indexOf(w) >= 0) neg3++; });
+    var sentScore = pos3 - neg3;
+
+    matchedTickers.forEach(function(tk) {
+      if (!_dtNewsSentiment[tk]) _dtNewsSentiment[tk] = {score: 0, catalysts: [], headlines: [], posCount: 0, negCount: 0};
+      _dtNewsSentiment[tk].score += sentScore;
+      _dtNewsSentiment[tk].posCount += pos3;
+      _dtNewsSentiment[tk].negCount += neg3;
+      if (cats.length > 0) {
+        cats.forEach(function(c) {
+          if (_dtNewsSentiment[tk].catalysts.indexOf(c) < 0) _dtNewsSentiment[tk].catalysts.push(c);
+        });
+      }
+      _dtNewsSentiment[tk].headlines.push(item.title.substring(0, 60));
+    });
+  });
+
+  var sentCount = Object.keys(_dtNewsSentiment).length;
+  console.log('[DT-NEWS] Sentiment mapped for ' + sentCount + ' stocks');
+  return sentCount;
 }
 
 // ---------------------------------------------------------------
@@ -8349,14 +8483,15 @@ function renderDTEquityCurve(w) {
 }
 
 // ---------------------------------------------------------------
-//  Run Day Trade AI v3.0 — FULL MARKET DISCOVERY ENGINE
-//  WHAT CHANGED from v2: No quality filter, no top-80 limit,
-//  scans ALL universe stocks, larger batches, lower volume floor,
-//  Indian market-aware scoring
+//  Run Day Trade AI v4.0 — NEWS-POWERED MARKET ENGINE
+//  WHAT CHANGED from v3: Added NEWS PRE-SCAN (Step 0) that fetches
+//  live Google News headlines BEFORE price scan. Builds per-stock
+//  sentiment map. dayTradeScore() now has Factor 6: News Catalyst (+20).
+//  Step 3D adds NEWS+MOMENTUM+VOLUME triple confirmation bonus.
 //  Strategy: Concentrated bets on 3-5 highest-conviction picks
-//  Selection: Gap-and-Go + Volume Spike + Sector Heat + Dashboard Intel
+//  Selection: Gap-and-Go + Volume + Breakout + Sector + News Catalyst
 //  Allocation: Conviction-weighted (top pick gets 35%, not equal)
-//  Target: 3-5% daily return on concentrated portfolio
+//  Target: 3-5% daily return on news-powered concentrated portfolio
 // ---------------------------------------------------------------
 async function runDayTradeAI() {
   var w = getDT();
@@ -8381,10 +8516,19 @@ async function runDayTradeAI() {
     statusBadge.style.background = '#f59e0b22';
     statusBadge.style.color = '#f59e0b';
     statusBadge.style.borderColor = '#f59e0b44';
-    statusBadge.innerHTML = '&#9889; v3.0 FULL MARKET ENGINE: Scanning ' + (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.length : 300) + '+ stocks...';
+    statusBadge.innerHTML = '&#9889; v4.0 NEWS-POWERED ENGINE: Scanning ' + (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.length : 300) + '+ stocks...';
   }
 
   try {
+    // ══════════════════════════════════════════════════════════
+    //  STEP 0: NEWS PRE-SCAN — fetch live headlines for sentiment
+    //  This runs BEFORE price scan so dayTradeScore() can use news data
+    //  Fetches Google News RSS in parallel, builds per-stock sentiment map
+    // ══════════════════════════════════════════════════════════
+    if (statusBadge) statusBadge.innerHTML = '&#128240; v4.0: Pre-scanning news catalysts...';
+    var newsCount = await fetchDayTradeNews();
+    if (statusBadge) statusBadge.innerHTML = '&#9889; v4.0 NEWS-POWERED: Scanning ' + (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.length : 300) + '+ stocks | ' + Object.keys(_dtNewsSentiment).length + ' news signals...';
+
     // ══════════════════════════════════════════════════════════
     //  STEP 1: GATHER ALL CANDIDATES (portfolio + universe)
     // ══════════════════════════════════════════════════════════
@@ -8473,7 +8617,7 @@ async function runDayTradeAI() {
         if (statusBadge) {
           var fetched = Math.min(i + batchSize, universeToFetch.length);
           var pct = Math.round(fetched / universeToFetch.length * 100);
-          statusBadge.innerHTML = '&#9889; v3.0 FULL SCAN: ' + fetched + '/' + universeToFetch.length + ' (' + pct + '%) | ' + Object.keys(candidates).length + ' green stocks found...';
+          statusBadge.innerHTML = '&#9889; v4.0 NEWS-POWERED SCAN: ' + fetched + '/' + universeToFetch.length + ' (' + pct + '%) | ' + Object.keys(candidates).length + ' green stocks | ' + Object.keys(_dtNewsSentiment).length + ' news signals...';
         }
       }
     }
@@ -8587,10 +8731,47 @@ async function runDayTradeAI() {
       }
     });
 
-    // Final sort after all institutional boosts
+    // ══════════════════════════════════════════════════════════
+    //  STEP 3D: NEWS CATALYST CONFIRMATION (Intelligence Edge #4)
+    //  Stocks with positive breaking news get institutional attention.
+    //  News + momentum + volume = highest conviction setup.
+    //  This is what separates our AI from basic screeners.
+    // ══════════════════════════════════════════════════════════
+    if (typeof _dtNewsSentiment !== 'undefined' && Object.keys(_dtNewsSentiment).length > 0) {
+      var newsBoostCount = 0;
+      scored.forEach(function(s) {
+        var nSent = _dtNewsSentiment[s.ticker];
+        if (!nSent) return;
+        // Triple confirmation: news + momentum + volume = maximum conviction
+        if (nSent.score >= 2 && s.changePct >= 1.5 && s.volume > 1000000) {
+          s.dtScore += 12;
+          s.signals.push('NEWS+MOM+VOL');
+          newsBoostCount++;
+        }
+        // Double confirmation: strong news + any momentum
+        else if (nSent.score >= 2 && s.changePct >= 0.5) {
+          s.dtScore += 7;
+          s.signals.push('NEWS+MOM');
+          newsBoostCount++;
+        }
+        // Single news positive
+        else if (nSent.score >= 1 && s.changePct >= 0.3) {
+          s.dtScore += 4;
+          newsBoostCount++;
+        }
+        // Negative news penalty — even if momentum is up, be cautious
+        if (nSent.score <= -2) {
+          s.dtScore -= 8;
+          s.signals.push('NEWS-RISK');
+        }
+      });
+      console.log('[DT-NEWS] News catalyst boost applied to ' + newsBoostCount + ' candidates');
+    }
+
+    // Final sort after all institutional + news boosts
     scored.sort(function(a, b) { return b.dtScore - a.dtScore; });
 
-    console.log('[DT-v2] Scored ' + scored.length + ' candidates. Top 10:');
+    console.log('[DT-v4] Scored ' + scored.length + ' candidates. Top 10:');
     scored.slice(0, 10).forEach(function(s, idx) {
       console.log('  ' + (idx + 1) + '. ' + s.ticker + ' score=' + s.dtScore + ' chg=' + s.changePct.toFixed(2) + '% vol=' + s.volume + ' [' + s.signals.join(', ') + ']');
     });
@@ -8695,7 +8876,7 @@ async function runDayTradeAI() {
         qty: qty,
         price: pick.price,
         dtScore: pick.dtScore,
-        reason: '⚡ v2 Score ' + pick.dtScore + '/130 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '% | ' + pick.source,
+        reason: '⚡ v4 Score ' + pick.dtScore + '/155 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '% | ' + pick.source + (_dtNewsSentiment[pick.ticker] ? ' | News:' + _dtNewsSentiment[pick.ticker].score : ''),
         source: 'daytrade',
         time: new Date().toISOString()
       });
@@ -8711,22 +8892,25 @@ async function runDayTradeAI() {
     // Update status
     var lastAction = document.getElementById('dtLastAction');
     if (lastAction) {
-      lastAction.innerHTML = '&#128994; v2: Bought ' + buyCount + ' @ ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) + ' | ' + topSignals.join(', ');
+      var newsInfo = Object.keys(_dtNewsSentiment).length > 0 ? ' | ' + Object.keys(_dtNewsSentiment).length + ' news signals' : '';
+      lastAction.innerHTML = '&#128994; v4: Bought ' + buyCount + ' @ ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) + ' | ' + topSignals.join(', ') + newsInfo;
     }
 
     if (statusBadge) {
       statusBadge.style.background = '#22c55e22';
       statusBadge.style.color = '#22c55e';
       statusBadge.style.borderColor = '#22c55e44';
-      statusBadge.innerHTML = '&#128994; v2 LIVE: ' + buyCount + ' conviction picks | Concentrated ' + topSignals.join(', ');
+      var newsStatus = Object.keys(_dtNewsSentiment).length > 0 ? ' | ' + Object.keys(_dtNewsSentiment).length + ' news catalysts scanned' : '';
+      statusBadge.innerHTML = '&#128994; v4 NEWS-POWERED LIVE: ' + buyCount + ' conviction picks | ' + topSignals.join(', ') + newsStatus;
     }
 
-    console.log('[DT-v2] Bought ' + buyCount + ' stocks (conviction-weighted). Cash: ' + w.cash.toLocaleString('en-IN'));
-    console.log('[DT-v2] Allocation: ' + topSignals.join(', '));
+    console.log('[DT-v4] Bought ' + buyCount + ' stocks (news-powered + conviction-weighted). Cash: ' + w.cash.toLocaleString('en-IN'));
+    console.log('[DT-v4] Allocation: ' + topSignals.join(', '));
+    console.log('[DT-v4] News signals: ' + Object.keys(_dtNewsSentiment).length + ' stocks with sentiment data');
 
   } catch(err) {
-    console.error('[DT-v2] Error:', err);
-    alert('Day Trade v2 error: ' + (err.message || err));
+    console.error('[DT-v4] Error:', err);
+    alert('Day Trade v4 error: ' + (err.message || err));
   }
 
   if (btn) {
