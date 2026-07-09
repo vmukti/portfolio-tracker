@@ -5937,7 +5937,7 @@ async function loadFundamentalTab() {
   if (typeof MOVER_UNIVERSE !== 'undefined') {
     var fundPortTickers = new Set(stocks.map(function(s){return (s.ticker||'').replace('.NS','').replace('.BO','');}));
     MOVER_UNIVERSE.forEach(function(m) {
-      if (!fundPortTickers.has(m.t) && m.pe > 0 && m.ro > 0 && !isExcludedSector(m.s)) {
+      if (!fundPortTickers.has(m.t) && m.pe > 0 && m.ro > 0 && !isEthicallyExcluded(m.s)) {
         allFundStocks.push({name:m.n, ticker:m.t, cmp:0, pe:m.pe, roce:m.ro, mcap:m.mc, sector:m.s, _fromUniverse:true});
       }
     });
@@ -6589,7 +6589,7 @@ async function loadEarningsTab() {
   if (typeof MOVER_UNIVERSE !== 'undefined') {
     var earnPortTickers = new Set(stocks.map(function(s){return (s.ticker||'').replace('.NS','').replace('.BO','');}));
     MOVER_UNIVERSE.forEach(function(m) {
-      if (!earnPortTickers.has(m.t) && m.pe > 0 && m.ro > 0 && !isExcludedSector(m.s)) {
+      if (!earnPortTickers.has(m.t) && m.pe > 0 && m.ro > 0 && !isEthicallyExcluded(m.s)) {
         allEarnStocks.push({name:m.n, ticker:m.t, cmp:0, pe:m.pe, roce:m.ro, mcap:m.mc, sector:m.s, _fromUniverse:true});
       }
     });
