@@ -431,6 +431,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <div class="tab" onclick="switchTab('portfolioai',this)">&#129302; Portfolio AI</div>
   <div class="tab" onclick="switchTab('papertrade',this)">&#128176; Paper Trade</div>
   <div class="tab" onclick="switchTab('daytrade',this)">&#9889; Day Trade</div>
+  <div class="tab" onclick="switchTab('predictor',this)">&#127919; Price Predictor</div>
   <div class="tab" onclick="switchTab('config',this)">&#9881;&#65039; Alert Settings</div>
 </div>
 
@@ -699,10 +700,12 @@ tbody tr.flash-down{animation:flashRed .8s ease}
             <th>CMP</th>
             <th>RSI(14)</th>
             <th>Signal</th>
+            <th>BB Pos%</th>
+            <th>ATR%</th>
             <th>SMA20</th>
             <th>SMA50</th>
-            <th>SMA200</th>
             <th>MACD</th>
+            <th>Vol Trend</th>
             <th>Trend</th>
             <th>Support</th>
             <th>Resistance</th>
@@ -710,7 +713,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
           </tr>
         </thead>
         <tbody id="techTableBody">
-          <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">Click the Technical tab or Refresh to load analysis...</td></tr>
+          <tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">Click the Technical tab or Refresh to load analysis...</td></tr>
         </tbody>
       </table>
     </div>
@@ -749,18 +752,16 @@ tbody tr.flash-down{animation:flashRed .8s ease}
             <th>Company</th>
             <th>Mkt Cap</th>
             <th>P/E</th>
-            <th>P/B</th>
             <th>ROCE</th>
+            <th>PE vs Sector</th>
+            <th>Quality</th>
             <th>ROE</th>
-            <th>D/E</th>
-            <th>Div Yield</th>
             <th>EPS</th>
-            <th>Book Val</th>
             <th>Valuation</th>
           </tr>
         </thead>
         <tbody id="fundTableBody">
-          <tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">Click to load fundamental data...</td></tr>
+          <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">Click to load fundamental data (v10.0 sector-relative analysis)...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1160,6 +1161,60 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     </div>
   </div>
 
+  <!-- ======== PRICE PREDICTOR v10.0 ======== -->
+  <div id="tab-predictor" style="display:none">
+    <div class="section-header">
+      <h2>&#127919; AI Price Predictor v10.0</h2>
+      <button class="btn btn-outline btn-sm" onclick="predictorLoaded=false;loadPredictorTab()">&#10227; Refresh</button>
+    </div>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Multi-factor price targets: 52W position + momentum trajectory + ROCE growth + sector PE re-rating + technical setup. Targets are estimates, not guarantees.</p>
+    <div class="tech-summary">
+      <div class="tech-gauge-row">
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Strong Buy</div>
+          <div class="tech-gauge-val green" id="predStrongBuy">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Buy</div>
+          <div class="tech-gauge-val green" id="predBuy">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Hold</div>
+          <div class="tech-gauge-val amber" id="predHold">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Sell/Avoid</div>
+          <div class="tech-gauge-val red" id="predSell">0</div>
+        </div>
+        <div class="tech-gauge-card">
+          <div class="tech-gauge-label">Avg Upside</div>
+          <div class="tech-gauge-val" id="predAvgUpside">--</div>
+        </div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>CMP</th>
+            <th>52W Range</th>
+            <th>1W Target</th>
+            <th>1M Target</th>
+            <th>3M Target</th>
+            <th>Upside %</th>
+            <th>Confidence</th>
+            <th>Key Driver</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="predTableBody">
+          <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">Click to run AI Price Predictor (analyzes all portfolio stocks)...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <div id="tab-config" style="display:none">
     <div class="config-panel">
       <h3>&#128276; Alert configuration</h3>
@@ -1263,7 +1318,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v9.2 &mdash; News-Powered AI Engine (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v10.0 &mdash; Full Intelligence Engine (570+ stocks | Bollinger + ATR + Price Predictor) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -1808,7 +1863,8 @@ function switchTab(tab, el) {
   el.classList.add('active');
   if (tab === 'papertrade') loadPaperTrade();
   if (tab === 'daytrade') loadDayTrade();
-  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','daytrade','config'].forEach(t => {
+  if (tab === 'predictor') loadPredictorTab();
+  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','daytrade','predictor','config'].forEach(t => {
     const d = document.getElementById('tab-'+t);
     if(d) d.style.display = t===tab ? 'block' : 'none';
   });
@@ -3238,7 +3294,9 @@ function syncTechnicalIntel() {
     window._dashboardIntel[d.ticker].technical = {
       rsi: d.rsi, trend: d.trend, action: d.action,
       macdVal: d.macd?.macd || null, support: d.support, resistance: d.resistance,
-      sma20: d.sma20, sma50: d.sma50, sma200: d.sma200
+      sma20: d.sma20, sma50: d.sma50, sma200: d.sma200,
+      bbPos: d.bbPos, bbUpper: d.bbUpper, bbLower: d.bbLower,
+      atr: d.atr, atrPct: d.atrPct, volTrend: d.volTrend, volRatio: d.volRatio
     };
     count++;
   });
@@ -3281,7 +3339,7 @@ function syncFundamentalIntel() {
   let count = 0;
   fundData.forEach(d => {
     if (!window._dashboardIntel[d.ticker]) window._dashboardIntel[d.ticker] = {};
-    window._dashboardIntel[d.ticker].fundamental = { valuation: d.valuation };
+    window._dashboardIntel[d.ticker].fundamental = { valuation: d.valuation, qualityScore: d.qualityScore, qualGrade: d.qualGrade, peVsSector: d.peVsSector, sectorAvgPE: d.sectorAvgPE };
     count++;
   });
   console.log('[INTEL] Fundamental synced: ' + count + ' stocks');
@@ -3352,18 +3410,24 @@ function getDashboardBonus(ticker) {
   const factors = [];
   let sources = 0;
 
-  // ── TECHNICAL SIGNALS (max ±8) ──
+  // ── TECHNICAL SIGNALS v10.0 (max ±12) ──
   if (intel.technical) {
     sources++;
     const t = intel.technical;
     // RSI
-    if (t.rsi && t.rsi < 30) { bonus += 5; factors.push('📊 RSI ' + t.rsi.toFixed(0) + ' oversold'); }
-    else if (t.rsi && t.rsi < 40 && t.trend === 'Uptrend') { bonus += 3; factors.push('📊 RSI bullish + uptrend'); }
-    else if (t.rsi && t.rsi > 70) { bonus -= 5; factors.push('📊 RSI ' + t.rsi.toFixed(0) + ' overbought'); }
-    else if (t.rsi && t.rsi > 60 && t.trend === 'Downtrend') { bonus -= 3; factors.push('📊 RSI bearish + downtrend'); }
+    if (t.rsi && t.rsi < 30) { bonus += 5; factors.push('RSI ' + t.rsi.toFixed(0) + ' oversold'); }
+    else if (t.rsi && t.rsi < 40 && (t.trend||'').includes('Up')) { bonus += 3; factors.push('RSI bullish + uptrend'); }
+    else if (t.rsi && t.rsi > 70) { bonus -= 5; factors.push('RSI ' + t.rsi.toFixed(0) + ' overbought'); }
+    else if (t.rsi && t.rsi > 60 && (t.trend||'').includes('Dn')) { bonus -= 3; factors.push('RSI bearish + downtrend'); }
     // Action signal
-    if (t.action === 'Strong Buy') { bonus += 3; factors.push('📊 Tech: Strong Buy'); }
-    else if (t.action === 'Strong Sell') { bonus -= 3; factors.push('📊 Tech: Strong Sell'); }
+    if (t.action === 'Strong Buy') { bonus += 3; factors.push('Tech: Strong Buy'); }
+    else if (t.action === 'Strong Sell') { bonus -= 3; factors.push('Tech: Strong Sell'); }
+    // v10.0: Bollinger Band position
+    if (t.bbPos != null && t.bbPos < 15) { bonus += 2; factors.push('BB oversold (' + t.bbPos.toFixed(0) + '%)'); }
+    else if (t.bbPos != null && t.bbPos > 90) { bonus -= 2; factors.push('BB overbought (' + t.bbPos.toFixed(0) + '%)'); }
+    // v10.0: Volume trend
+    if (t.volTrend === 'Surge' && bonus > 0) { bonus += 2; factors.push('Volume surge confirms'); }
+    else if (t.volTrend === 'Drying' && bonus > 0) { bonus -= 1; }
   }
 
   // ── EARNINGS QUALITY (max ±6) ──
@@ -3390,14 +3454,18 @@ function getDashboardBonus(ticker) {
     else if (r.grade === 'D') { bonus -= 4; factors.push('🏆 Rank: D — review'); }
   }
 
-  // ── FUNDAMENTAL VALUATION (max ±4) ──
+  // ── FUNDAMENTAL VALUATION v10.0 (max ±6) ──
   if (intel.fundamental) {
     sources++;
     const f = intel.fundamental;
-    if (f.valuation === 'Undervalued') { bonus += 4; factors.push('💰 Fundamentals: Undervalued'); }
+    if (f.valuation === 'Deep Value') { bonus += 6; factors.push('Fundamentals: Deep Value'); }
+    else if (f.valuation === 'Undervalued') { bonus += 4; factors.push('Fundamentals: Undervalued'); }
     else if (f.valuation === 'Fair Value') { bonus += 1; }
     else if (f.valuation === 'Rich') { bonus -= 2; }
-    else if (f.valuation === 'Expensive') { bonus -= 4; factors.push('💰 Fundamentals: Expensive'); }
+    else if (f.valuation === 'Expensive') { bonus -= 4; factors.push('Fundamentals: Expensive'); }
+    // v10.0: Quality score integration
+    if (f.qualityScore && f.qualityScore >= 75) { bonus += 2; factors.push('Quality: ' + (f.qualGrade||'A') + ' (' + f.qualityScore + ')'); }
+    else if (f.qualityScore && f.qualityScore < 35) { bonus -= 2; }
   }
 
   // ── NEWS SENTIMENT (max ±5) ──
@@ -5594,33 +5662,107 @@ async function fetchTechnicalData(stock) {
       const data = await resp.json();
       const result = data.chart?.result?.[0];
       if (!result) continue;
-      const closes = result.indicators?.quote?.[0]?.close?.filter(c=>c!=null) || [];
-      const highs = result.indicators?.quote?.[0]?.high?.filter(h=>h!=null) || [];
-      const lows = result.indicators?.quote?.[0]?.low?.filter(l=>l!=null) || [];
+      var closes = result.indicators?.quote?.[0]?.close?.filter(function(c){return c!=null;}) || [];
+      var highs = result.indicators?.quote?.[0]?.high?.filter(function(h){return h!=null;}) || [];
+      var lows = result.indicators?.quote?.[0]?.low?.filter(function(l){return l!=null;}) || [];
+      var volumes = result.indicators?.quote?.[0]?.volume?.filter(function(v){return v!=null;}) || [];
       if (closes.length < 20) continue;
-      const cmp = closes[closes.length-1];
-      const rsi = calcRSI(closes);
-      const sma20 = calcSMA(closes,20);
-      const sma50 = calcSMA(closes,50);
-      const sma200 = calcSMA(closes, Math.min(closes.length,200));
-      const macd = calcMACD(closes);
-      const support = Math.min(...lows.slice(-20));
-      const resistance = Math.max(...highs.slice(-20));
-      let trend = 'Sideways';
-      if (sma20 && sma50 && sma20 > sma50 && cmp > sma20) trend = 'Uptrend';
-      else if (sma20 && sma50 && sma20 < sma50 && cmp < sma20) trend = 'Downtrend';
-      let action = 'Hold';
-      let actionClass = 'signal-hold';
-      if (rsi && rsi < 30 && cmp <= sma20*1.02) { action='Strong Buy'; actionClass='signal-strong-buy'; }
-      else if (rsi && rsi < 40 && trend==='Uptrend') { action='Buy'; actionClass='signal-buy'; }
-      else if (rsi && rsi > 70 && cmp >= sma20*0.98) { action='Strong Sell'; actionClass='signal-strong-sell'; }
-      else if (rsi && rsi > 60 && trend==='Downtrend') { action='Sell'; actionClass='signal-sell'; }
-      let rsiSignal = 'Neutral', rsiClass = 'signal-hold';
+      var cmp = closes[closes.length-1];
+      var rsi = calcRSI(closes);
+      var sma20 = calcSMA(closes,20);
+      var sma50 = calcSMA(closes,50);
+      var sma200 = calcSMA(closes, Math.min(closes.length,200));
+      var macd = calcMACD(closes);
+      var support = Math.min.apply(null, lows.slice(-20));
+      var resistance = Math.max.apply(null, highs.slice(-20));
+
+      // v10.0: BOLLINGER BANDS (20-period, 2 std dev)
+      var bbUpper = null, bbLower = null, bbPos = null, bbWidth = null;
+      if (closes.length >= 20) {
+        var bbSlice = closes.slice(-20);
+        var bbMean = bbSlice.reduce(function(a,b){return a+b;},0)/20;
+        var bbVariance = bbSlice.reduce(function(a,v){return a+Math.pow(v-bbMean,2);},0)/20;
+        var bbStd = Math.sqrt(bbVariance);
+        bbUpper = bbMean + 2*bbStd;
+        bbLower = bbMean - 2*bbStd;
+        bbWidth = ((bbUpper - bbLower) / bbMean * 100);
+        bbPos = (bbUpper !== bbLower) ? ((cmp - bbLower) / (bbUpper - bbLower) * 100) : 50;
+      }
+
+      // v10.0: ATR (Average True Range, 14-period)
+      var atr = null, atrPct = null;
+      if (closes.length >= 15 && highs.length >= 15 && lows.length >= 15) {
+        var atrPeriod = Math.min(14, closes.length - 1);
+        var trSum = 0, trCount = 0;
+        for (var aj=closes.length-atrPeriod; aj<closes.length; aj++) {
+          if (aj < 1) continue;
+          var tr = Math.max(highs[aj]-lows[aj], Math.abs(highs[aj]-closes[aj-1]), Math.abs(lows[aj]-closes[aj-1]));
+          trSum += tr;
+          trCount++;
+        }
+        if (trCount > 0) {
+          atr = trSum / trCount;
+          atrPct = (atr / cmp * 100);
+        }
+      }
+
+      // v10.0: VOLUME TREND (5-day vs 20-day average)
+      var volTrend = '--', volRatio = 0;
+      if (volumes.length >= 20) {
+        var recentVol = volumes.slice(-5).reduce(function(a,b){return a+b;},0)/5;
+        var avgVol20 = volumes.slice(-20).reduce(function(a,b){return a+b;},0)/20;
+        if (avgVol20 > 0) {
+          volRatio = recentVol / avgVol20;
+          volTrend = volRatio > 2 ? 'Surge' : volRatio > 1.3 ? 'Rising' : volRatio < 0.6 ? 'Drying' : 'Steady';
+        }
+      }
+
+      // v10.0: ENHANCED TREND DETECTION (Bollinger + SMA + MACD)
+      var trend = 'Sideways';
+      if (sma20 && sma50 && sma20 > sma50 && cmp > sma20) {
+        trend = bbPos !== null && bbPos > 80 ? 'Strong Up' : 'Uptrend';
+      } else if (sma20 && sma50 && sma20 < sma50 && cmp < sma20) {
+        trend = bbPos !== null && bbPos < 20 ? 'Strong Dn' : 'Downtrend';
+      } else if (sma20 && cmp > sma20) {
+        trend = 'Mild Up';
+      } else if (sma20 && cmp < sma20) {
+        trend = 'Mild Dn';
+      }
+
+      // v10.0: SMARTER ACTION SIGNALS (multi-factor: RSI + Bollinger + Volume + MACD)
+      var action = 'Hold', actionClass = 'signal-hold';
+      var buyScore = 0, sellScore = 0;
+      // RSI factor
+      if (rsi && rsi < 30) buyScore += 3;
+      else if (rsi && rsi < 40) buyScore += 2;
+      else if (rsi && rsi > 70) sellScore += 3;
+      else if (rsi && rsi > 60) sellScore += 2;
+      // Bollinger factor
+      if (bbPos !== null && bbPos < 10) buyScore += 2; // near lower band = oversold
+      else if (bbPos !== null && bbPos < 25) buyScore += 1;
+      else if (bbPos !== null && bbPos > 95) sellScore += 2; // above upper band = overbought
+      else if (bbPos !== null && bbPos > 80) sellScore += 1;
+      // Trend factor
+      if (trend.includes('Up')) buyScore += 1;
+      else if (trend.includes('Dn') || trend.includes('Down')) sellScore += 1;
+      // Volume confirmation
+      if (volRatio > 1.5 && buyScore > sellScore) buyScore += 1;
+      if (volRatio > 1.5 && sellScore > buyScore) sellScore += 1;
+      // MACD factor
+      if (macd.hist > 0 && macd.macd > 0) buyScore += 1;
+      else if (macd.hist < 0 && macd.macd < 0) sellScore += 1;
+      // Determine action
+      if (buyScore >= 5) { action='Strong Buy'; actionClass='signal-strong-buy'; }
+      else if (buyScore >= 3 && buyScore > sellScore) { action='Buy'; actionClass='signal-buy'; }
+      else if (sellScore >= 5) { action='Strong Sell'; actionClass='signal-strong-sell'; }
+      else if (sellScore >= 3 && sellScore > buyScore) { action='Sell'; actionClass='signal-sell'; }
+
+      var rsiSignal = 'Neutral', rsiClass = 'signal-hold';
       if (rsi < 30) { rsiSignal='Oversold'; rsiClass='signal-buy'; }
       else if (rsi > 70) { rsiSignal='Overbought'; rsiClass='signal-sell'; }
       else if (rsi < 45) { rsiSignal='Bullish'; rsiClass='signal-buy'; }
       else if (rsi > 55) { rsiSignal='Bearish'; rsiClass='signal-sell'; }
-      return {name:stock.name, ticker:stock.ticker, cmp, rsi, rsiSignal, rsiClass, sma20, sma50, sma200, macd, trend, support, resistance, action, actionClass};
+      return {name:stock.name, ticker:stock.ticker, cmp:cmp, rsi:rsi, rsiSignal:rsiSignal, rsiClass:rsiClass, sma20:sma20, sma50:sma50, sma200:sma200, macd:macd, trend:trend, support:support, resistance:resistance, action:action, actionClass:actionClass, bbUpper:bbUpper, bbLower:bbLower, bbPos:bbPos, bbWidth:bbWidth, atr:atr, atrPct:atrPct, volTrend:volTrend, volRatio:volRatio};
     } catch(e) { continue; }
   }
   return null;
@@ -5630,7 +5772,7 @@ async function loadTechnicalTab() {
   if (techLoaded) return;
   techLoaded = true;
   const tbody = document.getElementById('techTableBody');
-  tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px"><span class="spinner"></span> Loading technical analysis for '+stocks.length+' stocks...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px"><span class="spinner"></span> v10.0: Loading technical analysis (RSI + Bollinger + ATR + Volume) for '+stocks.length+' stocks...</td></tr>';
   techData = [];
   let bull=0, bear=0, neut=0;
   const batch = 5;
@@ -5656,21 +5798,29 @@ async function loadTechnicalTab() {
 }
 
 function renderTechTable() {
-  const tbody = document.getElementById('techTableBody');
-  tbody.innerHTML = techData.map(d => {
-    const rsiPct = d.rsi ? Math.min(100,Math.max(0,d.rsi)) : 0;
-    const rsiColor = d.rsi<30?'var(--green)':d.rsi>70?'var(--red)':'var(--amber)';
-    const trendIcon = d.trend==='Uptrend'?'&#9650;':d.trend==='Downtrend'?'&#9660;':'&#9654;';
-    const trendClass = d.trend==='Uptrend'?'trend-up':d.trend==='Downtrend'?'trend-down':'trend-flat';
+  var tbody = document.getElementById('techTableBody');
+  tbody.innerHTML = techData.map(function(d) {
+    var rsiPct = d.rsi ? Math.min(100,Math.max(0,d.rsi)) : 0;
+    var rsiColor = d.rsi<30?'var(--green)':d.rsi>70?'var(--red)':'var(--amber)';
+    var trendIcon = d.trend.includes('Up')?'&#9650;':d.trend.includes('Dn')||d.trend.includes('Down')?'&#9660;':'&#9654;';
+    var trendClass = d.trend.includes('Up')?'trend-up':d.trend.includes('Dn')||d.trend.includes('Down')?'trend-down':'trend-flat';
+    // Bollinger position color: <20 green (oversold), >80 red (overbought), middle amber
+    var bbColor = d.bbPos!=null ? (d.bbPos<20?'green':d.bbPos>80?'red':'') : '';
+    // ATR% color: >3% = high volatility (red), <1.5% = low (green)
+    var atrColor = d.atrPct!=null ? (d.atrPct>3?'red':d.atrPct<1.5?'green':'') : '';
+    // Volume trend color
+    var volColor = d.volTrend==='Surge'?'green':d.volTrend==='Drying'?'red':'';
     return '<tr>'+
       '<td><span class="ticker" onclick="showDetail(\'' + d.ticker + '\')">' + d.name + '</span></td>'+
       '<td>&#8377;'+d.cmp.toLocaleString('en-IN',{maximumFractionDigits:1})+'</td>'+
       '<td>'+(!d.rsi?'--':d.rsi.toFixed(1))+' <div class="rsi-bar"><div class="rsi-fill" style="width:'+rsiPct+'%;background:'+rsiColor+'"></div></div></td>'+
       '<td><span class="signal-badge '+d.rsiClass+'">'+d.rsiSignal+'</span></td>'+
+      '<td class="'+bbColor+'">'+(d.bbPos!=null?d.bbPos.toFixed(0)+'%':'--')+'</td>'+
+      '<td class="'+atrColor+'">'+(d.atrPct!=null?d.atrPct.toFixed(1)+'%':'--')+'</td>'+
       '<td>'+(d.sma20?'&#8377;'+d.sma20.toFixed(0):'--')+'</td>'+
       '<td>'+(d.sma50?'&#8377;'+d.sma50.toFixed(0):'--')+'</td>'+
-      '<td>'+(d.sma200?'&#8377;'+d.sma200.toFixed(0):'--')+'</td>'+
       '<td>'+(d.macd.macd!=null?d.macd.macd.toFixed(2):'--')+'</td>'+
+      '<td class="'+volColor+'">'+d.volTrend+'</td>'+
       '<td class="'+trendClass+'">'+trendIcon+' '+d.trend+'</td>'+
       '<td>&#8377;'+d.support.toFixed(0)+'</td>'+
       '<td>&#8377;'+d.resistance.toFixed(0)+'</td>'+
@@ -5685,74 +5835,155 @@ function renderTechTable() {
 let fundLoaded = false;
 let fundData = [];
 
-async function fetchFundData(stock) {
-  const s = stock;
-  const price = s.cmp || 0;
-  const pe = s.pe || '--';
-  const roce = s.roce || '--';
-  const pb = s.pb || '--';
-  const roe = s.roe ? s.roe+'%' : (roce !== '--' ? (parseFloat(roce)*0.85).toFixed(0)+'%' : '--');
-  const de = s.debtEquity != null ? s.debtEquity : '--';
-  const divYield = '--';
-  const eps = pe !== '--' && price && pe > 0 ? (price/pe).toFixed(1) : '--';
-  const mktCap = s.mcap ? s.mcap : '--';
-  
-  let valuation = 'Fair';
-  let valClass = 'signal-hold';
-  if (pe !== '--') {
-    const peNum = parseFloat(pe);
-    if (peNum < 15) { valuation = 'Undervalued'; valClass = 'signal-buy'; }
-    else if (peNum < 25) { valuation = 'Fair Value'; valClass = 'signal-hold'; }
-    else if (peNum < 40) { valuation = 'Rich'; valClass = 'signal-sell'; }
-    else { valuation = 'Expensive'; valClass = 'signal-strong-sell'; }
+// v10.0: Sector PE averages for comparison
+var _sectorPEcache = {};
+function getSectorAvgPE(sector) {
+  if (!sector) return 0;
+  var sKey = sector.toLowerCase();
+  if (_sectorPEcache[sKey] !== undefined) return _sectorPEcache[sKey];
+  var sectorStocks = (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE : []).filter(function(m) {
+    return m.s && m.s.toLowerCase().includes(sKey.split('/')[0].split(' ')[0]) && m.pe > 0;
+  });
+  if (sectorStocks.length < 2) {
+    // Try broader match
+    var broadKey = sKey.split('/')[0].split(' ')[0].substring(0,4);
+    sectorStocks = (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE : []).filter(function(m) {
+      return m.s && m.s.toLowerCase().includes(broadKey) && m.pe > 0;
+    });
   }
-  
-  return { name:s.name, ticker:s.ticker, price, pe, pb, roce, roe, de, divYield, eps, bookVal: eps !== '--' ? (parseFloat(eps)*12).toFixed(0) : '--', mktCap, valuation, valClass };
+  var avg = sectorStocks.length > 0 ? sectorStocks.reduce(function(a,m){return a+m.pe;},0)/sectorStocks.length : 0;
+  _sectorPEcache[sKey] = Math.round(avg);
+  return Math.round(avg);
+}
+
+async function fetchFundData(stock) {
+  var s = stock;
+  var price = s.cmp || 0;
+
+  // v10.0: ENRICH from MOVER_UNIVERSE
+  var _fTk = (s.ticker||'').replace('.NS','').replace('.BO','').replace('&','%26');
+  var _fUv = typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.find(function(m){return m.t===_fTk || m.t===_fTk.replace('%26','&');}) : null;
+  var pe = s.pe || (_fUv ? _fUv.pe : 0) || '--';
+  var roce = s.roce || (_fUv ? _fUv.ro : 0) || '--';
+  var mktCap = s.mcap || (_fUv ? _fUv.mc : 0) || '--';
+  var sector = s.sector || (_fUv ? _fUv.s : '') || '';
+
+  var pb = s.pb || '--';
+  var roe = s.roe ? s.roe+'%' : (roce !== '--' && parseInt(roce) > 0 ? (parseInt(roce)*0.85).toFixed(0)+'%' : '--');
+  var de = s.debtEquity != null ? s.debtEquity : '--';
+  var divYield = '--';
+  var eps = pe !== '--' && price && parseFloat(pe) > 0 ? (price/parseFloat(pe)).toFixed(1) : '--';
+
+  // v10.0: Sector PE comparison
+  var sectorAvgPE = getSectorAvgPE(sector);
+  var peVsSector = '--';
+  if (pe !== '--' && sectorAvgPE > 0) {
+    var peDiscount = ((sectorAvgPE - parseFloat(pe)) / sectorAvgPE * 100).toFixed(0);
+    peVsSector = (parseFloat(peDiscount) > 0 ? '-' : '+') + Math.abs(parseFloat(peDiscount)) + '%';
+  }
+
+  // v10.0: QUALITY SCORE (0-100) — combines ROCE, PE discount, growth potential
+  var qualityScore = 50;
+  if (roce !== '--') {
+    var roceNum = parseInt(roce);
+    if (roceNum > 30) qualityScore += 20;
+    else if (roceNum > 20) qualityScore += 15;
+    else if (roceNum > 12) qualityScore += 8;
+    else if (roceNum < 5) qualityScore -= 15;
+  }
+  if (pe !== '--' && sectorAvgPE > 0) {
+    var peDisc = (sectorAvgPE - parseFloat(pe)) / sectorAvgPE;
+    if (peDisc > 0.3) qualityScore += 15;
+    else if (peDisc > 0.1) qualityScore += 8;
+    else if (peDisc < -0.3) qualityScore -= 12;
+    else if (peDisc < -0.1) qualityScore -= 5;
+  }
+  if (pe !== '--' && parseFloat(pe) < 15 && roce !== '--' && parseInt(roce) > 15) qualityScore += 10; // value + quality
+  qualityScore = Math.max(0, Math.min(100, qualityScore));
+  var qualGrade = qualityScore >= 80 ? 'A+' : qualityScore >= 65 ? 'A' : qualityScore >= 50 ? 'B' : qualityScore >= 35 ? 'C' : 'D';
+  var qualClass = qualityScore >= 80 ? 'signal-strong-buy' : qualityScore >= 65 ? 'signal-buy' : qualityScore >= 50 ? 'signal-hold' : 'signal-sell';
+
+  // v10.0: SMARTER VALUATION (sector-relative, not just absolute PE)
+  var valuation = 'Fair';
+  var valClass = 'signal-hold';
+  if (pe !== '--') {
+    var peNum = parseFloat(pe);
+    if (sectorAvgPE > 0) {
+      // Sector-relative valuation
+      var relPE = peNum / sectorAvgPE;
+      if (relPE < 0.6 && peNum < 20) { valuation = 'Deep Value'; valClass = 'signal-strong-buy'; }
+      else if (relPE < 0.8) { valuation = 'Undervalued'; valClass = 'signal-buy'; }
+      else if (relPE <= 1.2) { valuation = 'Fair Value'; valClass = 'signal-hold'; }
+      else if (relPE <= 1.8) { valuation = 'Rich'; valClass = 'signal-sell'; }
+      else { valuation = 'Expensive'; valClass = 'signal-strong-sell'; }
+    } else {
+      // Absolute PE fallback
+      if (peNum < 15) { valuation = 'Undervalued'; valClass = 'signal-buy'; }
+      else if (peNum < 25) { valuation = 'Fair Value'; valClass = 'signal-hold'; }
+      else if (peNum < 40) { valuation = 'Rich'; valClass = 'signal-sell'; }
+      else { valuation = 'Expensive'; valClass = 'signal-strong-sell'; }
+    }
+  }
+
+  return { name:s.name, ticker:s.ticker, price:price, pe:pe, pb:pb, roce:roce, roe:roe, de:de, divYield:divYield, eps:eps, bookVal: eps !== '--' ? (parseFloat(eps)*12).toFixed(0) : '--', mktCap:mktCap, valuation:valuation, valClass:valClass, sector:sector, sectorAvgPE:sectorAvgPE, peVsSector:peVsSector, qualityScore:qualityScore, qualGrade:qualGrade, qualClass:qualClass, _fromUniverse:!!stock._fromUniverse };
 }
 
 async function loadFundamentalTab() {
   if (fundLoaded) return;
   fundLoaded = true;
-  const tbody = document.getElementById('fundTableBody');
-  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px"><span class="spinner"></span> Computing fundamentals...</td></tr>';
+  var tbody = document.getElementById('fundTableBody');
+  // v10.0: Scan portfolio + enriched universe stocks
+  var allFundStocks = stocks.slice();
+  if (typeof MOVER_UNIVERSE !== 'undefined') {
+    var fundPortTickers = new Set(stocks.map(function(s){return (s.ticker||'').replace('.NS','').replace('.BO','');}));
+    MOVER_UNIVERSE.forEach(function(m) {
+      if (!fundPortTickers.has(m.t) && m.pe > 0 && m.ro > 0 && !isExcludedSector(m.s)) {
+        allFundStocks.push({name:m.n, ticker:m.t, cmp:0, pe:m.pe, roce:m.ro, mcap:m.mc, sector:m.s, _fromUniverse:true});
+      }
+    });
+  }
+  tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px"><span class="spinner"></span> v10.0: Computing fundamentals for '+allFundStocks.length+' stocks (sector-relative valuation)...</td></tr>';
   fundData = [];
-  
-  for (const s of stocks) {
-    const d = await fetchFundData(s);
+
+  for (var fi=0; fi<allFundStocks.length; fi++) {
+    var d = await fetchFundData(allFundStocks[fi]);
     if (d) fundData.push(d);
   }
-  
-  const under = fundData.filter(d=>d.valuation==='Undervalued').length;
-  const fair = fundData.filter(d=>d.valuation==='Fair Value').length;
-  const over = fundData.filter(d=>d.valuation==='Rich'||d.valuation==='Expensive').length;
-  const roces = fundData.filter(d=>d.roce!=='--').map(d=>parseFloat(d.roce));
-  const avgRoce = roces.length ? (roces.reduce((a,b)=>a+b,0)/roces.length).toFixed(0)+'%' : '--';
-  
+
+  // Sort by quality score descending
+  fundData.sort(function(a,b){return (b.qualityScore||0)-(a.qualityScore||0);});
+
+  var under = fundData.filter(function(d){return d.valuation==='Undervalued'||d.valuation==='Deep Value';}).length;
+  var fair = fundData.filter(function(d){return d.valuation==='Fair Value';}).length;
+  var over = fundData.filter(function(d){return d.valuation==='Rich'||d.valuation==='Expensive';}).length;
+  var roces = fundData.filter(function(d){return d.roce!=='--';}).map(function(d){return parseFloat(d.roce);});
+  var avgRoce = roces.length ? (roces.reduce(function(a,b){return a+b;},0)/roces.length).toFixed(0)+'%' : '--';
+
   document.getElementById('fundUnderval').textContent = under;
   document.getElementById('fundFairval').textContent = fair;
   document.getElementById('fundOverval').textContent = over;
   document.getElementById('fundAvgRoce').textContent = avgRoce;
-  
+
   renderFundTable();
   // Auto-sync fundamental intelligence to global store
   syncFundamentalIntel();
 }
 
 function renderFundTable() {
-  const tbody = document.getElementById('fundTableBody');
-  tbody.innerHTML = fundData.map(d => {
-    const fmtCap = d.mktCap !== '--' ? (typeof d.mktCap === 'string' ? d.mktCap : '&#8377;'+Number(d.mktCap).toLocaleString('en-IN')+' Cr') : '--';
+  var tbody = document.getElementById('fundTableBody');
+  tbody.innerHTML = fundData.map(function(d) {
+    var fmtCap = d.mktCap !== '--' && d.mktCap ? (typeof d.mktCap === 'string' ? d.mktCap : '&#8377;'+Number(d.mktCap).toLocaleString('en-IN')+' Cr') : '--';
+    var peVsColor = d.peVsSector !== '--' ? (d.peVsSector.startsWith('-') ? 'green' : 'red') : '';
+    var qualColor = d.qualityScore >= 65 ? 'green' : d.qualityScore >= 45 ? '' : 'red';
     return '<tr>'+
-      '<td><span class="ticker" onclick="showDetail(\'' + d.ticker + '\')">' + d.name + '</span></td>'+
+      '<td><span class="ticker" onclick="showDetail(\'' + d.ticker + '\')">' + d.name + (d._fromUniverse ? ' <small style="color:var(--muted)">[U]</small>' : '') + '</span></td>'+
       '<td>'+fmtCap+'</td>'+
       '<td>'+d.pe+'</td>'+
-      '<td>'+d.pb+'</td>'+
       '<td>'+d.roce+'</td>'+
+      '<td class="'+peVsColor+'">'+(d.peVsSector||'--')+' <small style="color:var(--muted)">'+(d.sectorAvgPE>0?'(Sec:'+d.sectorAvgPE+')':'')+'</small></td>'+
+      '<td class="'+qualColor+'"><span class="signal-badge '+d.qualClass+'">'+d.qualGrade+' ('+d.qualityScore+')</span></td>'+
       '<td>'+d.roe+'</td>'+
-      '<td>'+d.de+'</td>'+
-      '<td>'+d.divYield+'</td>'+
       '<td>'+(d.eps!=='--'?'&#8377;'+d.eps:'--')+'</td>'+
-      '<td>'+(d.bookVal!=='--'?'&#8377;'+d.bookVal:'--')+'</td>'+
       '<td><span class="signal-badge '+d.valClass+'">'+d.valuation+'</span></td>'+
       '</tr>';
   }).join('');
@@ -6351,22 +6582,85 @@ async function loadEarningsTab() {
   tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px"><span class="spinner"></span> Analyzing earnings data...</td></tr>';
   earnData = [];
   
-  for (const s of stocks) {
-    const price = s.cmp || 0;
-    const pe = s.pe || 0;
-    if (!price || !pe) continue;
-    const eps = (price / pe).toFixed(1);
-    const epsGrowth = s.epsgr ? s.epsgr : ((-10 + Math.random()*40).toFixed(1));
-    const revenue = s.mcap ? (parseFloat(String(s.mcap).replace(/[^0-9.]/g,'')) * (0.3 + Math.random()*0.5)).toFixed(0) : (100 + Math.random()*5000).toFixed(0);
-    const netProfit = (parseFloat(revenue) * (0.05 + Math.random()*0.2)).toFixed(0);
-    const margin = ((parseFloat(netProfit)/parseFloat(revenue))*100).toFixed(1);
-    const peg = parseFloat(epsGrowth) > 0 ? (pe / parseFloat(epsGrowth)).toFixed(1) : '--';
-    let quality = 'Average', qClass = 'signal-hold';
-    if (parseFloat(epsGrowth) > 20 && parseFloat(margin) > 15) { quality='Excellent'; qClass='signal-strong-buy'; }
-    else if (parseFloat(epsGrowth) > 10) { quality='Good'; qClass='signal-buy'; }
-    else if (parseFloat(epsGrowth) < 0) { quality='Weak'; qClass='signal-sell'; }
-    
-    earnData.push({name:s.name, ticker:s.ticker, price, pe, eps, epsGrowth, revenue, netProfit, margin, peg, quality, qClass});
+  // v10.0: DETERMINISTIC earnings — NO Math.random()
+  // Enrich ALL stocks from MOVER_UNIVERSE + portfolio
+  var allEarnStocks = stocks.slice();
+  // Add top universe stocks not already in portfolio
+  if (typeof MOVER_UNIVERSE !== 'undefined') {
+    var earnPortTickers = new Set(stocks.map(function(s){return (s.ticker||'').replace('.NS','').replace('.BO','');}));
+    MOVER_UNIVERSE.forEach(function(m) {
+      if (!earnPortTickers.has(m.t) && m.pe > 0 && m.ro > 0 && !isExcludedSector(m.s)) {
+        allEarnStocks.push({name:m.n, ticker:m.t, cmp:0, pe:m.pe, roce:m.ro, mcap:m.mc, sector:m.s, _fromUniverse:true});
+      }
+    });
+  }
+  for (var ei=0; ei<allEarnStocks.length; ei++) {
+    var s = allEarnStocks[ei];
+    var price = s.cmp || 0;
+    var pe = s.pe || 0;
+    if (!pe || pe <= 0) continue;
+    if (!price && s._fromUniverse) price = 0; // universe stocks may not have live price yet
+
+    // Enrich from MOVER_UNIVERSE
+    var _eTk = (s.ticker||'').replace('.NS','').replace('.BO','').replace('&','%26');
+    var _eUv = typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.find(function(m){return m.t===_eTk || m.t===_eTk.replace('%26','&');}) : null;
+    var uvRoce = (_eUv && _eUv.ro) ? _eUv.ro : (parseInt(s.roce) || 0);
+    var uvMcap = (_eUv && _eUv.mc) ? _eUv.mc : (s.mcap || 0);
+    if (!pe && _eUv && _eUv.pe) pe = _eUv.pe;
+
+    var eps = price > 0 && pe > 0 ? (price / pe).toFixed(1) : (uvMcap > 0 && pe > 0 ? ((uvMcap * 100) / pe / 1000).toFixed(1) : '--');
+
+    // EPS Growth: deterministic estimate from ROCE
+    // Sustainable growth = ROCE * retention ratio (~0.6-0.7)
+    var epsGrowth;
+    if (s.epsgr) {
+      epsGrowth = s.epsgr;
+    } else if (uvRoce >= 30) {
+      epsGrowth = (uvRoce * 0.55).toFixed(1); // High ROCE = high growth
+    } else if (uvRoce >= 20) {
+      epsGrowth = (uvRoce * 0.5).toFixed(1);
+    } else if (uvRoce >= 10) {
+      epsGrowth = (uvRoce * 0.45 - 1).toFixed(1);
+    } else if (uvRoce > 0) {
+      epsGrowth = (uvRoce * 0.3).toFixed(1);
+    } else {
+      epsGrowth = '0.0';
+    }
+
+    // Net Profit: MCap / PE (fundamental identity: PAT = Market Cap / PE ratio)
+    var netProfit;
+    if (uvMcap > 0 && pe > 0) {
+      netProfit = (uvMcap / pe).toFixed(0);
+    } else if (price > 0 && eps !== '--') {
+      netProfit = (parseFloat(eps) * 50).toFixed(0); // rough estimate
+    } else {
+      netProfit = '0';
+    }
+
+    // Revenue: Net Profit / estimated margin (sector-aware)
+    var sectorLower = ((s.sector || (_eUv ? _eUv.s : '')) || '').toLowerCase();
+    var estMargin;
+    if (sectorLower.includes('bank') || sectorLower.includes('nbfc') || sectorLower.includes('finance')) estMargin = 0.20;
+    else if (sectorLower.includes('it') || sectorLower.includes('tech') || sectorLower.includes('software')) estMargin = 0.18;
+    else if (sectorLower.includes('chemical') || sectorLower.includes('specialty')) estMargin = 0.14;
+    else if (sectorLower.includes('auto') || sectorLower.includes('tyre')) estMargin = 0.08;
+    else if (sectorLower.includes('cement') || sectorLower.includes('steel') || sectorLower.includes('metal')) estMargin = 0.10;
+    else if (sectorLower.includes('power') || sectorLower.includes('energy') || sectorLower.includes('solar')) estMargin = 0.12;
+    else if (sectorLower.includes('infra') || sectorLower.includes('construct')) estMargin = 0.07;
+    else if (sectorLower.includes('real estate')) estMargin = 0.15;
+    else estMargin = uvRoce > 25 ? 0.16 : uvRoce > 15 ? 0.11 : 0.08;
+
+    var revenue = parseFloat(netProfit) > 0 ? (parseFloat(netProfit) / estMargin).toFixed(0) : '0';
+    var margin = parseFloat(revenue) > 0 ? ((parseFloat(netProfit)/parseFloat(revenue))*100).toFixed(1) : '0.0';
+    var peg = parseFloat(epsGrowth) > 0 ? (pe / parseFloat(epsGrowth)).toFixed(1) : '--';
+
+    var quality = 'Average', qClass = 'signal-hold';
+    if (parseFloat(epsGrowth) > 15 && uvRoce > 20) { quality='Excellent'; qClass='signal-strong-buy'; }
+    else if (parseFloat(epsGrowth) > 10 && uvRoce > 12) { quality='Good'; qClass='signal-buy'; }
+    else if (parseFloat(epsGrowth) > 5) { quality='Above Avg'; qClass='signal-buy'; }
+    else if (parseFloat(epsGrowth) < 0 || uvRoce < 5) { quality='Weak'; qClass='signal-sell'; }
+
+    earnData.push({name:s.name, ticker:s.ticker, price:price, pe:pe, eps:eps, epsGrowth:epsGrowth, revenue:revenue, netProfit:netProfit, margin:margin, peg:peg, quality:quality, qClass:qClass, roce:uvRoce, _fromUniverse:!!s._fromUniverse});
   }
   
   const growth15 = earnData.filter(d=>parseFloat(d.epsGrowth)>15).length;
@@ -6531,6 +6825,186 @@ function renderRankTable() {
   }).join('');
 }
 
+
+// ============================================================
+//  PRICE PREDICTOR ENGINE v10.0
+//  Multi-factor price targets: momentum + fundamentals + technicals
+// ============================================================
+var predictorLoaded = false;
+var predictorData = [];
+
+function predictPrice(stock) {
+  var s = stock;
+  var cmp = s.cmp || 0;
+  if (!cmp || cmp <= 0) return null;
+
+  // Enrich from MOVER_UNIVERSE
+  var _pTk = (s.ticker||'').replace('.NS','').replace('.BO','').replace('&','%26');
+  var _pUv = typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.find(function(m){return m.t===_pTk || m.t===_pTk.replace('%26','&');}) : null;
+  var pe = s.pe || (_pUv ? _pUv.pe : 0) || 0;
+  var roce = parseInt(s.roce || (_pUv ? _pUv.ro : 0)) || 0;
+  var mcap = s.mcap || (_pUv ? _pUv.mc : 0) || 0;
+  var sector = s.sector || (_pUv ? _pUv.s : '') || '';
+  var low52 = s.low52 || 0;
+  var high52 = s.high52 || 0;
+
+  // === FACTOR 1: 52-Week Position (where in range) ===
+  var pos52 = 0.5;
+  if (low52 && high52 && high52 > low52) {
+    pos52 = (cmp - low52) / (high52 - low52);
+  }
+
+  // === FACTOR 2: Momentum (today's change) ===
+  var changePct = s.changePct || 0;
+  if (typeof changePct !== 'number' || isNaN(changePct)) changePct = 0;
+
+  // === FACTOR 3: ROCE-based sustainable growth ===
+  var sustainableGrowth = roce > 0 ? roce * 0.5 : 5; // ROCE * retention proxy
+  sustainableGrowth = Math.min(35, sustainableGrowth);
+
+  // === FACTOR 4: PE re-rating potential ===
+  var sectorAvgPE = getSectorAvgPE(sector);
+  var peRerating = 0;
+  if (pe > 0 && sectorAvgPE > 0) {
+    peRerating = ((sectorAvgPE / pe) - 1) * 100; // % re-rating if PE converges to sector avg
+    peRerating = Math.max(-30, Math.min(50, peRerating));
+  }
+
+  // === FACTOR 5: Technical intel (if available) ===
+  var techBonus = 0;
+  var techIntel = window._dashboardIntel && window._dashboardIntel[s.ticker] ? window._dashboardIntel[s.ticker].technical : null;
+  if (techIntel) {
+    if (techIntel.action === 'Strong Buy') techBonus = 5;
+    else if (techIntel.action === 'Buy') techBonus = 3;
+    else if (techIntel.action === 'Sell') techBonus = -3;
+    else if (techIntel.action === 'Strong Sell') techBonus = -5;
+    // Bollinger position
+    if (techIntel.bbPos != null && techIntel.bbPos < 20) techBonus += 3; // near lower band
+    else if (techIntel.bbPos != null && techIntel.bbPos > 85) techBonus -= 2;
+  }
+
+  // === FACTOR 6: News sentiment (if available) ===
+  var newsBonus = 0;
+  var newsIntel = window._dashboardIntel && window._dashboardIntel[s.ticker] ? window._dashboardIntel[s.ticker].news : null;
+  if (newsIntel) {
+    newsBonus = newsIntel.score > 2 ? 3 : newsIntel.score > 0 ? 1 : newsIntel.score < -2 ? -3 : newsIntel.score < 0 ? -1 : 0;
+  }
+
+  // === CALCULATE TARGETS ===
+  // 1W target: momentum-driven (mean reversion + momentum continuation)
+  var weeklyDrift = changePct * 0.3 + (pos52 < 0.3 ? 2 : pos52 > 0.85 ? -1 : 0.5) + techBonus * 0.2 + newsBonus * 0.3;
+  weeklyDrift = Math.max(-5, Math.min(8, weeklyDrift));
+  var target1W = cmp * (1 + weeklyDrift / 100);
+
+  // 1M target: earnings growth + PE re-rating + technical
+  var monthlyGrowth = sustainableGrowth / 12 + peRerating * 0.1 + techBonus * 0.3 + newsBonus * 0.5;
+  monthlyGrowth = Math.max(-8, Math.min(15, monthlyGrowth));
+  var target1M = cmp * (1 + monthlyGrowth / 100);
+
+  // 3M target: fundamental-driven (sustainable growth + PE convergence)
+  var quarterlyGrowth = sustainableGrowth / 4 + peRerating * 0.3 + newsBonus * 0.3;
+  quarterlyGrowth = Math.max(-15, Math.min(30, quarterlyGrowth));
+  var target3M = cmp * (1 + quarterlyGrowth / 100);
+
+  // Overall upside (3M as primary)
+  var upside3M = ((target3M - cmp) / cmp * 100);
+
+  // Confidence score (0-100)
+  var confidence = 50;
+  if (roce > 20) confidence += 10;
+  else if (roce > 12) confidence += 5;
+  if (pe > 0 && pe < 25) confidence += 8;
+  if (pos52 > 0.3 && pos52 < 0.8) confidence += 8; // in sweet spot
+  if (techIntel) confidence += 10; // has technical data
+  if (newsIntel) confidence += 5;
+  if (mcap > 50000) confidence += 5; // large cap more predictable
+  else if (mcap > 10000) confidence += 3;
+  confidence = Math.min(95, Math.max(20, confidence));
+  var confLabel = confidence >= 75 ? 'High' : confidence >= 50 ? 'Medium' : 'Low';
+  var confClass = confidence >= 75 ? 'signal-buy' : confidence >= 50 ? 'signal-hold' : 'signal-sell';
+
+  // Key driver
+  var driver = '';
+  var maxFactor = Math.max(Math.abs(sustainableGrowth/4), Math.abs(peRerating*0.3), Math.abs(techBonus*2), Math.abs(newsBonus*2));
+  if (Math.abs(peRerating*0.3) >= maxFactor && peRerating > 5) driver = 'PE Re-rating';
+  else if (Math.abs(peRerating*0.3) >= maxFactor && peRerating < -5) driver = 'PE Compression';
+  else if (Math.abs(sustainableGrowth/4) >= maxFactor) driver = 'Earnings Growth (ROCE '+roce+'%)';
+  else if (Math.abs(techBonus*2) >= maxFactor && techBonus > 0) driver = 'Technical Breakout';
+  else if (Math.abs(techBonus*2) >= maxFactor && techBonus < 0) driver = 'Technical Weakness';
+  else if (Math.abs(newsBonus*2) >= maxFactor) driver = 'News Catalyst';
+  else driver = roce > 15 ? 'Quality Compounder' : 'Mean Reversion';
+
+  // Action
+  var action = 'Hold', actionClass = 'signal-hold';
+  if (upside3M > 15 && confidence >= 60) { action = 'Strong Buy'; actionClass = 'signal-strong-buy'; }
+  else if (upside3M > 8 && confidence >= 50) { action = 'Buy'; actionClass = 'signal-buy'; }
+  else if (upside3M > 3) { action = 'Accumulate'; actionClass = 'signal-buy'; }
+  else if (upside3M < -10) { action = 'Sell'; actionClass = 'signal-sell'; }
+  else if (upside3M < -5) { action = 'Reduce'; actionClass = 'signal-sell'; }
+
+  return {
+    name: s.name, ticker: s.ticker, cmp: cmp,
+    low52: low52, high52: high52, pos52: pos52,
+    target1W: target1W, target1M: target1M, target3M: target3M,
+    upside3M: upside3M, confidence: confidence,
+    confLabel: confLabel, confClass: confClass,
+    driver: driver, action: action, actionClass: actionClass,
+    pe: pe, roce: roce
+  };
+}
+
+async function loadPredictorTab() {
+  if (predictorLoaded) return;
+  predictorLoaded = true;
+  var tbody = document.getElementById('predTableBody');
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px"><span class="spinner"></span> v10.0: Running AI Price Predictor on '+stocks.length+' portfolio stocks...</td></tr>';
+  predictorData = [];
+
+  // Sync intelligence first
+  syncAllIntelligence();
+
+  for (var pi=0; pi<stocks.length; pi++) {
+    var pred = predictPrice(stocks[pi]);
+    if (pred) predictorData.push(pred);
+  }
+
+  // Sort by upside descending
+  predictorData.sort(function(a,b){ return b.upside3M - a.upside3M; });
+
+  // Summary counts
+  var strongBuy = predictorData.filter(function(d){return d.action==='Strong Buy';}).length;
+  var buy = predictorData.filter(function(d){return d.action==='Buy'||d.action==='Accumulate';}).length;
+  var hold = predictorData.filter(function(d){return d.action==='Hold';}).length;
+  var sell = predictorData.filter(function(d){return d.action==='Sell'||d.action==='Reduce';}).length;
+  var avgUpside = predictorData.length > 0 ? (predictorData.reduce(function(a,d){return a+d.upside3M;},0)/predictorData.length).toFixed(1) : '--';
+
+  document.getElementById('predStrongBuy').textContent = strongBuy;
+  document.getElementById('predBuy').textContent = buy;
+  document.getElementById('predHold').textContent = hold;
+  document.getElementById('predSell').textContent = sell;
+  var upsideEl = document.getElementById('predAvgUpside');
+  upsideEl.textContent = avgUpside !== '--' ? avgUpside + '%' : '--';
+  upsideEl.className = 'tech-gauge-val ' + (parseFloat(avgUpside) > 0 ? 'green' : 'red');
+
+  // Render table
+  tbody.innerHTML = predictorData.map(function(d) {
+    var upsideColor = d.upside3M > 0 ? 'green' : 'red';
+    var pos52Pct = (d.pos52 * 100).toFixed(0);
+    var rangeBar = '<div style="background:#333;border-radius:4px;height:8px;width:80px;display:inline-block;position:relative"><div style="position:absolute;left:'+pos52Pct+'%;top:-2px;width:4px;height:12px;background:var(--accent);border-radius:2px"></div></div>';
+    return '<tr>'+
+      '<td><span class="ticker" onclick="showDetail(\'' + d.ticker + '\')">' + d.name + '</span></td>'+
+      '<td>&#8377;'+d.cmp.toLocaleString('en-IN',{maximumFractionDigits:0})+'</td>'+
+      '<td>'+rangeBar+' <small style="color:var(--muted)">'+pos52Pct+'%</small></td>'+
+      '<td>&#8377;'+d.target1W.toLocaleString('en-IN',{maximumFractionDigits:0})+'</td>'+
+      '<td>&#8377;'+d.target1M.toLocaleString('en-IN',{maximumFractionDigits:0})+'</td>'+
+      '<td style="font-weight:700">&#8377;'+d.target3M.toLocaleString('en-IN',{maximumFractionDigits:0})+'</td>'+
+      '<td class="'+upsideColor+'" style="font-weight:700">'+(d.upside3M>0?'+':'')+d.upside3M.toFixed(1)+'%</td>'+
+      '<td><span class="signal-badge '+d.confClass+'">'+d.confLabel+' ('+d.confidence+')</span></td>'+
+      '<td style="font-size:11px">'+d.driver+'</td>'+
+      '<td><span class="signal-badge '+d.actionClass+'">'+d.action+'</span></td>'+
+      '</tr>';
+  }).join('');
+}
 
 // ============================================================
 //  STOCK SCORER — Analyze any stock instantly
