@@ -2795,16 +2795,26 @@ function _buildPreMarketPanel(pmDiv) {
     });
   }
 
-  // Source 3: MOVER_UNIVERSE enrichment
+  // Source 3: MOVER_UNIVERSE — add ALL universe stocks + enrich existing
   if (typeof MOVER_UNIVERSE !== 'undefined') {
     MOVER_UNIVERSE.forEach(function(u) {
-      if (allStockPool.find(function(p) { return p.ticker === u.t; })) {
-        // Enrich existing entry
-        var existing = allStockPool.find(function(p) { return p.ticker === u.t; });
+      var existing = allStockPool.find(function(p) { return p.ticker === u.t; });
+      if (existing) {
+        // Enrich existing entry with universe fundamentals
         if (!existing.pe && u.pe) existing.pe = u.pe;
         if (!existing.roce && u.ro) existing.roce = u.ro;
         if (!existing.mcap && u.mc) existing.mcap = u.mc;
         if (!existing.sector && u.s) existing.sector = u.s;
+      } else {
+        // ADD new universe stock to the pool for pre-market scoring
+        allStockPool.push({
+          ticker: u.t, name: u.n, sector: u.s || '',
+          cmp: 0, prevClose: 0, changePct: 0,
+          pe: u.pe || 0, roce: u.ro || 0, mcap: u.mc || 0,
+          vol: 0, avgVol: 0, high52: 0, low52: 0,
+          scanStatus: '', catalyst: '', layer: '',
+          inPortfolio: false, cap: u.c || ''
+        });
       }
     });
   }
@@ -2814,7 +2824,8 @@ function _buildPreMarketPanel(pmDiv) {
   // ═══════════════════════════════════════════════════════
   allStockPool.forEach(function(s) {
     if (isEthicallyExcluded(s.sector) || isEthicallyExcluded(s.name)) return;
-    if (!s.cmp || s.cmp <= 0) return;
+    // For pre-market: allow stocks without CMP — signals/news/earnings don't need prices
+    var hasCmp = s.cmp && s.cmp > 0;
 
     var score = 0;
     var reasons = [];
@@ -2870,7 +2881,7 @@ function _buildPreMarketPanel(pmDiv) {
     }
 
     // ── SIGNAL 3: Previous day momentum continuation (0-15) ──
-    if (s.changePct) {
+    if (hasCmp && s.changePct) {
       var absChg = Math.abs(s.changePct);
       if (absChg >= 5) {
         score += 15; confidence += 10;
@@ -2887,7 +2898,7 @@ function _buildPreMarketPanel(pmDiv) {
     }
 
     // ── SIGNAL 4: Volume spike from previous session (0-10) ──
-    if (s.vol && s.avgVol && s.avgVol > 0) {
+    if (hasCmp && s.vol && s.avgVol && s.avgVol > 0) {
       var volR = s.vol / s.avgVol;
       if (volR >= 3) {
         score += 10; confidence += 8;
@@ -2901,7 +2912,7 @@ function _buildPreMarketPanel(pmDiv) {
     }
 
     // ── SIGNAL 5: 52-Week technical setup (0-10) ──
-    if (s.high52 > 0 && s.low52 > 0 && s.high52 > s.low52) {
+    if (hasCmp && s.high52 > 0 && s.low52 > 0 && s.high52 > s.low52) {
       var pos52 = (s.cmp - s.low52) / (s.high52 - s.low52);
       if (pos52 >= 0.95) {
         score += 10; confidence += 5;
@@ -3184,7 +3195,7 @@ function _buildPreMarketPanel(pmDiv) {
   html += '</div></div>'; // close main container
 
   pmDiv.innerHTML = html;
-  document.getElementById('aiScanTime').textContent = 'Pre-Market Intel: ' + now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'}) + ' | ' + predictions.length + ' stocks scored | ' + topMovers.length + ' predicted movers';
+  document.getElementById('aiScanTime').textContent = 'Pre-Market Intel: ' + now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'}) + ' | ' + allStockPool.length + ' universe scanned | ' + predictions.length + ' scored | ' + topMovers.length + ' predicted movers';
 }
 
 // ============================================================
