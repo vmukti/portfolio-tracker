@@ -9830,6 +9830,21 @@ async function runDayTradeAI() {
     return;
   }
 
+  // ── MARKET HOURS GUARD ──────────────────────────────────
+  // Day trading only works during market hours (9:15 AM - 3:25 PM IST)
+  // Before 9:15 AM: no live prices, scan will find zero picks
+  // After 3:25 PM: too close to close, no time for intraday exit
+  var nowIST = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
+  var hhmm = nowIST.getHours() * 100 + nowIST.getMinutes();
+  if (hhmm < 915) {
+    alert('Market opens at 9:15 AM IST. Day Trade AI needs live prices to scan.\n\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + ' AM\nMarket opens in ' + Math.round((915 - hhmm > 100 ? (915 - hhmm - 40) : (915 - hhmm))) + ' minutes.\n\nTip: Use Pre-Market Intel tab for pre-market analysis!');
+    return;
+  }
+  if (hhmm > 1525) {
+    alert('Market closes at 3:30 PM. Too late for new day trades — no time for intraday exit.\n\nUse "Square Off All" to close any open positions before 3:30 PM.');
+    return;
+  }
+
   var btn = document.getElementById('dtRunBtn');
   if (btn) {
     btn.disabled = true;
@@ -9899,7 +9914,7 @@ async function runDayTradeAI() {
       // Scan the ENTIRE universe to find real movers
       console.log('[DT-v3] Scanning full universe: ' + universeToFetch.length + ' stocks (no quality filter)');
 
-      var batchSize = 25; // v3.0: Larger batches for faster scanning
+      var batchSize = 50; // v4.1: 50-stock batches for 2x faster scanning
       for (var i = 0; i < universeToFetch.length; i += batchSize) {
         var batch = universeToFetch.slice(i, i + batchSize);
         var symbolStr = batch.map(function(m) { return m.t + '.NS'; }).join(',');
@@ -9935,13 +9950,15 @@ async function runDayTradeAI() {
           console.log('[DT-v3] Batch fetch error:', e.message || e);
         }
         if (i + batchSize < universeToFetch.length) {
-          await new Promise(function(r) { setTimeout(r, 300); });
+          await new Promise(function(r) { setTimeout(r, 150); });
         }
 
         if (statusBadge) {
           var fetched = Math.min(i + batchSize, universeToFetch.length);
           var pct = Math.round(fetched / universeToFetch.length * 100);
-          statusBadge.innerHTML = '&#9889; v4.0 NEWS-POWERED SCAN: ' + fetched + '/' + universeToFetch.length + ' (' + pct + '%) | ' + Object.keys(candidates).length + ' green stocks | ' + Object.keys(_dtNewsSentiment).length + ' news signals...';
+          var batchesLeft = Math.ceil((universeToFetch.length - fetched) / batchSize);
+          var etaSec = Math.round(batchesLeft * 2.5);
+          statusBadge.innerHTML = '&#9889; v4.1 SCAN: ' + fetched + '/' + universeToFetch.length + ' (' + pct + '%) | ' + Object.keys(candidates).length + ' green | ~' + etaSec + 's left';
         }
       }
     }
