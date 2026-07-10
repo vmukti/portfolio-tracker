@@ -1318,7 +1318,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v10.1 &mdash; Dynamic Portfolio Rotation (570+ stocks | AI Add/Remove + Price Predictor) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v10.2 &mdash; Live News Fix + Dynamic Portfolio Rotation (570+ stocks | Multi-Proxy News) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -6289,7 +6289,12 @@ var newsTriggersData = [];
 var nseAnnouncementsData = [];
 var newsApiUrl = localStorage.getItem('newsApiUrl') || 'https://script.google.com/macros/s/AKfycbxQuaffSeoi2FypmiAdHlOPB6jb_qKHNDahhKK4xhWipdhlcAr9ujgrCIyAujwd7kM/exec';
 const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
-const CORS_PROXY_FALLBACK = 'https://api.allorigins.win/raw?url=';
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://api.codetabs.com/v1/proxy?quest='
+];
+const CORS_PROXY_FALLBACK = CORS_PROXIES[0];
 
 // ---- News API URL Management ----
 function saveNewsApiUrl() {
@@ -6331,7 +6336,7 @@ async function fetchNewsViaProxy() {
   if (!newsApiUrl) return false;
   try {
     const symbols = stocks.map(s => s.yf).join(',');
-    const resp = await fetch(newsApiUrl + '?mode=all&limit=40&symbols=' + encodeURIComponent(symbols), {signal: AbortSignal.timeout(12000)});
+    const resp = await fetch(newsApiUrl + '?mode=all&limit=40&symbols=' + encodeURIComponent(symbols), {signal: AbortSignal.timeout(20000)});
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     if (!data.success || !data.data) throw new Error(data.error || 'Bad response');
@@ -6410,30 +6415,11 @@ function detectNewsTagLabel(title, source) {
   return source || 'News';
 }
 
-// ---- FALLBACK: rss2json for Google News (with CORS proxy fallback) ----
+// ---- FALLBACK: rss2json for Google News (with multi-CORS proxy racing) ----
 async function fetchNewsViaRss2Json(query, tag, tagLabel) {
   var rssUrl = 'https://news.google.com/rss/search?q='+encodeURIComponent(query)+'&hl=en-IN&gl=IN&ceid=IN:en';
 
-  // Try rss2json first
-  try {
-    var resp = await fetch(RSS2JSON + encodeURIComponent(rssUrl), {signal:AbortSignal.timeout(8000)});
-    if (resp.ok) {
-      var data = await resp.json();
-      if (data.status === 'ok' && data.items && data.items.length > 0) {
-        return data.items.slice(0,8).map(function(item) { return {
-          title: item.title || '', link: item.link || '#', pubDate: item.pubDate || '',
-          source: item.author || extractSource(item.title), tag: tag, tagLabel: tagLabel,
-          desc: (item.description || '').replace(/<[^>]*>/g,'').substring(0,120)
-        }; });
-      }
-    }
-  } catch(e) { console.log('[rss2json] Primary failed for '+tag+':', e.message); }
-
-  // Fallback: AllOrigins CORS proxy + parse raw XML
-  try {
-    var resp2 = await fetch(CORS_PROXY_FALLBACK + encodeURIComponent(rssUrl), {signal:AbortSignal.timeout(8000)});
-    if (!resp2.ok) return [];
-    var xml = await resp2.text();
+  function parseRssXml(xml) {
     var parser = new DOMParser();
     var doc = parser.parseFromString(xml, 'text/xml');
     var items = doc.querySelectorAll('item');
@@ -6444,18 +6430,65 @@ async function fetchNewsViaRss2Json(query, tag, tagLabel) {
       var linkEl = item.querySelector('link');
       var dateEl = item.querySelector('pubDate');
       var descEl = item.querySelector('description');
-      if (titleEl) {
+      if (titleEl && titleEl.textContent) {
         results.push({
-          title: titleEl.textContent || '', link: linkEl ? linkEl.textContent : '#',
-          pubDate: dateEl ? dateEl.textContent : '', source: extractSource(titleEl.textContent || ''),
+          title: titleEl.textContent, link: linkEl ? linkEl.textContent : '#',
+          pubDate: dateEl ? dateEl.textContent : '', source: extractSource(titleEl.textContent),
           tag: tag, tagLabel: tagLabel,
           desc: descEl ? descEl.textContent.replace(/<[^>]*>/g,'').substring(0,120) : ''
         });
       }
     });
-    if (results.length > 0) console.log('[rss2json] CORS fallback success for '+tag+': '+results.length+' items');
     return results;
-  } catch(e2) { console.log('[rss2json] CORS fallback also failed for '+tag+':', e2.message); return []; }
+  }
+
+  // Race ALL sources in parallel — first success wins
+  var fetchers = [];
+
+  // Source 1: rss2json API
+  fetchers.push(
+    fetch(RSS2JSON + encodeURIComponent(rssUrl), {signal:AbortSignal.timeout(15000)})
+    .then(function(r) { if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data) {
+      if (data.status === 'ok' && data.items && data.items.length > 0) {
+        return data.items.slice(0,8).map(function(item) { return {
+          title: item.title || '', link: item.link || '#', pubDate: item.pubDate || '',
+          source: item.author || extractSource(item.title), tag: tag, tagLabel: tagLabel,
+          desc: (item.description || '').replace(/<[^>]*>/g,'').substring(0,120)
+        }; });
+      }
+      throw new Error('No items');
+    })
+    .catch(function(e) { return null; })
+  );
+
+  // Source 2-4: CORS proxies (parse raw XML)
+  CORS_PROXIES.forEach(function(proxy, idx) {
+    fetchers.push(
+      fetch(proxy + encodeURIComponent(rssUrl), {signal:AbortSignal.timeout(15000)})
+      .then(function(r) { if (!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+      .then(function(xml) {
+        var results = parseRssXml(xml);
+        if (results.length === 0) throw new Error('No items parsed');
+        return results;
+      })
+      .catch(function(e) { return null; })
+    );
+  });
+
+  // Wait for ALL to complete, take first non-null result
+  try {
+    var results = await Promise.all(fetchers);
+    for (var i = 0; i < results.length; i++) {
+      if (results[i] && results[i].length > 0) {
+        console.log('[rss2json] Source '+(i===0?'rss2json':'CORS-'+i)+' success for '+tag+': '+results[i].length+' items');
+        return results[i];
+      }
+    }
+  } catch(e) { /* all failed */ }
+
+  console.log('[rss2json] All sources failed for '+tag);
+  return [];
 }
 
 function extractSource(title) {
@@ -6534,21 +6567,21 @@ function renderNSEAnnouncements(announcements) {
 //  Sources: BSE filings, SEBI bulk deals, VAHAN, promoter txns
 // ============================================================
 const PRIMARY_SIGNALS = [
-  {type:"BUYBACK",company:"Cyient",ticker:"CYIENT",signal:"Buyback tender at ₹1,125/share (32.8% premium). Window: Jun 23-30.",source:"BSE Filing",date:"2026-06-20",severity:"HIGH",icon:"💰"},
-  {type:"BULK_DEAL",company:"Knowledge Marine",ticker:"KMEW",signal:"SBI Mutual Fund bought 4,00,036 shares via bulk deal (~₹78.5 Cr). Institutional entry at scale.",source:"SEBI Bulk Deal",date:"2026-06-19",severity:"HIGH",icon:"🏦"},
-  {type:"PROMOTER_BUY",company:"GRM Overseas",ticker:"GRMOVER",signal:"Promoter Atul Garg bought 2,38,281 shares on open market (Jun 8-11) at ₹94-98.",source:"SEBI Insider",date:"2026-06-11",severity:"MEDIUM",icon:"👤"},
-  {type:"PROMOTER_BUY",company:"Daikaffil Chemicals",ticker:"DAIKAFFIL",signal:"Promoter Mikusu India bought across 8 tranches (Jun 4-16). Stake 48.66%→49.62%, approaching 50%.",source:"SEBI Insider",date:"2026-06-16",severity:"HIGH",icon:"📈"},
-  {type:"PROMOTER_BUY",company:"NCC Ltd",ticker:"NCC",signal:"Promoter entity Sirisha Projects bought 5,44,721 shares (Jun 5 @₹149, Jun 17 @₹153). Buying at rising prices.",source:"SEBI Insider",date:"2026-06-17",severity:"MEDIUM",icon:"👤"},
-  {type:"PROMOTER_BUY",company:"Eveready Industries",ticker:"EVEREADY",signal:"Active promoter buying in June 2026 at market price. Alkaline battery plant commissioned May 2026.",source:"SEBI Insider",date:"2026-06-15",severity:"MEDIUM",icon:"🔋"},
-  {type:"BLOCK_DEAL",company:"Lenskart Solutions",ticker:"LENSKART",signal:"₹1,960 Cr block deal Jun 12: Kotak MF (₹591 Cr), NPS Trust (₹248 Cr), Canara Robeco bought from ADIA.",source:"SEBI Block Deal",date:"2026-06-12",severity:"HIGH",icon:"🏛️"},
-  {type:"CREDIT_UPGRADE",company:"Shriram Finance",ticker:"SHRIRAMFIN",signal:"Upgraded to AAA by ALL three agencies (CRISIL, ICRA, India Ratings) on Apr 9-10. MUFG 20% stake.",source:"Rating Agencies",date:"2026-04-10",severity:"HIGH",icon:"⭐"},
-  {type:"FII_SURGE",company:"Home First Finance",ticker:"HOMEFIRST",signal:"FII holding jumped 4.9 percentage points in ONE quarter to 49.16%. FY26 PAT grew 41.4%.",source:"Shareholding Pattern",date:"2026-06-15",severity:"HIGH",icon:"🌍"},
-  {type:"POLICY",company:"Waaree Energies",ticker:"WAAREE",signal:"ALMM List-II enforcement effective Jun 1 — domestic solar cells mandatory. Demand lock-in for Indian makers.",source:"MNRE Gazette",date:"2026-06-01",severity:"HIGH",icon:"🏛️"},
-  {type:"POLICY",company:"Ather Energy",ticker:"ATHERENERGY",signal:"PM E-Drive subsidy ~94% exhausted. Expiry Jul 31 could raise e-scooter prices ~₹5,000. Pre-buy rush underway.",source:"MHI Dashboard",date:"2026-06-20",severity:"HIGH",icon:"⚡"},
-  {type:"GOVT_APPROVAL",company:"Dixon Technologies",ticker:"DIXON",signal:"Government approval of Dixon-Vivo JV expected within days. JPMorgan estimates ~22M handsets/year shift.",source:"DPIIT Filing",date:"2026-06-18",severity:"HIGH",icon:"🏭"},
-  {type:"TRADE_DEAL",company:"Welspun Living",ticker:"WELSPUNLIV",signal:"India-UK FTA effective Jul 15. Eliminates ~12% textile tariffs. Stock +3-8% on Jun 18 announcement.",source:"Ministry of Commerce",date:"2026-06-18",severity:"HIGH",icon:"🤝"},
-  {type:"CAPACITY",company:"Kaynes Technology",ticker:"KAYNES",signal:"OSAT semiconductor plant (Sanand) inaugurated Mar 31. Capacity: 6M units/day. First revenue in Q1 FY27.",source:"Company Filing",date:"2026-03-31",severity:"HIGH",icon:"🔧"},
-  {type:"ORDER_WIN",company:"Suzlon Energy",ticker:"SUZLON",signal:"838 MW order from Tata Power. Record 6.4 GW total order book. FY26 revenue +54%. Now debt-free.",source:"BSE Announcement",date:"2026-06-16",severity:"MEDIUM",icon:"🌬️"},
+  {type:"EARNINGS",company:"TCS",ticker:"TCS",signal:"Q1 FY27: PAT ₹13,349 Cr (+5% YoY), Revenue ₹72,275 Cr (+14%). AI biz at $2.6B run rate. $9.5B order book. ₹12 dividend.",source:"BSE Filing",date:"2026-07-09",severity:"HIGH",icon:"💹"},
+  {type:"EARNINGS_MISS",company:"Trent",ticker:"TRENT",signal:"Q1 revenue ₹5,666 Cr (+19% YoY) misses 25% estimates. Stock crashed 13% in 2 days. Noel Tata last year as Chairman.",source:"BSE Filing",date:"2026-07-07",severity:"HIGH",icon:"📉"},
+  {type:"GEOPOLITICAL",company:"Oil Impact",ticker:"",signal:"US-Iran war escalates. Brent crude +8% in 2 sessions. IEA: largest supply disruption in history. Rupee at 85.55.",source:"IEA / Reuters",date:"2026-07-08",severity:"HIGH",icon:"⚠️"},
+  {type:"GOVT_APPROVAL",company:"Dixon Technologies",ticker:"DIXON",signal:"Vivo JV nearing regulatory approval. ~22M smartphones/year via Dixon. Stock +5% on Jul 9. ESOP allotment Jul 3.",source:"DPIIT / JPMorgan",date:"2026-07-09",severity:"HIGH",icon:"🏭"},
+  {type:"ORDER_WIN",company:"Suzlon Energy",ticker:"SUZLON",signal:"105 MW order from Sunsure for new S175 (5.0 MW) platform — commercial debut 2 weeks after launch. 6.5+ GW book.",source:"BSE Announcement",date:"2026-07-05",severity:"HIGH",icon:"🌬️"},
+  {type:"CAPEX",company:"Premier Energies",ticker:"PREMIERENE",signal:"₹6,000 Cr investment for ingot + wafer capacity. Aims to become India's first fully integrated solar manufacturer.",source:"BSE Filing",date:"2026-07-06",severity:"HIGH",icon:"☀️"},
+  {type:"TARIFF_RISK",company:"Waaree Energies",ticker:"WAAREE",signal:"US sets 126% tariff on Indian solar imports. Export revenue at risk. Domestic demand intact via ALMM.",source:"US Commerce Dept",date:"2026-07-03",severity:"HIGH",icon:"🚨"},
+  {type:"TRADE_DEAL",company:"Welspun Living",ticker:"WELSPUNLIV",signal:"India-UK FTA effective Jul 15. ~12% textile tariff eliminated. Direct margin boost for home textile exporters.",source:"Ministry of Commerce",date:"2026-07-01",severity:"HIGH",icon:"🤝"},
+  {type:"MACRO",company:"India Economy",ticker:"",signal:"Current account SURPLUS of $4.7B in April (vs $4.8B deficit last year). RBI launches e-Kuber 3.0 core banking.",source:"RBI Data",date:"2026-07-02",severity:"HIGH",icon:"🏛️"},
+  {type:"FII_SURGE",company:"Home First Finance",ticker:"HOMEFIRST",signal:"FII holding jumped 4.9 ppts to 49.16% in Q4. FY26 PAT grew 41.4%. Housing finance tailwind continues.",source:"Shareholding Pattern",date:"2026-06-15",severity:"HIGH",icon:"🌍"},
+  {type:"CREDIT_UPGRADE",company:"Shriram Finance",ticker:"SHRIRAMFIN",signal:"Upgraded to AAA by ALL three agencies (CRISIL, ICRA, India Ratings). MUFG 20% stake. Lower borrowing costs.",source:"Rating Agencies",date:"2026-04-10",severity:"HIGH",icon:"⭐"},
+  {type:"POLICY",company:"Ather Energy",ticker:"ATHERENERGY",signal:"PM E-Drive subsidy ~94% exhausted. Expiry Jul 31. Pre-buy rush underway. Post-expiry price hike ~₹5,000.",source:"MHI Dashboard",date:"2026-07-01",severity:"HIGH",icon:"⚡"},
+  {type:"CAPACITY",company:"Kaynes Technology",ticker:"KAYNES",signal:"OSAT semiconductor plant (Sanand) operational. 6M units/day capacity. First revenue in Q1 FY27.",source:"Company Filing",date:"2026-03-31",severity:"HIGH",icon:"🔧"},
+  {type:"PROMOTER_BUY",company:"GRM Overseas",ticker:"GRMOVER",signal:"Promoter Atul Garg bought 2,38,281 shares on open market at ₹94-98. Conviction buy at low levels.",source:"SEBI Insider",date:"2026-06-11",severity:"MEDIUM",icon:"👤"},
+  {type:"PROMOTER_BUY",company:"NCC Ltd",ticker:"NCC",signal:"Promoter entity Sirisha Projects bought 5,44,721 shares at ₹149-153. Buying at rising prices = strong conviction.",source:"SEBI Insider",date:"2026-06-17",severity:"MEDIUM",icon:"👤"},
 ];
 
 function renderPrimaryResearch() {
@@ -6574,69 +6607,81 @@ function renderPrimaryResearch() {
 
 // ============================================================
 //  AGENT-CURATED NEWS INTELLIGENCE (web-search powered)
-//  Last updated: 21 Jun 2026 by AI Research Agent
+//  Last updated: 10 Jul 2026 by AI Research Agent
 // ============================================================
 const CURATED_NEWS = [
-  {title:"Cyient announces buyback at ₹1,125/share — 32.8% premium to CMP. Tender window Jun 23-30.",
-   source:"BSE Filing",link:"https://www.bseindia.com/corporates/ann.html",
-   pubDate:"2026-06-20",tag:"company",tagLabel:"Cyient",
-   impact:"bullish",impactText:"Buyback Premium",
-   stocks:["Cyient"],
-   detail:"Record date Jun 17. ₹1,125 buyback price vs ~₹847 CMP. Massive arbitrage-driven buying expected."},
-  {title:"Dixon-Vivo JV gets government green light; ~22M handsets/year production shift to India",
-   source:"DPIIT / JPMorgan",link:"https://www.bseindia.com/corporates/ann.html",
-   pubDate:"2026-06-21",tag:"company",tagLabel:"Dixon",
+  {title:"TCS Q1 FY27: Net profit ₹13,349 Cr (+5% YoY), revenue ₹72,275 Cr (+14%). AI business at $2.6B run rate. ₹12 dividend declared.",
+   source:"TCS Filing",link:"https://www.businesstoday.in/markets/stocks/story/tcs-q1-results-net-profit-rises-to-rs-13349-crore-revenue-up-14-quarterly-earnings-details-542024-2026-07-09",
+   pubDate:"2026-07-09",tag:"company",tagLabel:"TCS",
+   impact:"bullish",impactText:"Q1 Beat",
+   stocks:["TCS"],
+   detail:"Strong $9.5B order book including marquee SKF AI deal. AI revenue at $2.6B annualized run rate. Sets positive tone for IT earnings season."},
+  {title:"US-Iran conflict escalates — Brent crude surges 8% in 2 sessions. Sensex crashes 1,677 pts on Jul 8. India current account at risk.",
+   source:"Reuters / BSE",link:"https://www.brecorder.com/news/40429214/oil-worries-return-for-indian-rupee-as-us-iran-tensions-flare-again",
+   pubDate:"2026-07-08",tag:"geo",tagLabel:"Geopolitical",
+   impact:"bearish",impactText:"Oil Shock",
+   stocks:[],
+   detail:"US strikes on Iran, retaliatory attacks on Kuwait & Bahrain. IEA calls it largest supply disruption in history. Rupee falls to 1-month low at 85.55."},
+  {title:"Trent Q1 revenue ₹5,666 Cr (+19% YoY) misses street expectations of 20-25% — stock crashes 13% in 2 days.",
+   source:"BSE Filing / Angel One",link:"https://www.angelone.in/news/stocks/trent-share-price-falls-over-11-on-july-7-2026-here-s-why",
+   pubDate:"2026-07-07",tag:"company",tagLabel:"Trent",
+   impact:"bearish",impactText:"Earnings Miss",
+   stocks:["Trent"],
+   detail:"Revenue growth deceleration from 30%+ to 19%. Noel Tata announces last year as Chairman (turns 70 in Nov 2026). Market punishes premium valuation."},
+  {title:"Dixon Technologies rallies 5%+ on Jul 9 — Vivo JV nearing regulatory approval. ~22M smartphones/year production shift.",
+   source:"MarketsMojo / JPMorgan",link:"https://www.marketsmojo.com/news/stocks-in-action/dixon-technologies-india-ltd-hits-intraday-high-with-501-surge-on-9-july-2026-4095293",
+   pubDate:"2026-07-09",tag:"company",tagLabel:"Dixon",
    impact:"bullish",impactText:"JV Catalyst",
    stocks:["Dixon Technologies"],
-   detail:"Massive order book expansion. India's #1 EMS. Stock up 12% in one week."},
-  {title:"India-UK FTA signed — effective July 15. Textile tariffs eliminated (~12% boost for Indian exporters)",
+   detail:"Two-thirds of Vivo's 35-37M smartphones to be manufactured via Dixon JV. ESOP allotment of 56,210 shares on Jul 3. Analyst upgrades continue."},
+  {title:"Suzlon Energy wins 105 MW order from Sunsure Energy for S175 (5.0 MW) turbine — commercial debut for new platform.",
+   source:"BSE Announcement",link:"https://www.suzlon.com/in-en/media-room/press-releases",
+   pubDate:"2026-07-05",tag:"company",tagLabel:"Suzlon",
+   impact:"bullish",impactText:"New Platform Launch",
+   stocks:["Suzlon Energy"],
+   detail:"S175 platform launched just 2 weeks ago. First commercial order validates new tech. Total order book now at 6.5+ GW. FY26 revenue +54%, debt-free."},
+  {title:"Premier Energies plans ₹6,000 Cr investment for ingot + wafer capacity — aims to be India's first integrated solar manufacturer.",
+   source:"BSE Filing",link:"https://www.bseindia.com/corporates/ann.html",
+   pubDate:"2026-07-06",tag:"company",tagLabel:"Premier",
+   impact:"bullish",impactText:"Capacity Expansion",
+   stocks:["Premier Energies"],
+   detail:"3-year capex plan for backward integration into ingots and wafers. Will become India's only cell-to-module fully integrated player."},
+  {title:"US sets 126% preliminary tariff on Indian solar imports — Waaree, Premier, Vikram Solar stocks fall up to 15%.",
+   source:"US Commerce Dept",link:"https://www.samco.in/knowledge-center/articles/waaree-energies-premier-energies-and-vikram-solar-share-price-slide-as-us-sets-126-import-duty-stock-market-today/",
+   pubDate:"2026-07-03",tag:"macro",tagLabel:"Trade Risk",
+   impact:"bearish",impactText:"Tariff Headwind",
+   stocks:["Waaree Energies","Premier Energies"],
+   detail:"126% anti-dumping duty on Indian solar exports to US. Domestic demand unaffected due to ALMM. Export revenue at risk for US-exposed players."},
+  {title:"India-UK FTA effective July 15 — textile tariffs eliminated. Direct boost for Welspun Living, Trident, GHCL.",
    source:"Ministry of Commerce",link:"https://commerce.gov.in",
-   pubDate:"2026-06-18",tag:"macro",tagLabel:"Trade Deal",
+   pubDate:"2026-07-01",tag:"macro",tagLabel:"Trade Deal",
    impact:"bullish",impactText:"FTA Catalyst",
    stocks:["Welspun Living"],
-   detail:"Direct margin and volume uplift for textile exporters. Welspun Living rallied 3-8% on announcement."},
-  {title:"SBI Mutual Fund enters Knowledge Marine with ₹78.5 Cr bulk deal — 4 lakh shares purchased",
-   source:"SEBI Bulk Deal",link:"https://www.nseindia.com/market-data/bulk-deal-data",
-   pubDate:"2026-06-19",tag:"company",tagLabel:"KMEW",
-   impact:"bullish",impactText:"Institutional Entry",
-   stocks:["Knowledge Marine"],
-   detail:"Large mutual fund entry signals institutional re-rating thesis. SBI MF known for conviction bets."},
-  {title:"Shriram Finance upgraded to AAA by all three agencies — first NBFC outside top 5 to achieve this",
-   source:"CRISIL / ICRA / India Ratings",link:"https://www.crisil.com",
-   pubDate:"2026-04-10",tag:"company",tagLabel:"Shriram",
-   impact:"bullish",impactText:"AAA Upgrade",
-   stocks:["Shriram Finance"],
-   detail:"MUFG 20% stake. Networth crossed ₹1L Cr. Lower borrowing costs = margin expansion."},
-  {title:"ALMM List-II enforcement effective June 1 — domestic solar cells now mandatory for all projects",
-   source:"MNRE Gazette",link:"https://mnre.gov.in",
-   pubDate:"2026-06-01",tag:"macro",tagLabel:"Solar Policy",
-   impact:"bullish",impactText:"Policy Tailwind",
-   stocks:["Waaree Energies","Premier Energies"],
-   detail:"Chinese solar cell imports effectively blocked. Demand lock-in for Waaree (12 GW) and Premier Energies (4 GW)."},
-  {title:"Kaynes Technology OSAT semiconductor plant inaugurated at Sanand — 6M units/day capacity",
-   source:"Company Filing",link:"https://www.bseindia.com/corporates/ann.html",
-   pubDate:"2026-03-31",tag:"company",tagLabel:"Kaynes",
-   impact:"bullish",impactText:"Semiconductor Revenue",
-   stocks:["Kaynes Technology"],
-   detail:"India Semiconductor Mission approved. First revenue in Q1 FY27. Game-changer for Indian semi ecosystem."},
-  {title:"PM E-Drive subsidy 94% exhausted — e-scooter prices to rise ₹5,000 post Jul 31 expiry",
-   source:"MHI Dashboard",link:"https://pmemobility.in",
-   pubDate:"2026-06-20",tag:"macro",tagLabel:"EV Policy",
-   impact:"bullish",impactText:"Demand Rush",
-   stocks:["Ather Energy","JBM Auto"],
-   detail:"Pre-buy rush underway. 24.79 lakh target nearly met. Near-term demand surge then potential dip."},
-  {title:"Suzlon Energy wins 838 MW order from Tata Power; total order book at record 6.4 GW",
-   source:"BSE Announcement",link:"https://www.bseindia.com/corporates/ann.html",
-   pubDate:"2026-06-16",tag:"company",tagLabel:"Suzlon",
-   impact:"bullish",impactText:"Order Win",
-   stocks:["Suzlon Energy"],
-   detail:"FY26 revenue +54%. Now debt-free. PE 19x vs 33% ROCE = massive value gap."},
-  {title:"S&P upgrades India to BBB — first rating upgrade in 18 years. FII inflows expected to surge",
-   source:"S&P Global",link:"https://www.spglobal.com/ratings",
-   pubDate:"2026-06-15",tag:"india",tagLabel:"Rating Upgrade",
-   impact:"bullish",impactText:"Macro Catalyst",
+   detail:"12% tariff elimination gives Indian textile exporters direct margin boost. Welspun Living is largest US-facing home textile exporter."},
+  {title:"Q1 FY27 Earnings Season kicks off — brokerages expect 10% Nifty 50 earnings growth. Financial stocks to lead.",
+   source:"Bloomberg",link:"https://www.bloomberg.com/news/newsletters/2026-07-08/financial-stocks-expected-to-lead-india-s-first-quarter-earnings",
+   pubDate:"2026-07-08",tag:"india",tagLabel:"Earnings Season",
+   impact:"bullish",impactText:"Earnings Cycle",
    stocks:[],
-   detail:"DIIs bought record ₹4.3 trillion in H1 CY2026. FII ownership at 15-year low (16.9%). Reversal = significant upside."},
+   detail:"TCS reports Jul 9, HDFC Bank mid-July. Management commentary on demand crucial. IT sector AI deal pipeline key focus."},
+  {title:"Sensex at 76,742, Nifty at 23,963 — consolidation range 23,800-24,350. FIIs net buyers in July so far.",
+   source:"NSE / BSE",link:"https://trendlyne.com/markets-today/",
+   pubDate:"2026-07-09",tag:"india",tagLabel:"Market Update",
+   impact:"bullish",impactText:"Range Consolidation",
+   stocks:[],
+   detail:"Market recovers from Jul 8 crash. Gift Nifty slightly negative. Key support at 23,925. FIIs turned net buyers after selling ₹2.68L Cr in 2026."},
+  {title:"JSW Energy commissions 1,081 MW renewable capacity since April. Total installed now 14,535 MW.",
+   source:"BSE Filing",link:"https://www.bseindia.com/corporates/ann.html",
+   pubDate:"2026-07-07",tag:"company",tagLabel:"JSW Energy",
+   impact:"bullish",impactText:"Capacity Ramp",
+   stocks:[],
+   detail:"Aggressive renewable buildout. 14.5 GW total capacity positions JSW as India's largest private renewable energy company."},
+  {title:"India records current account SURPLUS of $4.7B in April 2026 — reverses $4.8B deficit. RBI launches e-Kuber 3.0.",
+   source:"RBI Data",link:"https://www.bankingfinance.in/rbi-news-for-july-2026.html",
+   pubDate:"2026-07-02",tag:"macro",tagLabel:"Economy",
+   impact:"bullish",impactText:"CA Surplus",
+   stocks:[],
+   detail:"First current account surplus in years. RBI also unveils FY27 agenda: e-Kuber 3.0 core banking, alternative payment system, unified enterprise platform."},
 ];
 
 // ---- MASTER LOAD: News Intelligence Tab ----
@@ -8218,33 +8263,48 @@ async function fetchGNewsRSS(query, srcType, limit) {
       signalCat: classifySignalCategory(title)
     };
   }
-  // Try rss2json first
-  try {
-    const resp = await fetch(RSS2JSON + encodeURIComponent(rssUrl), {signal: AbortSignal.timeout(8000)});
-    if (resp.ok) {
-      const data = await resp.json();
+  // Race rss2json + all CORS proxies in parallel
+  const maxItems = limit || 6;
+  const fetchers = [];
+  // Source 1: rss2json
+  fetchers.push(
+    fetch(RSS2JSON + encodeURIComponent(rssUrl), {signal: AbortSignal.timeout(15000)})
+    .then(r => { if (!r.ok) throw new Error('HTTP'); return r.json(); })
+    .then(data => {
       if (data.status === 'ok' && data.items && data.items.length > 0) {
-        return data.items.slice(0, limit || 6).map(item => parseGNewsItem(item, srcType));
+        return data.items.slice(0, maxItems).map(item => parseGNewsItem(item, srcType));
       }
-    }
-  } catch(e) { /* fall through to CORS proxy */ }
-  // Fallback: AllOrigins CORS proxy + parse raw XML
+      throw new Error('No items');
+    }).catch(() => null)
+  );
+  // Source 2-4: CORS proxies
+  CORS_PROXIES.forEach(proxy => {
+    fetchers.push(
+      fetch(proxy + encodeURIComponent(rssUrl), {signal: AbortSignal.timeout(15000)})
+      .then(r => { if (!r.ok) throw new Error('HTTP'); return r.text(); })
+      .then(xml => {
+        const doc = new DOMParser().parseFromString(xml, 'text/xml');
+        const items = doc.querySelectorAll('item');
+        const results = [];
+        items.forEach((el, idx) => {
+          if (idx >= maxItems) return;
+          const t = el.querySelector('title');
+          const l = el.querySelector('link');
+          const d = el.querySelector('pubDate');
+          if (t) results.push(parseGNewsItem({title: t.textContent, link: l?l.textContent:'#', pubDate: d?d.textContent:'', author: extractSource(t.textContent)}, srcType));
+        });
+        if (results.length === 0) throw new Error('No items');
+        return results;
+      }).catch(() => null)
+    );
+  });
   try {
-    const resp2 = await fetch(CORS_PROXY_FALLBACK + encodeURIComponent(rssUrl), {signal: AbortSignal.timeout(8000)});
-    if (!resp2.ok) return [];
-    const xml = await resp2.text();
-    const doc = new DOMParser().parseFromString(xml, 'text/xml');
-    const items = doc.querySelectorAll('item');
-    const results = [];
-    items.forEach((el, idx) => {
-      if (idx >= (limit || 6)) return;
-      const t = el.querySelector('title');
-      const l = el.querySelector('link');
-      const d = el.querySelector('pubDate');
-      if (t) results.push(parseGNewsItem({title: t.textContent, link: l?l.textContent:'#', pubDate: d?d.textContent:'', author: extractSource(t.textContent)}, srcType));
-    });
-    return results;
-  } catch(e2) { return []; }
+    const all = await Promise.all(fetchers);
+    for (let i = 0; i < all.length; i++) {
+      if (all[i] && all[i].length > 0) return all[i];
+    }
+  } catch(e) { /* all failed */ }
+  return [];
 }
 
 // ── Enhanced signal detection ──
@@ -8846,21 +8906,33 @@ async function fetchDayTradeNews() {
     }
   });
 
-  // Fetch all queries in parallel via rss2json
+  // Fetch all queries in parallel via rss2json + CORS proxy racing
   var allItems = [];
   var fetchPromises = [];
   queries.forEach(function(qObj) {
     var rssUrl3 = 'https://news.google.com/rss/search?q=' + encodeURIComponent(qObj.q) + '&hl=en-IN&gl=IN&ceid=IN:en';
-    var p = fetch(RSS2JSON + encodeURIComponent(rssUrl3), {signal: AbortSignal.timeout(6000)})
+    // Race rss2json vs first CORS proxy — whichever succeeds first
+    var rssP = fetch(RSS2JSON + encodeURIComponent(rssUrl3), {signal: AbortSignal.timeout(12000)})
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        if (data.status === 'ok' && data.items) {
-          data.items.slice(0, 6).forEach(function(item) {
-            allItems.push({title: item.title || '', tag: qObj.tag});
-          });
+        if (data.status === 'ok' && data.items && data.items.length > 0) {
+          return data.items.slice(0, 6).map(function(item) { return {title: item.title || '', tag: qObj.tag}; });
         }
-      })
-      .catch(function() {});
+        return null;
+      }).catch(function() { return null; });
+    var corsP = fetch(CORS_PROXIES[0] + encodeURIComponent(rssUrl3), {signal: AbortSignal.timeout(12000)})
+      .then(function(r) { return r.text(); })
+      .then(function(xml) {
+        var doc = new DOMParser().parseFromString(xml, 'text/xml');
+        var items = doc.querySelectorAll('item');
+        var results = [];
+        items.forEach(function(el, idx) { if (idx >= 6) return; var t = el.querySelector('title'); if (t) results.push({title: t.textContent, tag: qObj.tag}); });
+        return results.length > 0 ? results : null;
+      }).catch(function() { return null; });
+    var p = Promise.all([rssP, corsP]).then(function(r) {
+      var items = r[0] || r[1] || [];
+      items.forEach(function(item) { allItems.push(item); });
+    });
     fetchPromises.push(p);
   });
 
