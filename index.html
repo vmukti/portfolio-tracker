@@ -1026,8 +1026,12 @@ tbody tr.flash-down{animation:flashRed .8s ease}
       <button onclick="runSectorAnalysis()" style="padding:10px 18px;background:var(--card2);color:var(--accent);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128202; Sector Analysis</button>
       <button onclick="runAutoDiscover()" style="padding:10px 18px;background:var(--card2);color:#22c55e;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128270; Auto-Discover</button>
       <button onclick="predictDailyMovers()" style="padding:10px 18px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">&#128640; Predict Movers</button>
+      <button onclick="runPreMarketIntel()" style="padding:10px 18px;background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">&#127749; Pre-Market Intel</button>
       <span id="aiScanTime" style="color:var(--muted);font-size:12px;margin-left:auto">Not scanned yet</span>
     </div>
+
+    <!-- Pre-Market Intelligence Panel -->
+    <div id="aiPreMarket" style="margin-bottom:16px"></div>
 
     <!-- Daily Mover Predictions -->
     <div id="aiMovers" style="margin-bottom:16px"></div>
@@ -1318,7 +1322,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v10.2 &mdash; Live News Fix + Dynamic Portfolio Rotation (570+ stocks | Multi-Proxy News) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v10.3 &mdash; Pre-Market Intelligence + Dynamic Portfolio Rotation (570+ stocks | Multi-Proxy News) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -2703,6 +2707,484 @@ async function predictDailyMovers() {
   console.log('[MOVER] Scan stored: ' + scored.length + ' stocks, top=' + (scored[0]?.ticker || 'none') + ' (' + (scored[0]?.moverScore || 0) + ')');
   // Layer 3: Save daily trend data for multi-day tracking
   try { saveDailyTrend(); console.log('[TREND] Daily trend data saved after mover scan'); } catch(e) { console.warn('[TREND] Save failed:', e); }
+}
+
+// ============================================================
+//  PRE-MARKET INTELLIGENCE ENGINE v1.0
+//  Predicts today's movers BEFORE 9:15 AM using overnight data
+// ============================================================
+
+// ── Global Market Cues (updated via web research + can be auto-refreshed) ──
+var PRE_MARKET_GLOBAL = {
+  lastUpdated: '2026-07-10',
+  giftNifty: { value: 23987, changePct: -0.10, signal: 'FLAT' },
+  dow: { value: 52348, changePct: 0.12, signal: 'MILDLY_BULLISH' },
+  sp500: { value: 7483, changePct: 0.08, signal: 'MILDLY_BULLISH' },
+  nasdaq: { value: 25871, changePct: 0.15, signal: 'MILDLY_BULLISH' },
+  nikkei: { value: 67856, changePct: 0.45, signal: 'BULLISH' },
+  brentCrude: { value: 78.5, changePct: 1.2, signal: 'RISING' },
+  indiaVix: { value: 13.27, signal: 'LOW_VOL' },
+  fiiFlow: { value: 1963, label: '+1,963 Cr (Jul 8)', signal: 'INFLOW' },
+  diiFlow: { value: 2100, label: '+2,100 Cr (Jul 8)', signal: 'INFLOW' },
+  usdInr: { value: 85.55, signal: 'STABLE' },
+  niftySupport: 23925,
+  niftyResistance: 24200,
+  regime: 'CAUTIOUS_BULLISH',
+  keyThemes: ['Q1 FY27 earnings season kickoff', 'US-Iran conflict — crude volatility', 'TCS Q1 results reaction', 'India-UK FTA effective Jul 15', 'FII inflows consecutive']
+};
+
+// ── Earnings Calendar (stocks reporting today/tomorrow) ──
+var EARNINGS_CALENDAR = [
+  {ticker:'TCS', name:'Tata Consultancy Services', date:'2026-07-09', status:'REPORTED', result:'BEAT', patGrowth:5, revenueGrowth:14, keyNote:'AI biz $2.6B run rate. $9.5B order book.'},
+  {ticker:'IREDA', name:'IREDA', date:'2026-07-10', status:'EXPECTED', keyNote:'Green energy financing growth'},
+  {ticker:'ANGELONE', name:'Angel One', date:'2026-07-10', status:'EXPECTED', keyNote:'Broking volumes + fintech'},
+  {ticker:'LTTS', name:'L&T Technology', date:'2026-07-11', status:'UPCOMING', keyNote:'ER&D spending outlook'},
+  {ticker:'HCLTECH', name:'HCL Technologies', date:'2026-07-11', status:'UPCOMING', keyNote:'IT sector follow-through'}
+];
+
+function runPreMarketIntel() {
+  var defaultEl = document.getElementById('aiDefault');
+  if (defaultEl) defaultEl.style.display = 'none';
+
+  var pmDiv = document.getElementById('aiPreMarket');
+  pmDiv.innerHTML = '<div style="text-align:center;padding:30px"><span class="spinner"></span> Running Pre-Market Intelligence Sweep...</div>';
+
+  // Small delay for UI update
+  setTimeout(function() { _buildPreMarketPanel(pmDiv); }, 100);
+}
+
+function _buildPreMarketPanel(pmDiv) {
+  var now = new Date();
+  var hour = now.getHours();
+  var isPreMarket = hour < 9 || (hour === 9 && now.getMinutes() < 15);
+  var timeLabel = isPreMarket ? 'PRE-MARKET' : 'MARKET ' + (hour >= 9 && hour < 16 ? 'OPEN' : 'CLOSED');
+
+  // ═══════════════════════════════════════════════════════
+  //  LAYER 1: Score every stock from overnight intelligence
+  // ═══════════════════════════════════════════════════════
+  var predictions = [];
+  var allStockPool = [];
+
+  // Source 1: Portfolio stocks (use stored data)
+  stocks.forEach(function(s) {
+    if (s._watchlist) return;
+    allStockPool.push({
+      ticker: s.ticker, name: s.name, sector: s.sector || '',
+      cmp: s.cmp || s.prevClose || 0, prevClose: s.prevClose || 0,
+      changePct: s.changePct || 0, pe: s.pe || 0, roce: s.roce || 0,
+      mcap: s.mcap || 0, vol: s.vol || 0, avgVol: s.avgVol || 0,
+      high52: s.high52 || 0, low52: s.low52 || 0,
+      scanStatus: s.scanStatus || 'INTACT', catalyst: s.catalyst || '',
+      layer: s.layer || '', inPortfolio: true
+    });
+  });
+
+  // Source 2: Previous mover scan data (universe stocks)
+  if (window._moverScan && window._moverScan.scored) {
+    window._moverScan.scored.forEach(function(m) {
+      if (allStockPool.find(function(p) { return p.ticker === m.ticker; })) return; // skip dupes
+      allStockPool.push({
+        ticker: m.ticker, name: m.name, sector: m.sector || '',
+        cmp: m.cmp || 0, prevClose: m.prevClose || 0,
+        changePct: m.changePct || 0, pe: m.pe || 0, roce: 0,
+        mcap: m.mcap || 0, vol: m.vol || 0, avgVol: m.avgVol || 0,
+        high52: m.high52 || 0, low52: m.low52 || 0,
+        scanStatus: '', catalyst: '', layer: '', inPortfolio: false,
+        prevMoverScore: m.moverScore || 0, prevReasons: m.reasons || []
+      });
+    });
+  }
+
+  // Source 3: MOVER_UNIVERSE enrichment
+  if (typeof MOVER_UNIVERSE !== 'undefined') {
+    MOVER_UNIVERSE.forEach(function(u) {
+      if (allStockPool.find(function(p) { return p.ticker === u.t; })) {
+        // Enrich existing entry
+        var existing = allStockPool.find(function(p) { return p.ticker === u.t; });
+        if (!existing.pe && u.pe) existing.pe = u.pe;
+        if (!existing.roce && u.ro) existing.roce = u.ro;
+        if (!existing.mcap && u.mc) existing.mcap = u.mc;
+        if (!existing.sector && u.s) existing.sector = u.s;
+      }
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  LAYER 2: Pre-Market Scoring Engine (0-100)
+  // ═══════════════════════════════════════════════════════
+  allStockPool.forEach(function(s) {
+    if (isEthicallyExcluded(s.sector) || isEthicallyExcluded(s.name)) return;
+    if (!s.cmp || s.cmp <= 0) return;
+
+    var score = 0;
+    var reasons = [];
+    var direction = 'NEUTRAL';
+    var confidence = 30; // base
+
+    // ── SIGNAL 1: PRIMARY_SIGNALS match (0-30) ──
+    var matchedSignal = PRIMARY_SIGNALS.find(function(sig) {
+      return sig.ticker && sig.ticker === s.ticker;
+    });
+    if (matchedSignal) {
+      var sigAge = Math.floor((now.getTime() - new Date(matchedSignal.date).getTime()) / 86400000);
+      if (sigAge <= 1) {
+        score += 30; confidence += 20;
+        reasons.push(matchedSignal.icon + ' ' + matchedSignal.type.replace(/_/g,' ') + ': ' + matchedSignal.signal.substring(0, 80));
+        if (matchedSignal.type === 'EARNINGS' || matchedSignal.type === 'ORDER_WIN' || matchedSignal.type === 'GOVT_APPROVAL' || matchedSignal.type === 'CREDIT_UPGRADE' || matchedSignal.type === 'PROMOTER_BUY' || matchedSignal.type === 'FII_SURGE' || matchedSignal.type === 'TRADE_DEAL' || matchedSignal.type === 'CAPACITY') {
+          direction = 'UP';
+        } else if (matchedSignal.type === 'EARNINGS_MISS' || matchedSignal.type === 'TARIFF_RISK') {
+          direction = 'DOWN';
+        } else {
+          direction = 'VOLATILE';
+        }
+      } else if (sigAge <= 3) {
+        score += 20; confidence += 12;
+        reasons.push(matchedSignal.icon + ' Recent: ' + matchedSignal.type.replace(/_/g,' ') + ' (' + sigAge + 'd ago)');
+        direction = (matchedSignal.type === 'EARNINGS_MISS' || matchedSignal.type === 'TARIFF_RISK') ? 'DOWN' : 'UP';
+      } else if (sigAge <= 7) {
+        score += 10; confidence += 5;
+        reasons.push(matchedSignal.type.replace(/_/g,' ') + ' signal (' + sigAge + 'd ago)');
+      }
+    }
+
+    // ── SIGNAL 2: Earnings Calendar match (0-25) ──
+    var earningsMatch = EARNINGS_CALENDAR.find(function(e) { return e.ticker === s.ticker; });
+    if (earningsMatch) {
+      if (earningsMatch.status === 'REPORTED') {
+        score += 25; confidence += 15;
+        if (earningsMatch.result === 'BEAT') {
+          direction = 'UP';
+          reasons.push('&#128200; EARNINGS BEAT: PAT +' + (earningsMatch.patGrowth||0) + '%, Rev +' + (earningsMatch.revenueGrowth||0) + '%');
+        } else if (earningsMatch.result === 'MISS') {
+          direction = 'DOWN';
+          reasons.push('&#128201; EARNINGS MISS — market reaction expected');
+        }
+      } else if (earningsMatch.status === 'EXPECTED') {
+        score += 20; confidence += 12;
+        direction = 'VOLATILE';
+        reasons.push('&#128197; RESULTS TODAY — high volatility expected. ' + (earningsMatch.keyNote || ''));
+      } else if (earningsMatch.status === 'UPCOMING') {
+        score += 8; confidence += 5;
+        reasons.push('&#128197; Results in 1-2 days — positioning expected');
+      }
+    }
+
+    // ── SIGNAL 3: Previous day momentum continuation (0-15) ──
+    if (s.changePct) {
+      var absChg = Math.abs(s.changePct);
+      if (absChg >= 5) {
+        score += 15; confidence += 10;
+        reasons.push('Yesterday ' + (s.changePct > 0 ? '+' : '') + s.changePct.toFixed(1) + '% — momentum continuation likely');
+        direction = direction === 'NEUTRAL' ? (s.changePct > 0 ? 'UP' : 'DOWN') : direction;
+      } else if (absChg >= 3) {
+        score += 10; confidence += 6;
+        reasons.push('Strong prev session ' + (s.changePct > 0 ? '+' : '') + s.changePct.toFixed(1) + '%');
+        if (direction === 'NEUTRAL') direction = s.changePct > 0 ? 'UP' : 'DOWN';
+      } else if (absChg >= 2) {
+        score += 5;
+        if (direction === 'NEUTRAL') direction = s.changePct > 0 ? 'UP' : 'DOWN';
+      }
+    }
+
+    // ── SIGNAL 4: Volume spike from previous session (0-10) ──
+    if (s.vol && s.avgVol && s.avgVol > 0) {
+      var volR = s.vol / s.avgVol;
+      if (volR >= 3) {
+        score += 10; confidence += 8;
+        reasons.push('Volume explosion ' + volR.toFixed(1) + 'x avg — institutional activity');
+      } else if (volR >= 2) {
+        score += 7; confidence += 5;
+        reasons.push('Heavy volume ' + volR.toFixed(1) + 'x avg');
+      } else if (volR >= 1.5) {
+        score += 4;
+      }
+    }
+
+    // ── SIGNAL 5: 52-Week technical setup (0-10) ──
+    if (s.high52 > 0 && s.low52 > 0 && s.high52 > s.low52) {
+      var pos52 = (s.cmp - s.low52) / (s.high52 - s.low52);
+      if (pos52 >= 0.95) {
+        score += 10; confidence += 5;
+        reasons.push('At 52W HIGH — breakout/distribution zone');
+        if (direction === 'NEUTRAL') direction = 'VOLATILE';
+      } else if (pos52 >= 0.85) {
+        score += 7;
+        reasons.push('Near 52W high — breakout setup');
+        if (direction === 'NEUTRAL') direction = 'UP';
+      } else if (pos52 <= 0.08) {
+        score += 10; confidence += 5;
+        reasons.push('At 52W LOW — reversal/dead cat bounce zone');
+        if (direction === 'NEUTRAL') direction = 'VOLATILE';
+      } else if (pos52 <= 0.15) {
+        score += 6;
+        reasons.push('Deeply oversold — bounce candidate');
+      }
+    }
+
+    // ── SIGNAL 6: Multi-day trend from stored history (0-10) ──
+    var trend = getTrend(s.ticker);
+    if (trend.days >= 2) {
+      if (trend.direction === 'UP' && trend.streak >= 3) {
+        score += 10; confidence += 5;
+        reasons.push(trend.streak + '-day UP streak — momentum building');
+        if (direction === 'NEUTRAL') direction = 'UP';
+      } else if (trend.direction === 'DOWN' && trend.streak >= 3) {
+        score += 8; confidence += 4;
+        reasons.push(trend.streak + '-day DOWN streak — oversold bounce?');
+        if (direction === 'NEUTRAL') direction = 'VOLATILE';
+      } else if (trend.volumeTrend === 'RISING') {
+        score += 5;
+        reasons.push('Volume building over ' + trend.days + ' days');
+      }
+    }
+
+    // ── SIGNAL 7: Global market regime impact (0-10) ──
+    var G = PRE_MARKET_GLOBAL;
+    var sectorLower = (s.sector || '').toLowerCase();
+    // Crude oil impact
+    if (G.brentCrude.changePct > 2 && (sectorLower.includes('oil') || sectorLower.includes('paint') || sectorLower.includes('chemical') || sectorLower.includes('aviation'))) {
+      score += 8; confidence += 5;
+      reasons.push('Crude +' + G.brentCrude.changePct.toFixed(1) + '% — sector impact');
+      if (sectorLower.includes('oil')) { if (direction === 'NEUTRAL') direction = 'UP'; }
+      else { if (direction === 'NEUTRAL') direction = 'DOWN'; }
+    }
+    // IT stocks and US market cue
+    if ((sectorLower.includes('it') || sectorLower.includes('tech') || sectorLower.includes('software')) && Math.abs(G.nasdaq.changePct) > 0.5) {
+      score += 6; confidence += 4;
+      reasons.push('Nasdaq ' + (G.nasdaq.changePct > 0 ? '+' : '') + G.nasdaq.changePct.toFixed(1) + '% — IT cue');
+      if (direction === 'NEUTRAL') direction = G.nasdaq.changePct > 0 ? 'UP' : 'DOWN';
+    }
+    // Banking and FII flows
+    if (sectorLower.includes('bank') || sectorLower.includes('nbfc') || sectorLower.includes('financ')) {
+      if (G.fiiFlow.signal === 'INFLOW') {
+        score += 5; confidence += 3;
+        reasons.push('FII inflow ' + G.fiiFlow.label + ' — banking positive');
+        if (direction === 'NEUTRAL') direction = 'UP';
+      }
+    }
+    // Low VIX environment bonus
+    if (G.indiaVix.value < 14) {
+      score += 2;
+    }
+
+    // ── SIGNAL 8: Catalyst + Scan Status from portfolio data (0-10) ──
+    if (s.inPortfolio) {
+      if (s.scanStatus === 'STRENGTHENING') {
+        score += 6; confidence += 3;
+        reasons.push('Portfolio status: STRENGTHENING');
+        if (direction === 'NEUTRAL') direction = 'UP';
+      }
+      if (s.catalyst && s.catalyst.length > 5) {
+        var catUp = s.catalyst.toUpperCase();
+        if (catUp.includes('RESULTS') || catUp.includes('ORDER') || catUp.includes('APPROVAL') || catUp.includes('BUYBACK') || catUp.includes('SPLIT')) {
+          score += 4; confidence += 3;
+          reasons.push('Active catalyst: ' + s.catalyst.substring(0, 50));
+        }
+      }
+    }
+
+    // ── SIGNAL 9: Previous mover scan score (0-5) ──
+    if (s.prevMoverScore && s.prevMoverScore >= 50) {
+      score += 5; confidence += 3;
+      reasons.push('Prev mover score: ' + s.prevMoverScore + '/100');
+    }
+
+    // ── SIGNAL 10: Dashboard Intelligence (if available) (0-10) ──
+    var dIntel = window._dashboardIntel && window._dashboardIntel[s.ticker];
+    if (dIntel) {
+      if (dIntel.technical) {
+        if (dIntel.technical.action === 'Strong Buy') { score += 5; reasons.push('Tech signal: Strong Buy'); if (direction === 'NEUTRAL') direction = 'UP'; }
+        else if (dIntel.technical.action === 'Strong Sell') { score += 5; reasons.push('Tech signal: Strong Sell'); if (direction === 'NEUTRAL') direction = 'DOWN'; }
+        if (dIntel.technical.rsi && dIntel.technical.rsi < 30) { score += 3; reasons.push('RSI ' + dIntel.technical.rsi.toFixed(0) + ' — oversold bounce likely'); }
+        else if (dIntel.technical.rsi && dIntel.technical.rsi > 70) { score += 3; reasons.push('RSI ' + dIntel.technical.rsi.toFixed(0) + ' — profit booking likely'); }
+        if (dIntel.technical.bbPos != null && dIntel.technical.bbPos < 10) { score += 3; reasons.push('BB squeeze — breakout imminent'); }
+        confidence += 5;
+      }
+      if (dIntel.earnings && dIntel.earnings.quality === 'Excellent') {
+        score += 3; reasons.push('Earnings quality: Excellent');
+      }
+      if (dIntel.news && dIntel.news.sentiment === 'BULLISH') {
+        score += 3; confidence += 3;
+        reasons.push('News sentiment: Bullish');
+        if (direction === 'NEUTRAL') direction = 'UP';
+      } else if (dIntel.news && dIntel.news.sentiment === 'BEARISH') {
+        score += 3;
+        reasons.push('News sentiment: Bearish');
+        if (direction === 'NEUTRAL') direction = 'DOWN';
+      }
+    }
+
+    // Cap confidence at 95
+    confidence = Math.min(95, Math.max(10, confidence));
+
+    // Only include stocks with meaningful score
+    if (score >= 15 || s.inPortfolio) {
+      var dirColor = direction === 'UP' ? '#22c55e' : direction === 'DOWN' ? '#ef4444' : '#f59e0b';
+      var dirIcon = direction === 'UP' ? '&#9650;' : direction === 'DOWN' ? '&#9660;' : '&#9670;';
+      predictions.push({
+        ticker: s.ticker, name: s.name, sector: s.sector,
+        cmp: s.cmp, preMarketScore: score, direction: direction,
+        dirColor: dirColor, dirIcon: dirIcon,
+        confidence: confidence, reasons: reasons,
+        inPortfolio: s.inPortfolio, pe: s.pe, roce: s.roce,
+        mcap: s.mcap, layer: s.layer || '',
+        changePctPrev: s.changePct || 0
+      });
+    }
+  });
+
+  // Sort by pre-market score
+  predictions.sort(function(a, b) { return b.preMarketScore - a.preMarketScore; });
+
+  // ═══════════════════════════════════════════════════════
+  //  LAYER 3: Render Pre-Market Intelligence Panel
+  // ═══════════════════════════════════════════════════════
+  var G = PRE_MARKET_GLOBAL;
+  var html = '';
+
+  // ── Header ──
+  html += '<div style="background:linear-gradient(135deg,#0c1426,#1a1a3e);border:2px solid #06b6d444;border-radius:14px;padding:0;overflow:hidden">';
+  html += '<div style="background:linear-gradient(90deg,#06b6d4,#0891b2);padding:14px 20px;display:flex;justify-content:space-between;align-items:center">';
+  html += '<div><div style="font-size:18px;font-weight:800;color:#fff">&#127749; Pre-Market Intelligence</div>';
+  html += '<div style="font-size:11px;color:#cffafe;margin-top:2px">' + timeLabel + ' | ' + now.toLocaleString('en-IN',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + ' IST</div></div>';
+  html += '<div style="text-align:right"><div style="font-size:11px;color:#cffafe">GIFT Nifty</div>';
+  html += '<div style="font-size:20px;font-weight:800;color:#fff">' + G.giftNifty.value.toLocaleString() + '</div>';
+  html += '<div style="font-size:12px;color:' + (G.giftNifty.changePct >= 0 ? '#86efac' : '#fca5a5') + ';font-weight:700">' + (G.giftNifty.changePct >= 0 ? '+' : '') + G.giftNifty.changePct.toFixed(2) + '%</div></div></div>';
+
+  // ── Global Cues Bar ──
+  html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:#06b6d422;padding:1px">';
+  var cues = [
+    {label:'Dow Jones', val:G.dow.value.toLocaleString(), chg:G.dow.changePct},
+    {label:'S&P 500', val:G.sp500.value.toLocaleString(), chg:G.sp500.changePct},
+    {label:'Nasdaq', val:G.nasdaq.value.toLocaleString(), chg:G.nasdaq.changePct},
+    {label:'Brent Crude', val:'$' + G.brentCrude.value, chg:G.brentCrude.changePct},
+    {label:'India VIX', val:G.indiaVix.value.toFixed(2), chg:0, tag:G.indiaVix.signal === 'LOW_VOL' ? 'Low Vol' : 'High Vol'},
+    {label:'USD/INR', val:G.usdInr.value.toFixed(2), chg:0, tag:G.usdInr.signal}
+  ];
+  cues.forEach(function(c) {
+    var cColor = c.chg > 0 ? '#22c55e' : c.chg < 0 ? '#ef4444' : '#94a3b8';
+    html += '<div style="background:#0c1426;padding:10px;text-align:center">';
+    html += '<div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">' + c.label + '</div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#e2e8f0">' + c.val + '</div>';
+    if (c.tag) {
+      html += '<div style="font-size:10px;color:#94a3b8">' + c.tag + '</div>';
+    } else {
+      html += '<div style="font-size:10px;color:' + cColor + ';font-weight:600">' + (c.chg > 0 ? '+' : '') + c.chg.toFixed(2) + '%</div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // ── FII/DII + Market Regime ──
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 2fr;gap:1px;background:#06b6d422;padding:1px">';
+  var fiiColor = G.fiiFlow.signal === 'INFLOW' ? '#22c55e' : '#ef4444';
+  var diiColor = G.diiFlow.signal === 'INFLOW' ? '#22c55e' : '#ef4444';
+  html += '<div style="background:#0c1426;padding:10px;text-align:center"><div style="font-size:9px;color:#94a3b8">FII FLOW</div><div style="font-size:13px;font-weight:700;color:' + fiiColor + '">' + G.fiiFlow.label + '</div></div>';
+  html += '<div style="background:#0c1426;padding:10px;text-align:center"><div style="font-size:9px;color:#94a3b8">DII FLOW</div><div style="font-size:13px;font-weight:700;color:' + diiColor + '">' + G.diiFlow.label + '</div></div>';
+  html += '<div style="background:#0c1426;padding:10px;text-align:center"><div style="font-size:9px;color:#94a3b8">NIFTY LEVELS</div><div style="font-size:11px;color:#e2e8f0;font-weight:600">S: ' + G.niftySupport + ' | R: ' + G.niftyResistance + '</div></div>';
+  // Market regime
+  var regimeColor = G.regime.includes('BULLISH') ? '#22c55e' : G.regime.includes('BEARISH') ? '#ef4444' : '#f59e0b';
+  html += '<div style="background:#0c1426;padding:10px"><div style="font-size:9px;color:#94a3b8">MARKET REGIME</div>';
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">';
+  html += '<span style="background:' + regimeColor + '22;color:' + regimeColor + ';padding:2px 10px;border-radius:4px;font-weight:700;font-size:11px">' + G.regime.replace(/_/g, ' ') + '</span>';
+  G.keyThemes.slice(0, 3).forEach(function(t) {
+    html += '<span style="background:#1e293b;color:#94a3b8;padding:2px 8px;border-radius:4px;font-size:10px">' + t + '</span>';
+  });
+  html += '</div></div></div>';
+
+  // ── Earnings Calendar ──
+  html += '<div style="padding:14px 20px 8px"><div style="font-size:13px;font-weight:700;color:#06b6d4;margin-bottom:8px">&#128197; Earnings Calendar — Stocks Reporting</div>';
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  EARNINGS_CALENDAR.forEach(function(e) {
+    var statusColor = e.status === 'REPORTED' ? (e.result === 'BEAT' ? '#22c55e' : '#ef4444') : e.status === 'EXPECTED' ? '#f59e0b' : '#64748b';
+    var statusIcon = e.status === 'REPORTED' ? (e.result === 'BEAT' ? '&#9989;' : '&#10060;') : e.status === 'EXPECTED' ? '&#128293;' : '&#128197;';
+    html += '<div style="background:#1e293b;border:1px solid ' + statusColor + '44;border-radius:8px;padding:8px 12px;min-width:130px">';
+    html += '<div style="font-weight:700;font-size:12px;color:#e2e8f0">' + statusIcon + ' ' + e.ticker + '</div>';
+    html += '<div style="font-size:10px;color:#94a3b8">' + e.name + '</div>';
+    html += '<div style="font-size:10px;color:' + statusColor + ';font-weight:600;margin-top:3px">' + e.status;
+    if (e.result) html += ' — ' + e.result;
+    if (e.patGrowth) html += ' (PAT +' + e.patGrowth + '%)';
+    html += '</div>';
+    if (e.keyNote) html += '<div style="font-size:9px;color:#64748b;margin-top:2px">' + e.keyNote.substring(0, 60) + '</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+
+  // ── Top Predicted Movers ──
+  var topMovers = predictions.filter(function(p) { return p.preMarketScore >= 20; }).slice(0, 15);
+  var portfolioMovers = predictions.filter(function(p) { return p.inPortfolio && p.preMarketScore >= 10; }).slice(0, 10);
+
+  html += '<div style="padding:8px 20px 14px">';
+  html += '<div style="font-size:15px;font-weight:700;margin-bottom:10px">&#128640; Today\'s Predicted Movers (Top ' + topMovers.length + ')</div>';
+
+  if (topMovers.length === 0) {
+    html += '<div style="text-align:center;padding:20px;color:#94a3b8">No strong pre-market signals detected. Run Mover Predictor after prices load for live scan.</div>';
+  } else {
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html += '<thead><tr style="border-bottom:2px solid #06b6d444">';
+    html += '<th style="padding:8px;text-align:left;color:#06b6d4;font-size:11px">STOCK</th>';
+    html += '<th style="padding:8px;text-align:center;color:#06b6d4;font-size:11px">DIRECTION</th>';
+    html += '<th style="padding:8px;text-align:center;color:#06b6d4;font-size:11px">SCORE</th>';
+    html += '<th style="padding:8px;text-align:center;color:#06b6d4;font-size:11px">CONFIDENCE</th>';
+    html += '<th style="padding:8px;text-align:center;color:#06b6d4;font-size:11px">PREV CLOSE</th>';
+    html += '<th style="padding:8px;text-align:left;color:#06b6d4;font-size:11px">KEY SIGNALS</th>';
+    html += '</tr></thead><tbody>';
+
+    topMovers.forEach(function(p, idx) {
+      var rowBg = idx % 2 === 0 ? 'transparent' : '#ffffff05';
+      var scoreColor = p.preMarketScore >= 50 ? '#22c55e' : p.preMarketScore >= 30 ? '#f59e0b' : '#94a3b8';
+      var confColor = p.confidence >= 70 ? '#22c55e' : p.confidence >= 50 ? '#f59e0b' : '#94a3b8';
+      var portfolioBadge = p.inPortfolio ? '<span style="background:#8b5cf622;color:#c4b5fd;padding:1px 5px;border-radius:3px;font-size:9px;margin-left:4px">' + (p.layer || 'PORT') + '</span>' : '';
+
+      html += '<tr style="background:' + rowBg + ';border-bottom:1px solid #1e293b">';
+      html += '<td style="padding:8px"><div style="font-weight:700">' + p.ticker + portfolioBadge + '</div><div style="font-size:10px;color:#64748b">' + (p.name || '').substring(0, 25) + '</div><div style="font-size:9px;color:#475569">' + p.sector + '</div></td>';
+      html += '<td style="padding:8px;text-align:center"><span style="color:' + p.dirColor + ';font-weight:800;font-size:16px">' + p.dirIcon + '</span><div style="font-size:10px;color:' + p.dirColor + ';font-weight:600">' + p.direction + '</div></td>';
+      html += '<td style="padding:8px;text-align:center"><span style="background:' + scoreColor + '22;color:' + scoreColor + ';padding:3px 10px;border-radius:6px;font-weight:800;font-size:14px">' + p.preMarketScore + '</span></td>';
+      html += '<td style="padding:8px;text-align:center"><div style="background:#1e293b;border-radius:10px;height:8px;width:60px;margin:0 auto"><div style="background:' + confColor + ';height:100%;border-radius:10px;width:' + p.confidence + '%"></div></div><div style="font-size:10px;color:' + confColor + ';margin-top:3px">' + p.confidence + '%</div></td>';
+      html += '<td style="padding:8px;text-align:center;font-weight:600">&#8377;' + p.cmp.toLocaleString('en-IN', {maximumFractionDigits:0}) + '<div style="font-size:10px;color:' + (p.changePctPrev >= 0 ? '#22c55e' : '#ef4444') + '">' + (p.changePctPrev >= 0 ? '+' : '') + p.changePctPrev.toFixed(1) + '% prev</div></td>';
+      html += '<td style="padding:8px"><div style="font-size:11px;line-height:1.5">';
+      p.reasons.slice(0, 3).forEach(function(r) {
+        html += '<div style="color:#cbd5e1">' + r + '</div>';
+      });
+      if (p.reasons.length > 3) html += '<div style="color:#475569;font-size:10px">+' + (p.reasons.length - 3) + ' more signals</div>';
+      html += '</div></td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // ── Portfolio Stocks — Morning Outlook ──
+  if (portfolioMovers.length > 0) {
+    html += '<div style="margin-top:16px"><div style="font-size:13px;font-weight:700;color:#8b5cf6;margin-bottom:8px">&#128188; Your Portfolio — Morning Outlook</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">';
+    portfolioMovers.forEach(function(p) {
+      html += '<div style="background:#1e293b;border:1px solid ' + p.dirColor + '33;border-radius:8px;padding:10px;border-left:3px solid ' + p.dirColor + '">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+      html += '<span style="font-weight:700;font-size:12px">' + p.ticker + '</span>';
+      html += '<span style="color:' + p.dirColor + ';font-weight:800;font-size:14px">' + p.dirIcon + ' ' + p.direction + '</span>';
+      html += '</div>';
+      html += '<div style="font-size:10px;color:#64748b;margin:3px 0">' + (p.layer || '') + ' | Score: ' + p.preMarketScore + ' | Conf: ' + p.confidence + '%</div>';
+      if (p.reasons.length > 0) html += '<div style="font-size:10px;color:#94a3b8;margin-top:4px">' + p.reasons[0] + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // ── Summary Stats ──
+  var upPreds = predictions.filter(function(p) { return p.direction === 'UP' && p.preMarketScore >= 20; }).length;
+  var downPreds = predictions.filter(function(p) { return p.direction === 'DOWN' && p.preMarketScore >= 20; }).length;
+  var volPreds = predictions.filter(function(p) { return p.direction === 'VOLATILE' && p.preMarketScore >= 20; }).length;
+
+  html += '<div style="display:flex;gap:12px;margin-top:14px;padding:0 0 4px">';
+  html += '<div style="background:#22c55e15;border:1px solid #22c55e33;border-radius:8px;padding:8px 16px;text-align:center;flex:1"><div style="font-size:20px;font-weight:800;color:#22c55e">' + upPreds + '</div><div style="font-size:10px;color:#94a3b8">Predicted UP</div></div>';
+  html += '<div style="background:#ef444415;border:1px solid #ef444433;border-radius:8px;padding:8px 16px;text-align:center;flex:1"><div style="font-size:20px;font-weight:800;color:#ef4444">' + downPreds + '</div><div style="font-size:10px;color:#94a3b8">Predicted DOWN</div></div>';
+  html += '<div style="background:#f59e0b15;border:1px solid #f59e0b33;border-radius:8px;padding:8px 16px;text-align:center;flex:1"><div style="font-size:20px;font-weight:800;color:#f59e0b">' + volPreds + '</div><div style="font-size:10px;color:#94a3b8">High Volatility</div></div>';
+  html += '<div style="background:#06b6d415;border:1px solid #06b6d433;border-radius:8px;padding:8px 16px;text-align:center;flex:1"><div style="font-size:20px;font-weight:800;color:#06b6d4">' + allStockPool.length + '</div><div style="font-size:10px;color:#94a3b8">Stocks Analyzed</div></div>';
+  html += '</div>';
+
+  html += '</div></div>'; // close main container
+
+  pmDiv.innerHTML = html;
+  document.getElementById('aiScanTime').textContent = 'Pre-Market Intel: ' + now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'}) + ' | ' + predictions.length + ' stocks scored | ' + topMovers.length + ' predicted movers';
 }
 
 // ============================================================
