@@ -1017,7 +1017,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <div id="tab-portfolioai" style="display:none">
     <div style="text-align:center;padding:20px 0 10px">
       <h2 style="margin:0;font-size:22px">&#129302; AI Portfolio Manager</h2>
-      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">Health monitor &mdash; Smart recommendations &mdash; Auto-discovery &mdash; Sector analysis</p>
+      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">Health monitor &mdash; Smart recommendations &mdash; Universe discovery &mdash; Dynamic rotation &mdash; Change log</p>
     </div>
 
     <!-- AI Action Buttons -->
@@ -1318,7 +1318,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v10.0 &mdash; Full Intelligence Engine (570+ stocks | Bollinger + ATR + Price Predictor) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v10.1 &mdash; Dynamic Portfolio Rotation (570+ stocks | AI Add/Remove + Price Predictor) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -3068,7 +3068,76 @@ function runPortfolioAI() {
   tableHtml += '</tbody></table>';
   document.getElementById('aiStockHealth').innerHTML = tableHtml;
 
-  document.getElementById('aiScanTime').textContent = 'Last scan: ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'}) + ' | ' + scored.length + ' stocks analyzed';
+  // ── 4. UNIVERSE DISCOVERY — Find new stocks to ADD ──
+  var discoveries = discoverUniverseStocks();
+  var weakStocks = scored.filter(function(x){return x.sc.total < 40;});
+  var discoveryHtml = '<div style="font-size:16px;font-weight:700;margin:24px 0 12px">&#128270; Universe Discovery — Top Candidates to Add</div>';
+  discoveryHtml += '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Scanning ' + (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.length : 0) + ' stocks for quality picks not in portfolio. Scored by ROCE + PE value + MCap + sector relative valuation.</div>';
+
+  if (discoveries.length > 0) {
+    discoveryHtml += '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="color:var(--muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border)">';
+    discoveryHtml += '<th style="text-align:left;padding:8px">Company</th><th>Sector</th><th>Cap</th><th>P/E</th><th>ROCE</th><th>PE vs Sector</th><th>Score</th><th>Reason</th><th>Action</th></tr></thead><tbody>';
+
+    discoveries.forEach(function(d, di) {
+      var peColor = d.peDiscount > 30 ? '#22c55e' : d.peDiscount > 0 ? '#4ade80' : '#f59e0b';
+      var scoreColor = d.discoveryScore >= 70 ? '#22c55e' : d.discoveryScore >= 50 ? '#f59e0b' : '#ef4444';
+      var capLabel = d.cap === 'L' ? 'LARGE' : d.cap === 'M' ? 'MID' : d.cap === 'S' ? 'SMALL' : 'MICRO';
+      var capColor = d.cap === 'L' ? '#3b82f6' : d.cap === 'M' ? '#8b5cf6' : '#f59e0b';
+
+      discoveryHtml += '<tr style="border-bottom:1px solid var(--border)22">';
+      discoveryHtml += '<td style="padding:8px;font-weight:600">' + d.name + '<div style="font-size:10px;color:var(--muted)">' + d.ticker + '</div></td>';
+      discoveryHtml += '<td style="text-align:center;font-size:11px">' + d.sector + '</td>';
+      discoveryHtml += '<td style="text-align:center"><span style="background:' + capColor + '22;color:' + capColor + ';padding:2px 6px;border-radius:4px;font-size:10px">' + capLabel + '</span></td>';
+      discoveryHtml += '<td style="text-align:center">' + d.pe + '</td>';
+      discoveryHtml += '<td style="text-align:center;color:#22c55e;font-weight:600">' + d.roce + '%</td>';
+      discoveryHtml += '<td style="text-align:center;color:' + peColor + '">' + (d.peDiscount > 0 ? '-' + d.peDiscount + '%' : '+' + Math.abs(d.peDiscount) + '%') + '<div style="font-size:9px;color:var(--muted)">Sec:' + (d.sectorPE || '--') + '</div></td>';
+      discoveryHtml += '<td style="text-align:center"><span style="background:' + scoreColor + '22;color:' + scoreColor + ';padding:2px 8px;border-radius:4px;font-weight:700">' + d.discoveryScore + '</span></td>';
+      discoveryHtml += '<td style="font-size:11px">' + d.reason + '</td>';
+      discoveryHtml += '<td style="text-align:center">';
+
+      // Add button
+      var addArgs = "'" + d.ticker + "','" + d.name.replace(/'/g,"\\'") + "','" + (d.sector||'').replace(/'/g,"\\'") + "'," + d.pe + "," + d.roce + "," + (d.mcap||0) + ",'" + (d.cap||'') + "','" + d.reason.replace(/'/g,"\\'") + "'";
+      discoveryHtml += '<button onclick="aiAddStock(' + addArgs + ')" style="padding:3px 10px;background:#22c55e22;color:#86efac;border:1px solid #22c55e44;border-radius:4px;cursor:pointer;font-size:10px;font-weight:600">+ Add</button>';
+
+      // Swap button if weak stocks exist
+      if (weakStocks.length > 0 && di < weakStocks.length) {
+        var ws = weakStocks[di].stock;
+        var swapArgs = "'" + ws.ticker + "'," + addArgs;
+        discoveryHtml += '<button onclick="aiSwapStock(' + swapArgs + ')" style="padding:3px 10px;background:#8b5cf622;color:#c4b5fd;border:1px solid #8b5cf644;border-radius:4px;cursor:pointer;font-size:10px;margin-left:4px" title="Swap out ' + ws.ticker + '">&#8644; Swap</button>';
+      }
+
+      discoveryHtml += '</td></tr>';
+    });
+    discoveryHtml += '</tbody></table>';
+  } else {
+    discoveryHtml += '<div style="text-align:center;padding:20px;color:var(--muted)">No universe data available. Load MOVER_UNIVERSE first.</div>';
+  }
+
+  document.getElementById('aiDiscovery').innerHTML = discoveryHtml;
+
+  // ── 5. CHANGE LOG ──
+  try {
+    var changes = JSON.parse(localStorage.getItem(PORTFOLIO_CHANGES_KEY) || '[]');
+    if (changes.length > 0) {
+      var logHtml = '<div style="font-size:16px;font-weight:700;margin:24px 0 12px">&#128221; Portfolio Change Log</div>';
+      logHtml += '<div style="max-height:200px;overflow-y:auto">';
+      changes.slice(0, 20).forEach(function(c) {
+        var actionColor = c.action === 'ADD' ? '#22c55e' : c.action === 'REMOVE' ? '#ef4444' : '#f59e0b';
+        var actionIcon = c.action === 'ADD' ? '+' : c.action === 'REMOVE' ? '-' : '~';
+        logHtml += '<div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border)22;font-size:12px">';
+        logHtml += '<span style="color:var(--muted);min-width:70px">' + c.date + '</span>';
+        logHtml += '<span style="color:' + actionColor + ';font-weight:700;min-width:20px">' + actionIcon + '</span>';
+        logHtml += '<span style="font-weight:600;min-width:100px">' + c.ticker + '</span>';
+        logHtml += '<span style="color:var(--muted)">' + (c.reason || '') + '</span>';
+        logHtml += '</div>';
+      });
+      logHtml += '</div>';
+      // Append to discovery section
+      document.getElementById('aiDiscovery').innerHTML += logHtml;
+    }
+  } catch(e) {}
+
+  document.getElementById('aiScanTime').textContent = 'Last scan: ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'}) + ' | ' + scored.length + ' stocks analyzed | ' + discoveries.length + ' universe candidates found';
 }
 
 // ── Sector Analysis ──
@@ -3245,6 +3314,8 @@ function aiRemoveStock(ticker) {
       saveWatchlist(wl);
     }
     stocks.splice(idx, 1);
+    logPortfolioChange('REMOVE', ticker, removed.name, 'AI low score');
+    savePortfolioToStorage();
     document.getElementById('sTotal').textContent = stocks.filter(s => !s._watchlist).length;
     runPortfolioAI(); // Re-run analysis
   }
@@ -3256,8 +3327,223 @@ function aiChangeLayer(ticker, newLayer) {
     const oldLayer = stock.layer;
     stock.layer = newLayer;
     alert(ticker + ' moved from ' + oldLayer + ' to ' + newLayer);
+    savePortfolioToStorage();
     runPortfolioAI();
   }
+}
+
+// ============================================================
+//  DYNAMIC PORTFOLIO ROTATION v1.0
+//  Persist changes + discover new stocks + smart swaps
+// ============================================================
+var PORTFOLIO_KEY = 'portfolioStocks_v3';
+var PORTFOLIO_CHANGES_KEY = 'portfolioChanges_v1';
+
+function savePortfolioToStorage() {
+  try {
+    var portData = stocks.filter(function(s){return !s._watchlist;}).map(function(s){
+      return {t:s.ticker,n:s.name,yf:s.yf,l:s.layer,s:s.sector,pe:s.pe,ro:s.roce,mc:s.mcap,
+              th:s.thesis,cat:s.catalyst,cd:s.catalystDate,ss:s.scanStatus,sc:s.score,
+              l52:s.low52,h52:s.high52};
+    });
+    localStorage.setItem(PORTFOLIO_KEY, JSON.stringify(portData));
+  } catch(e) { console.warn('Portfolio save failed:', e); }
+}
+
+function loadPortfolioFromStorage() {
+  try {
+    var saved = localStorage.getItem(PORTFOLIO_KEY);
+    if (!saved) return false;
+    var portData = JSON.parse(saved);
+    if (!portData || portData.length < 5) return false;
+
+    // Build set of saved tickers
+    var savedTickers = new Set(portData.map(function(p){return p.t;}));
+
+    // Remove stocks that were removed by user (not in saved data)
+    var hardcodedTickers = stocks.filter(function(s){return !s._watchlist;}).map(function(s){return s.ticker;});
+    for (var ri = stocks.length - 1; ri >= 0; ri--) {
+      if (!stocks[ri]._watchlist && !savedTickers.has(stocks[ri].ticker)) {
+        stocks.splice(ri, 1);
+      }
+    }
+
+    // Update layers for existing stocks (user may have changed layers)
+    portData.forEach(function(p) {
+      var existing = stocks.find(function(s){return s.ticker === p.t && !s._watchlist;});
+      if (existing) {
+        existing.layer = p.l;
+        existing.scanStatus = p.ss || existing.scanStatus;
+      } else {
+        // This is a NEW stock added by user — add it to array
+        stocks.push({
+          name: p.n, ticker: p.t, scanStatus: p.ss || 'INTACT',
+          yf: p.yf || p.t + '.NS', layer: p.l || 'Long-Term',
+          sector: p.s || 'Unknown', cmp: 0, prevClose: 0, change: 0, changePct: 0,
+          mcap: p.mc || 0, pe: p.pe || 0, roce: p.ro || 0,
+          low52: p.l52 || 0, high52: p.h52 || 0, score: p.sc || 6.0,
+          thesis: p.th || 'AI-discovered stock', catalyst: p.cat || 'Universe discovery',
+          catalystDate: p.cd || '', vol: 0, avgVol: 0, loaded: false,
+          _addedByAI: true, _addedDate: p._addedDate || new Date().toISOString().split('T')[0]
+        });
+      }
+    });
+
+    console.log('Portfolio loaded from storage:', stocks.filter(function(s){return !s._watchlist;}).length, 'stocks');
+    return true;
+  } catch(e) {
+    console.warn('Portfolio load failed:', e);
+    return false;
+  }
+}
+
+function logPortfolioChange(action, ticker, name, reason) {
+  try {
+    var changes = JSON.parse(localStorage.getItem(PORTFOLIO_CHANGES_KEY) || '[]');
+    changes.unshift({
+      action: action, ticker: ticker, name: name, reason: reason,
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'})
+    });
+    if (changes.length > 100) changes = changes.slice(0, 100);
+    localStorage.setItem(PORTFOLIO_CHANGES_KEY, JSON.stringify(changes));
+  } catch(e) {}
+}
+
+function discoverUniverseStocks() {
+  if (typeof MOVER_UNIVERSE === 'undefined') return [];
+  var portTickers = new Set(stocks.filter(function(s){return !s._watchlist;}).map(function(s){
+    return (s.ticker||'').replace('.NS','').replace('.BO','');
+  }));
+
+  var candidates = [];
+  MOVER_UNIVERSE.forEach(function(m) {
+    if (portTickers.has(m.t)) return;
+    if (m.pe <= 0 || m.ro <= 0) return;
+    if (isEthicallyExcluded(m.s) || isEthicallyExcluded(m.n)) return;
+
+    // Score the candidate (0-100)
+    var score = 0;
+    // ROCE quality (max 30)
+    if (m.ro >= 30) score += 30;
+    else if (m.ro >= 20) score += 25;
+    else if (m.ro >= 15) score += 20;
+    else if (m.ro >= 10) score += 12;
+    else score += 5;
+
+    // PE value (max 25) — lower PE = better value
+    var sectorPE = getSectorAvgPE(m.s);
+    if (sectorPE > 0 && m.pe < sectorPE * 0.6) score += 25;
+    else if (sectorPE > 0 && m.pe < sectorPE * 0.8) score += 20;
+    else if (m.pe < 20) score += 18;
+    else if (m.pe < 30) score += 12;
+    else if (m.pe < 50) score += 8;
+    else score += 3;
+
+    // MCap preference (max 15) — prefer mid-cap sweet spot
+    var capCr = m.mc || 0;
+    if (capCr >= 10000 && capCr <= 80000) score += 15; // mid-cap sweet spot
+    else if (capCr >= 5000 && capCr <= 100000) score += 12;
+    else if (capCr >= 2000) score += 8;
+    else score += 4;
+
+    // Cap category (max 10)
+    if (m.c === 'L') score += 10;
+    else if (m.c === 'M') score += 8;
+    else if (m.c === 'S') score += 5;
+    else score += 2;
+
+    // Quality combo bonus (max 20)
+    if (m.ro >= 20 && m.pe < 25) score += 20; // high quality + cheap
+    else if (m.ro >= 15 && m.pe < 35) score += 14;
+    else if (m.ro >= 20 || m.pe < 20) score += 8;
+
+    candidates.push({
+      ticker: m.t, name: m.n, sector: m.s, cap: m.c,
+      pe: m.pe, roce: m.ro, mcap: m.mc,
+      discoveryScore: Math.min(score, 100),
+      sectorPE: sectorPE,
+      peDiscount: sectorPE > 0 ? Math.round((1 - m.pe/sectorPE) * 100) : 0,
+      reason: getDiscoveryReason(m, sectorPE)
+    });
+  });
+
+  candidates.sort(function(a,b){return b.discoveryScore - a.discoveryScore;});
+  return candidates.slice(0, 20);
+}
+
+function getDiscoveryReason(m, sectorPE) {
+  var reasons = [];
+  if (m.ro >= 25) reasons.push('High ROCE ' + m.ro + '%');
+  if (sectorPE > 0 && m.pe < sectorPE * 0.7) reasons.push('PE ' + Math.round((1-m.pe/sectorPE)*100) + '% below sector');
+  if (m.mc >= 10000 && m.mc <= 50000) reasons.push('Mid-cap sweet spot');
+  if (m.ro >= 20 && m.pe < 25) reasons.push('Quality + Value combo');
+  if (m.c === 'L') reasons.push('Large-cap stability');
+  if (reasons.length === 0) reasons.push('Fundamentally sound');
+  return reasons.slice(0, 2).join(' + ');
+}
+
+function aiAddStock(ticker, name, sector, pe, roce, mcap, cap, reason) {
+  if (stocks.find(function(s){return s.ticker === ticker && !s._watchlist;})) {
+    alert(ticker + ' is already in the portfolio!');
+    return;
+  }
+  var yf = ticker + '.NS';
+  // Check if BO ticker
+  var uMatch = (typeof MOVER_UNIVERSE !== 'undefined') ? MOVER_UNIVERSE.find(function(m){return m.t === ticker;}) : null;
+  if (uMatch && uMatch.t.endsWith('.BO')) yf = ticker + '.BO';
+
+  var newStock = {
+    name: name, ticker: ticker, scanStatus: 'INTACT',
+    yf: yf, layer: 'Long-Term',
+    sector: sector || 'Unknown', cmp: 0, prevClose: 0, change: 0, changePct: 0,
+    mcap: mcap || 0, pe: pe || 0, roce: roce || 0,
+    low52: 0, high52: 0, score: 7.0,
+    thesis: 'AI-discovered: ' + (reason || 'Strong fundamentals'),
+    catalyst: 'UNIVERSE DISCOVERY — ' + (reason || 'Quality pick'),
+    catalystDate: '', vol: 0, avgVol: 0, loaded: false,
+    _addedByAI: true, _addedDate: new Date().toISOString().split('T')[0]
+  };
+
+  stocks.push(newStock);
+  logPortfolioChange('ADD', ticker, name, reason || 'Universe discovery');
+  savePortfolioToStorage();
+
+  // Update total count
+  document.getElementById('sTotal').textContent = stocks.filter(function(s){return !s._watchlist;}).length;
+  // Fetch price for new stock
+  fetchPrice(newStock);
+  alert(name + ' (' + ticker + ') added to portfolio!\nReason: ' + (reason || 'AI discovery'));
+  runPortfolioAI();
+}
+
+function aiSwapStock(removeTicker, addTicker, addName, addSector, addPE, addROCE, addMcap, addCap, addReason) {
+  var removeStock = stocks.find(function(s){return s.ticker === removeTicker && !s._watchlist;});
+  if (!removeStock) return;
+
+  var msg = 'SWAP RECOMMENDATION\n\n';
+  msg += 'REMOVE: ' + removeStock.name + ' (' + removeTicker + ')\n';
+  msg += 'ADD: ' + addName + ' (' + addTicker + ')\n';
+  msg += 'Reason: ' + addReason + '\n\n';
+  msg += 'Proceed with swap?';
+
+  if (!confirm(msg)) return;
+
+  // Remove old
+  var idx = stocks.findIndex(function(s){return s.ticker === removeTicker && !s._watchlist;});
+  if (idx >= 0) {
+    var removed = stocks[idx];
+    var wl = getWatchlist();
+    if (!wl.find(function(w){return w.ticker === removeTicker;})) {
+      wl.push({ticker:removeTicker, name:removed.name, yf:removed.yf, exchange:'NSE', category:'Swapped-Out', score:30, addedDate:new Date().toISOString().split('T')[0], notes:'Swapped for ' + addTicker});
+      saveWatchlist(wl);
+    }
+    stocks.splice(idx, 1);
+    logPortfolioChange('REMOVE', removeTicker, removed.name, 'Swapped for ' + addTicker);
+  }
+
+  // Add new
+  aiAddStock(addTicker, addName, addSector, addPE, addROCE, addMcap, addCap, addReason);
 }
 
 // ============================================================
@@ -5231,6 +5517,9 @@ function checkNewsAlerts() {
     });
   });
 }
+
+// v10.1: Load portfolio changes from localStorage BEFORE fetching prices
+loadPortfolioFromStorage();
 
 // Fetch prices on load
 fetchAllPrices();
