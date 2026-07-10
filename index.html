@@ -1113,6 +1113,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
       <h2 style="margin:0;font-size:22px">&#9889; AI Day Trade Simulator v2.0 &mdash; Catalyst Momentum Engine</h2>
       <p style="color:var(--muted);margin:4px 0 0;font-size:13px">Institutional Edge: Relative Strength + Sector Rotation + Smart Money Detection + Conviction Sizing</p>
       <div id="dtStatusBadge" style="display:inline-block;margin-top:8px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#4f8cff22;color:#4f8cff;border:1px solid #4f8cff44">&#128337; STATUS: No positions &mdash; Market ready</div>
+      <div id="dtAutoStatus" style="display:inline-block;margin-top:8px;margin-left:12px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:600;background:#22c55e11;color:#60a5fa;border:1px solid #22c55e33">&#9889; AUTO: Initializing...</div>
     </div>
 
     <!-- Wallet Summary Cards -->
@@ -1136,7 +1137,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     <div class="card" style="margin-bottom:16px">
       <h3 style="margin:0 0 12px;font-size:16px">&#128200; Current Intraday Positions</h3>
       <div id="dtPositionsTable" style="font-size:13px">
-        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. Click &quot;Run Day Trade AI&quot; to scan and buy.</div>
+        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. AI auto-triggers at 9:20 AM, 11:00 AM &amp; 1:00 PM &mdash; or click &quot;Run Day Trade AI&quot; manually.</div>
       </div>
     </div>
 
@@ -10386,25 +10387,156 @@ async function runDayTradeSmartExits() {
   return exitCount;
 }
 
-// Auto-run smart exits every 2 minutes during market hours
+// (OLD exit monitor moved into Auto Day Trade Engine below)
+// ---------------------------------------------------------------
+//  AUTO DAY TRADE ENGINE v1.0 — Multi-Trigger Smart Automation
+//  Trigger Points:
+//    T1: 9:20 AM — Opening Momentum (primary, first-hour edge)
+//    T2: 11:00 AM — Mid-Morning Re-scan (if morning was flat/no picks)
+//    T3: 1:00 PM — Afternoon Catalyst (post-lunch breakouts)
+//    T4: 3:10 PM — Auto Square-Off (already in exit monitor)
+//  Each trigger fires ONCE per day (localStorage gate)
+//  If positions already open, buy triggers skip (only T4 fires)
+// ---------------------------------------------------------------
+var DT_AUTO_KEY = 'dtAutoTrigger_v1';
+
+function getDTAutoState() {
+  try {
+    var todayStr = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'})).toISOString().slice(0, 10);
+    var raw = localStorage.getItem(DT_AUTO_KEY);
+    if (raw) {
+      var state = JSON.parse(raw);
+      if (state.date === todayStr) return state;
+    }
+    // New day — reset all triggers
+    var fresh = { date: todayStr, t1_morning: false, t2_midday: false, t3_afternoon: false, autoEnabled: true };
+    localStorage.setItem(DT_AUTO_KEY, JSON.stringify(fresh));
+    return fresh;
+  } catch(e) {
+    return { date: '', t1_morning: false, t2_midday: false, t3_afternoon: false, autoEnabled: true };
+  }
+}
+
+function saveDTAutoState(state) {
+  try { localStorage.setItem(DT_AUTO_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function checkDayTradeAutoTrigger() {
+  var autoState = getDTAutoState();
+  if (!autoState.autoEnabled) return; // User disabled auto-trade
+
+  var w = getDT();
+  var nowIST = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
+  var hhmm = nowIST.getHours() * 100 + nowIST.getMinutes();
+  var day = nowIST.getDay();
+
+  // Skip weekends
+  if (day === 0 || day === 6) return;
+
+  // Skip if insufficient cash
+  if (w.cash < 15000) return;
+
+  // ── T1: MORNING OPEN — 9:20 to 9:30 AM ──
+  // Best edge: first hour has maximum momentum from overnight gaps
+  if (!autoState.t1_morning && hhmm >= 920 && hhmm <= 930 && w.positions.length === 0) {
+    autoState.t1_morning = true;
+    saveDTAutoState(autoState);
+    console.log('[DT-AUTO] T1 MORNING TRIGGER: 9:20 AM — Running opening momentum scan...');
+    updateDTAutoStatus('T1: Morning scan starting...', '#22c55e');
+    runDayTradeAI();
+    return;
+  }
+
+  // ── T2: MID-MORNING RE-SCAN — 11:00 to 11:10 AM ──
+  // If morning scan found nothing (market was flat), try again for late movers
+  if (!autoState.t2_midday && hhmm >= 1100 && hhmm <= 1110 && w.positions.length === 0) {
+    autoState.t2_midday = true;
+    saveDTAutoState(autoState);
+    console.log('[DT-AUTO] T2 MID-MORNING TRIGGER: 11:00 AM — Re-scanning for late movers...');
+    updateDTAutoStatus('T2: Mid-morning re-scan...', '#f59e0b');
+    runDayTradeAI();
+    return;
+  }
+
+  // ── T3: AFTERNOON CATALYST — 1:00 to 1:10 PM ──
+  // Post-lunch breakouts, news-driven afternoon moves
+  if (!autoState.t3_afternoon && hhmm >= 1300 && hhmm <= 1310 && w.positions.length === 0) {
+    autoState.t3_afternoon = true;
+    saveDTAutoState(autoState);
+    console.log('[DT-AUTO] T3 AFTERNOON TRIGGER: 1:00 PM — Scanning for afternoon catalysts...');
+    updateDTAutoStatus('T3: Afternoon catalyst scan...', '#f97316');
+    runDayTradeAI();
+    return;
+  }
+
+  // Update status display with next trigger info
+  updateDTAutoCountdown(hhmm, w.positions.length, autoState);
+}
+
+function updateDTAutoStatus(msg, color) {
+  var el = document.getElementById('dtAutoStatus');
+  if (el) {
+    el.style.color = color || '#22c55e';
+    el.innerHTML = '&#9889; AUTO: ' + msg;
+  }
+}
+
+function updateDTAutoCountdown(hhmm, posCount, autoState) {
+  var el = document.getElementById('dtAutoStatus');
+  if (!el) return;
+
+  var nextTrigger = '';
+  var nextTime = '';
+
+  if (hhmm < 920 && !autoState.t1_morning) {
+    nextTrigger = 'T1 Morning Scan';
+    nextTime = '9:20 AM';
+  } else if (hhmm < 1100 && !autoState.t2_midday && posCount === 0) {
+    nextTrigger = 'T2 Mid-Morning Re-scan';
+    nextTime = '11:00 AM';
+  } else if (hhmm < 1300 && !autoState.t3_afternoon && posCount === 0) {
+    nextTrigger = 'T3 Afternoon Catalyst';
+    nextTime = '1:00 PM';
+  } else if (posCount > 0) {
+    nextTrigger = 'T4 Auto Square-Off';
+    nextTime = '3:10 PM';
+  } else {
+    el.style.color = '#6b7280';
+    el.innerHTML = '&#9889; AUTO: All triggers fired today — done';
+    return;
+  }
+
+  el.style.color = '#60a5fa';
+  el.innerHTML = '&#9889; AUTO: Next &rarr; ' + nextTrigger + ' @ ' + nextTime + (posCount > 0 ? ' | ' + posCount + ' positions live' : '');
+}
+
+// Wire auto-trigger into the existing exit monitor (runs every 2 min)
 var _dtExitInterval = null;
 function startDayTradeExitMonitor() {
   if (_dtExitInterval) clearInterval(_dtExitInterval);
   _dtExitInterval = setInterval(function() {
-    var now = new Date();
+    var now = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
     var hrs = now.getHours();
     var mins = now.getMinutes();
     var timeMin = hrs * 60 + mins;
-    // Only run during market hours 9:15 - 15:30
-    if (timeMin >= 555 && timeMin <= 930) {
+    var day = now.getDay();
+    // Only run during market hours 9:15 - 15:30, weekdays
+    if (day > 0 && day < 6 && timeMin >= 555 && timeMin <= 930) {
+      // Smart exits for open positions
       var w = getDT();
       if (w.positions.length > 0) {
         console.log('[DT-MONITOR] Checking ' + w.positions.length + ' positions for exits...');
         runDayTradeSmartExits();
       }
+      // Auto-trigger check (buy at right times)
+      checkDayTradeAutoTrigger();
     }
   }, 120000); // Every 2 minutes
+
+  // Also run auto-trigger check once at startup (with delay for prices to load)
+  setTimeout(function() { checkDayTradeAutoTrigger(); }, 15000);
 }
+
 // Start monitor on page load
 if (typeof window !== 'undefined') {
   setTimeout(startDayTradeExitMonitor, 5000);
