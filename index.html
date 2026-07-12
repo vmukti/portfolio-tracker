@@ -4397,9 +4397,9 @@ function aiScore(s) {
 
   // Smart Signal Intelligence bonus
   const _smartSig = getSmartSignal((s.ticker||'').replace('.NS','').replace('.BO',''));
-  if (_smartSig && _smartSig.total >= 75) { signal += 8; factors.push('🔮 SHADOW ALERT: ' + _smartSig.topSignal); }
-  else if (_smartSig && _smartSig.total >= 55) { signal += 5; factors.push('🔮 Early signal: ' + _smartSig.topSignal); }
-  else if (_smartSig && _smartSig.total >= 40) { signal += 3; factors.push('🔮 Signal building: ' + _smartSig.topSignal); }
+  if (_smartSig && _smartSig.total >= 70) { signal += 8; factors.push('🔮 SHADOW ALERT: ' + _smartSig.topSignal); }
+  else if (_smartSig && _smartSig.total >= 50) { signal += 5; factors.push('🔮 Early signal: ' + _smartSig.topSignal); }
+  else if (_smartSig && _smartSig.total >= 35) { signal += 3; factors.push('🔮 Signal building: ' + _smartSig.topSignal); }
 
   const baseTotal = Math.min(25, momentum) + Math.min(25, value) + Math.min(25, quality) + Math.min(25, signal);
 
@@ -4844,7 +4844,7 @@ async function runAIAutoTrade() {
 
       // Smart Signal Intelligence boost
       const _ssBuy = getSmartSignal(s.ticker.replace('.NS','').replace('.BO',''));
-      if (_ssBuy && _ssBuy.total >= 55) bonusScore += 8;
+      if (_ssBuy && _ssBuy.total >= 50) bonusScore += 8;
 
       return { stock: s, sc: { total: Math.min(100, Math.max(0, bonusScore)), factors: sc.factors, rawScore: sc.total }, source: 'portfolio', trend, sectorHeat: sHeat };
     })
@@ -8064,17 +8064,17 @@ async function fetchScorerData(yfTicker, rawInput) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// SMART SIGNAL INTELLIGENCE ENGINE — Early Internet Activity Detection
-// Detects volume anomalies, price action patterns, news velocity,
-// social buzz proxies, and insider accumulation patterns BEFORE
-// mainstream news breaks. Target: identify 15-20% moves in 5-8 days.
+// SMART SIGNAL INTELLIGENCE ENGINE v2 — Real Web Intelligence
+// Uses LIVE Google Search data to detect early internet activity.
+// Two-phase scan: fast volume/price filter then targeted Google Buzz.
+// Target: identify 15-20% moves in 5-8 days from hidden signals.
 // ═══════════════════════════════════════════════════════════════════════
 var SMART_SIGNAL_CACHE = {};
 var SMART_SIGNAL_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
 function getSmartSignal(ticker) {
-  const now = Date.now();
-  const cached = SMART_SIGNAL_CACHE[ticker];
+  var now = Date.now();
+  var cached = SMART_SIGNAL_CACHE[ticker];
   if (cached && (now - cached.ts) < SMART_SIGNAL_CACHE_TTL) return cached.data;
   return null;
 }
@@ -8083,292 +8083,288 @@ function setSmartSignalCache(ticker, data) {
   SMART_SIGNAL_CACHE[ticker] = { ts: Date.now(), data: data };
 }
 
-// Signal 1: Volume Anomaly Detection (0-25 pts)
-function calcVolumeAnomaly(volume, price, prevClose) {
-  if (!volume || volume <= 0) return { score: 0, label: 'No volume data', detail: '' };
-  const changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
-  // Heuristic baseline: use market-cap-based typical volume since avgVolume is unavailable
-  // Small caps typically trade 50K-500K, mid caps 500K-5M, large caps 5M+
-  // We use volume thresholds relative to reasonable baselines
-  const baselineVolume = volume > 10000000 ? volume / 3.5 :
-                         volume > 5000000 ? volume / 3 :
-                         volume > 1000000 ? volume / 2.5 :
-                         volume > 100000 ? volume / 2 :
-                         volume / 1.5;
-  const volRatio = volume / Math.max(1, baselineVolume);
+// ─── Signal 1: Volume Intelligence (0-20 pts) ───
+function sigVolume(volume, price, prevClose, dayHigh, dayLow) {
+  if (!volume || volume <= 0) return { score: 0, label: '', detail: '' };
+  var changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
+  var intradayRange = (dayHigh && dayLow) ? ((dayHigh - dayLow) / price * 100) : 0;
+  var baseVol = volume > 10000000 ? volume / 3.5 :
+                volume > 5000000 ? volume / 3 :
+                volume > 1000000 ? volume / 2.5 :
+                volume > 100000 ? volume / 2 : volume / 1.5;
+  var vr = volume / Math.max(1, baseVol);
 
-  if (volRatio >= 3 && changePct > 1) {
-    return { score: 25, label: 'Institutional accumulation', detail: 'Vol ' + volRatio.toFixed(1) + 'x typical, price +' + changePct.toFixed(1) + '%' };
+  if (vr >= 2.5 && Math.abs(changePct) < 1 && intradayRange > 2) {
+    return { score: 20, label: 'Stealth accumulation — ' + vr.toFixed(1) + 'x vol, tight close', detail: 'Smart money absorbing supply' };
   }
-  if (volRatio >= 2 && changePct > 0) {
-    return { score: 18, label: 'Smart money inflow', detail: 'Vol ' + volRatio.toFixed(1) + 'x typical, positive price' };
+  if (vr >= 3 && changePct > 2) {
+    return { score: 20, label: 'Heavy buying — vol ' + vr.toFixed(1) + 'x, +' + changePct.toFixed(1) + '%', detail: 'Block deal or institutional entry' };
   }
-  if (volRatio >= 2 && changePct < 0) {
-    return { score: -5, label: 'Distribution warning', detail: 'Vol ' + volRatio.toFixed(1) + 'x typical, price falling' };
+  if (vr >= 2 && changePct > 0.5) {
+    return { score: 15, label: 'Volume surge ' + vr.toFixed(1) + 'x with +' + changePct.toFixed(1) + '% gain', detail: '' };
   }
-  if (volRatio >= 1.5) {
-    return { score: 10, label: 'Above average interest', detail: 'Vol ' + volRatio.toFixed(1) + 'x typical' };
+  if (vr >= 2.5 && changePct < -1) {
+    return { score: -5, label: 'Distribution — ' + vr.toFixed(1) + 'x vol, price falling', detail: 'Possible exit by large holders' };
   }
-  return { score: 0, label: 'Normal volume', detail: '' };
+  if (vr >= 1.5) {
+    return { score: 8, label: 'Above-avg volume (' + vr.toFixed(1) + 'x)', detail: '' };
+  }
+  return { score: 0, label: '', detail: '' };
 }
 
-// Signal 2: Price Action Intelligence (0-25 pts)
-function calcPriceAction(price, prevClose, high52, low52, dayHigh, dayLow) {
-  if (!price || price <= 0) return { score: 0, label: 'No price data', detail: '' };
-  const changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
-  const range52 = high52 - low52;
-  const posIn52W = range52 > 0 ? ((price - low52) / range52 * 100) : 50;
-  const intradayRange = dayHigh && dayLow ? ((dayHigh - dayLow) / price * 100) : 0;
+// ─── Signal 2: Price Action Pattern (0-20 pts) ───
+function sigPriceAction(price, prevClose, high52, low52, dayHigh, dayLow) {
+  if (!price || price <= 0) return { score: 0, label: '', detail: '' };
+  var changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
+  var range52 = high52 - low52;
+  var pos52 = range52 > 0 ? ((price - low52) / range52 * 100) : 50;
+  var intradayRange = (dayHigh && dayLow) ? ((dayHigh - dayLow) / price * 100) : 0;
+  var fromHigh52 = high52 > 0 ? ((high52 - price) / high52 * 100) : 0;
 
-  let score = 0;
-  let label = '';
-  let detail = '';
-
-  // Near 52-week high on high volume = breakout imminent
-  if (posIn52W >= 95) {
-    score = 25; label = 'Breakout imminent';
-    detail = 'Within ' + (100 - posIn52W).toFixed(1) + '% of 52W high';
+  if (pos52 >= 97) {
+    return { score: 20, label: '52W high breakout — only ' + fromHigh52.toFixed(1) + '% from ATH', detail: '' };
   }
-  // Gap up > 3%
-  else if (changePct >= 3) {
-    score = 20; label = 'Gap-up catalyst detected';
-    detail = 'Gap up +' + changePct.toFixed(1) + '% from prev close';
+  if (changePct >= 4) {
+    return { score: 20, label: 'Gap-up +' + changePct.toFixed(1) + '% — catalyst in play', detail: '' };
   }
-  // Breaking above consolidation (price > 90% of 52W range)
-  else if (posIn52W >= 90) {
-    score = 18; label = 'Range breakout';
-    detail = 'At ' + posIn52W.toFixed(0) + '% of 52W range';
+  if (changePct >= 2) {
+    return { score: 15, label: 'Strong move +' + changePct.toFixed(1) + '% today', detail: '' };
   }
-  // Unusual intraday volatility
-  else if (intradayRange > 3) {
-    score = 12; label = 'Volatility expansion';
-    detail = 'Intraday range ' + intradayRange.toFixed(1) + '%';
+  if (pos52 >= 90) {
+    return { score: 14, label: 'Near 52W high (' + pos52.toFixed(0) + '% of range)', detail: '' };
   }
-  // Consecutive momentum
-  else if (changePct > 0.5) {
-    score = 10; label = 'Momentum building';
-    detail = 'Up ' + changePct.toFixed(1) + '% today';
+  if (pos52 <= 15 && changePct > 1) {
+    return { score: 16, label: 'Reversal from 52W low — up ' + changePct.toFixed(1) + '% off bottom', detail: '' };
   }
-
-  return { score: score, label: label, detail: detail };
+  if (intradayRange > 4) {
+    return { score: 12, label: 'Volatile day — ' + intradayRange.toFixed(1) + '% intraday range', detail: '' };
+  }
+  if (changePct > 0.5 && pos52 > 50) {
+    return { score: 8, label: 'Steady momentum +' + changePct.toFixed(1) + '%', detail: '' };
+  }
+  return { score: 0, label: '', detail: '' };
 }
 
-// Signal 3: News Velocity Score (0-20 pts)
-function calcNewsVelocity(ticker) {
-  const intel = window._dashboardIntel && window._dashboardIntel[ticker];
-  let score = 0;
-  let label = 'No news data';
-  let detail = '';
-
-  // Check news data from dashboard intelligence
-  if (intel) {
-    let newsHits = 0;
-    let catalystKeywords = 0;
-    const catalystTerms = ['order win', 'approval', 'partnership', 'acquisition', 'buyback', 'split', 'bonus', 'demerger', 'merger', 'expansion', 'capex', 'contract', 'licence', 'fda', 'breakthrough'];
-
-    // Check technical signals as proxy for activity
-    if (intel.technical) {
-      if (intel.technical.trend === 'STRONG_UP') newsHits += 2;
-      if (intel.technical.volumeTrend === 'RISING') newsHits += 1;
+// ─── Signal 3: Google Search Buzz (0-30 pts) ─── PRIMARY WEB INTELLIGENCE
+// Fetches REAL Google Suggest data and analyses content for buzz patterns.
+// This is what makes each stock signal UNIQUE and DIFFERENTIATED.
+async function sigGoogleBuzz(companyName, ticker) {
+  if (!companyName) return { score: 0, label: '', detail: '', hotWords: [], categories: [] };
+  try {
+    var queries = [
+      companyName + ' share price',
+      companyName + ' stock news',
+      companyName + ' share'
+    ];
+    var allSuggestions = [];
+    var proxyBase = 'https://corsproxy.io/?';
+    for (var qi = 0; qi < queries.length; qi++) {
+      try {
+        var surl = 'https://suggestqueries.google.com/complete/search?client=firefox&q=' + encodeURIComponent(queries[qi]);
+        var sresp = await fetch(proxyBase + encodeURIComponent(surl), { signal: AbortSignal.timeout(4000) });
+        var sdata = await sresp.json();
+        if (sdata && sdata[1]) { for (var si = 0; si < sdata[1].length; si++) allSuggestions.push(sdata[1][si]); }
+      } catch(e2) { /* skip */ }
     }
+    if (allSuggestions.length === 0) return { score: 0, label: 'No search data', detail: '', hotWords: [], categories: [] };
 
-    // Check earnings data for catalyst
-    if (intel.earnings) {
-      if (intel.earnings.epsGrowth > 25) { newsHits += 2; catalystKeywords++; }
-      if (intel.earnings.revenueGrowth > 20) { newsHits += 1; catalystKeywords++; }
-    }
+    var hotPatterns = {
+      'news today': { weight: 4, category: 'Breaking news' },
+      'latest news': { weight: 3, category: 'News velocity' },
+      'target tomorrow': { weight: 5, category: 'Near-term catalyst' },
+      'insider buying': { weight: 5, category: 'Insider buying detected' },
+      'buy or sell': { weight: 4, category: 'Decision momentum' },
+      'target price': { weight: 3, category: 'Price target hunt' },
+      'quarterly results': { weight: 4, category: 'Earnings season' },
+      'bulk deal': { weight: 4, category: 'Bulk deal activity' },
+      'block deal': { weight: 4, category: 'Block deal activity' },
+      'order win': { weight: 5, category: 'Order win buzz' },
+      'today': { weight: 3, category: 'Active buzz' },
+      'latest': { weight: 2, category: 'Recent interest' },
+      'breaking': { weight: 5, category: 'Breaking catalyst' },
+      'live': { weight: 2, category: 'Real-time tracking' },
+      'results': { weight: 4, category: 'Earnings catalyst' },
+      'acquisition': { weight: 5, category: 'M&A speculation' },
+      'takeover': { weight: 5, category: 'Takeover buzz' },
+      'merger': { weight: 5, category: 'Merger speculation' },
+      'bonus': { weight: 4, category: 'Bonus/split catalyst' },
+      'split': { weight: 4, category: 'Stock split buzz' },
+      'dividend': { weight: 3, category: 'Dividend catalyst' },
+      'insider': { weight: 4, category: 'Insider activity' },
+      'expansion': { weight: 3, category: 'Growth catalyst' },
+      'contract': { weight: 3, category: 'New contract buzz' },
+      'deal': { weight: 3, category: 'Deal activity' },
+      'rally': { weight: 3, category: 'Rally expectation' },
+      'multibagger': { weight: 4, category: 'Multibagger hunt' },
+      'breakout': { weight: 4, category: 'Breakout expected' }
+    };
+    var coldPatterns = ['2030','2028','2029','history','wiki','full form','company profile','about','careers'];
+    var sortedPats = Object.keys(hotPatterns).sort(function(a,b){ return b.length - a.length; });
 
-    // Check ranking data
-    if (intel.ranking) {
-      if (intel.ranking.grade === 'A+' || intel.ranking.grade === 'A') newsHits += 1;
-    }
+    var totalWeight = 0;
+    var foundCategories = [];
+    var foundHotWords = [];
+    var coldCount = 0;
 
-    // Check fundamental data
-    if (intel.fundamental) {
-      if (intel.fundamental.qualGrade === 'A+' || intel.fundamental.qualGrade === 'A') newsHits += 1;
-    }
-
-    // Check portfolio stocks for catalyst text
-    if (typeof stocks !== 'undefined') {
-      const pStock = stocks.find(function(s) { return s.ticker === ticker; });
-      if (pStock && pStock.catalyst) {
-        const catText = pStock.catalyst.toUpperCase();
-        catalystTerms.forEach(function(term) {
-          if (catText.includes(term.toUpperCase())) catalystKeywords++;
-        });
-        if (pStock.catalyst.length > 10) newsHits += 1;
+    for (var i = 0; i < allSuggestions.length; i++) {
+      var sl = allSuggestions[i].toLowerCase();
+      for (var p = 0; p < sortedPats.length; p++) {
+        if (sl.indexOf(sortedPats[p]) !== -1) {
+          var hp = hotPatterns[sortedPats[p]];
+          totalWeight += hp.weight;
+          if (foundCategories.indexOf(hp.category) === -1) foundCategories.push(hp.category);
+          if (foundHotWords.indexOf(sortedPats[p]) === -1) foundHotWords.push(sortedPats[p]);
+          break;
+        }
+      }
+      for (var c = 0; c < coldPatterns.length; c++) {
+        if (sl.indexOf(coldPatterns[c]) !== -1) { coldCount++; break; }
       }
     }
 
-    if (newsHits >= 5 && catalystKeywords >= 2) {
-      score = 20; label = 'News velocity spike';
-      detail = newsHits + ' signals, ' + catalystKeywords + ' catalyst keywords';
-    } else if (newsHits >= 3 && catalystKeywords >= 1) {
-      score = 14; label = 'Multiple catalysts active';
-      detail = newsHits + ' signals detected';
-    } else if (newsHits >= 2) {
-      score = 8; label = 'Some news activity';
-      detail = newsHits + ' data points';
-    } else if (newsHits >= 1) {
-      score = 4; label = 'Low news activity';
-      detail = '';
+    var score = 0;
+    var diversityBonus = Math.min(8, foundCategories.length * 2);
+    if (totalWeight >= 20) score = 30;
+    else if (totalWeight >= 15) score = 25;
+    else if (totalWeight >= 10) score = 20;
+    else if (totalWeight >= 6) score = 14;
+    else if (totalWeight >= 3) score = 8;
+    else score = Math.min(5, totalWeight * 2);
+    score = Math.min(30, score + diversityBonus);
+    if (coldCount > foundHotWords.length * 2) score = Math.max(0, score - 5);
+
+    var label = '';
+    if (foundCategories.length >= 3) {
+      label = '🔍 Multi-catalyst buzz: ' + foundCategories.slice(0, 3).join(' + ');
+    } else if (foundCategories.length >= 2) {
+      label = '🔍 Search spike: ' + foundCategories.slice(0, 2).join(' + ');
+    } else if (foundCategories.length === 1) {
+      label = '🔍 ' + foundCategories[0];
+    } else {
+      label = 'Generic search interest';
+    }
+
+    return { score: score, label: label, detail: 'Hot: ' + foundHotWords.join(', ') + ' (' + totalWeight + ' wt)', hotWords: foundHotWords, categories: foundCategories, buzzWeight: totalWeight };
+  } catch(e) {
+    return { score: 0, label: 'Buzz scan failed', detail: e.message, hotWords: [], categories: [] };
+  }
+}
+
+// ─── Signal 4: Catalyst Intelligence (0-15 pts) ───
+function sigCatalyst(ticker) {
+  var intel = window._dashboardIntel && window._dashboardIntel[ticker];
+  var score = 0;
+  var label = '';
+  var detail = '';
+  var catalysts = [];
+
+  if (intel) {
+    if (intel.earnings) {
+      if (intel.earnings.epsGrowth > 40) { score += 6; catalysts.push('EPS +' + intel.earnings.epsGrowth.toFixed(0) + '%'); }
+      else if (intel.earnings.epsGrowth > 25) { score += 4; catalysts.push('EPS growing'); }
+      if (intel.earnings.revenueGrowth > 30) { score += 4; catalysts.push('Revenue +' + intel.earnings.revenueGrowth.toFixed(0) + '%'); }
+      else if (intel.earnings.revenueGrowth > 20) { score += 2; catalysts.push('Revenue up'); }
+    }
+    if (intel.technical) {
+      if (intel.technical.trend === 'STRONG_UP') { score += 3; catalysts.push('Strong uptrend'); }
+      if (intel.technical.volumeTrend === 'RISING') { score += 2; catalysts.push('Rising volume'); }
+    }
+    if (intel.ranking) {
+      if (intel.ranking.grade === 'A+') { score += 3; catalysts.push('A+ ranked'); }
+      else if (intel.ranking.grade === 'A') { score += 2; catalysts.push('A ranked'); }
     }
   }
 
-  return { score: score, label: label, detail: detail };
+  if (typeof stocks !== 'undefined') {
+    var pStock = stocks.find(function(s) { return s.ticker === ticker; });
+    if (pStock && pStock.catalyst && pStock.catalyst.length > 10) {
+      var catTerms = ['order win','approval','partnership','acquisition','buyback','split','bonus','demerger','merger','expansion','capex','contract','licence','breakthrough','restructuring'];
+      for (var ct = 0; ct < catTerms.length; ct++) {
+        if (pStock.catalyst.toLowerCase().indexOf(catTerms[ct]) !== -1) {
+          score += 3;
+          catalysts.push(catTerms[ct].charAt(0).toUpperCase() + catTerms[ct].slice(1));
+          break;
+        }
+      }
+    }
+  }
+
+  score = Math.min(15, score);
+  if (catalysts.length >= 3) label = '📰 ' + catalysts.slice(0,3).join(' + ');
+  else if (catalysts.length >= 1) label = '📰 ' + catalysts.join(' + ');
+  return { score: score, label: label, detail: detail, catalysts: catalysts };
 }
 
-// Signal 4: Social Buzz Proxy (0-15 pts)
-// Uses volume-price divergence and multi-day patterns as proxy for search interest
-function calcSocialBuzz(volume, price, prevClose, dayHigh, dayLow) {
-  let score = 0;
-  let label = 'No buzz detected';
-  let detail = '';
+// ─── Signal 5: Convergence Bonus (0-15 pts) ───
+function sigConvergence(volScore, priceScore, buzzScore, catalystScore) {
+  var score = 0;
+  var label = '';
+  var fired = [];
+  if (volScore >= 10) fired.push('Volume');
+  if (priceScore >= 10) fired.push('Price');
+  if (buzzScore >= 14) fired.push('Buzz');
+  if (catalystScore >= 6) fired.push('Catalyst');
 
-  if (!volume || !price) return { score: score, label: label, detail: detail };
-
-  const changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
-  const intradayRange = dayHigh && dayLow ? ((dayHigh - dayLow) / price * 100) : 0;
-
-  // High volume + tight price range = institutional accumulation (people searching)
-  if (volume > 500000 && Math.abs(changePct) < 1 && intradayRange > 2) {
-    score = 15; label = 'Stealth accumulation buzz';
-    detail = 'High volume, tight close, wide intraday range';
-  }
-  // Large volume + positive price = trending stock
-  else if (volume > 1000000 && changePct > 2) {
-    score = 12; label = 'Trending momentum';
-    detail = 'Heavy volume + strong price action';
-  }
-  // Above-average volume with any movement
-  else if (volume > 500000 && Math.abs(changePct) > 1) {
-    score = 8; label = 'Elevated interest';
-    detail = 'Notable volume and price movement';
-  }
-  // Moderate volume spike
-  else if (volume > 200000 && changePct > 1.5) {
-    score = 5; label = 'Mild buzz';
-    detail = 'Moderate interest building';
-  }
-
-  return { score: score, label: label, detail: detail };
+  if (fired.length >= 4) { score = 15; label = '🔥 FULL CONVERGENCE — ' + fired.join(' + '); }
+  else if (fired.length >= 3) { score = 12; label = '⚡ Triple signal — ' + fired.join(' + '); }
+  else if (fired.length >= 2) { score = 8; label = '🔗 ' + fired.join(' + ') + ' convergence'; }
+  else if (fired.length === 1) { score = 3; label = fired[0] + ' standalone'; }
+  return { score: score, label: label, firedCount: fired.length };
 }
 
-// Signal 5: Insider Pattern Detection (0-15 pts)
-function calcInsiderPattern(volume, price, prevClose, high52, low52) {
-  let score = 0;
-  let label = 'No pattern detected';
-  let detail = '';
-
-  if (!volume || !price) return { score: score, label: label, detail: detail };
-
-  const changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
-  const range52 = high52 - low52;
-  const posIn52W = range52 > 0 ? ((price - low52) / range52 * 100) : 50;
-  const nearSupport = posIn52W < 25;
-  const nearResistance = posIn52W > 85;
-
-  // Volume spike near support = smart money loading
-  if (volume > 500000 && nearSupport && changePct > 0) {
-    score = 15; label = 'Smart money loading';
-    detail = 'Volume spike at support (' + posIn52W.toFixed(0) + '% of 52W range)';
-  }
-  // High volume with minimal price change = accumulation phase
-  else if (volume > 300000 && Math.abs(changePct) < 0.5) {
-    score = 12; label = 'Accumulation phase';
-    detail = 'High volume, price steady — stealth buying';
-  }
-  // Volume building near breakout level
-  else if (volume > 200000 && nearResistance && changePct > 0) {
-    score = 10; label = 'Breakout loading';
-    detail = 'Volume building near 52W high zone';
-  }
-  // Moderate volume with positive bias
-  else if (volume > 100000 && changePct > 0.5 && posIn52W > 50) {
-    score = 5; label = 'Mild accumulation';
-    detail = 'Consistent buying interest';
-  }
-
-  return { score: score, label: label, detail: detail };
-}
-
-// Composite Smart Signal Score Calculator
+// Sync composite scorer (backward compat — uses cached buzz if available)
 function computeSmartSignal(ticker, data) {
-  const price = data.price || 0;
-  const prevClose = data.prevClose || price;
-  const volume = data.volume || 0;
-  const high52 = data.high52 || price;
-  const low52 = data.low52 || price;
-  const dayHigh = data.dayHigh || price;
-  const dayLow = data.dayLow || price;
+  var price = data.price || 0;
+  var prevClose = data.prevClose || price;
+  var volume = data.volume || 0;
+  var high52 = data.high52 || price;
+  var low52 = data.low52 || price;
+  var dayHigh = data.dayHigh || price;
+  var dayLow = data.dayLow || price;
 
-  const sig1 = calcVolumeAnomaly(volume, price, prevClose);
-  const sig2 = calcPriceAction(price, prevClose, high52, low52, dayHigh, dayLow);
-  const sig3 = calcNewsVelocity(ticker);
-  const sig4 = calcSocialBuzz(volume, price, prevClose, dayHigh, dayLow);
-  const sig5 = calcInsiderPattern(volume, price, prevClose, high52, low52);
+  var sig1 = sigVolume(volume, price, prevClose, dayHigh, dayLow);
+  var sig2 = sigPriceAction(price, prevClose, high52, low52, dayHigh, dayLow);
+  var cachedFull = getSmartSignal(ticker);
+  var sig3 = (cachedFull && cachedFull.signals && cachedFull.signals.googleBuzz) ? cachedFull.signals.googleBuzz : { score: 0, label: '', detail: '', hotWords: [], categories: [] };
+  var sig4 = sigCatalyst(ticker);
+  var sig5 = sigConvergence(sig1.score, sig2.score, sig3.score, sig4.score);
 
-  const total = Math.max(0, Math.min(100,
+  var total = Math.max(0, Math.min(100,
     Math.max(0, sig1.score) + Math.max(0, sig2.score) + Math.max(0, sig3.score) +
     Math.max(0, sig4.score) + Math.max(0, sig5.score)
   ));
 
-  // Find the top signal (highest scoring)
-  const signals = [
+  var signals = [
+    { name: 'Google Buzz', score: sig3.score, label: sig3.label },
     { name: 'Volume', score: sig1.score, label: sig1.label },
     { name: 'Price Action', score: sig2.score, label: sig2.label },
-    { name: 'News Velocity', score: sig3.score, label: sig3.label },
-    { name: 'Social Buzz', score: sig4.score, label: sig4.label },
-    { name: 'Insider Pattern', score: sig5.score, label: sig5.label }
-  ].sort(function(a, b) { return b.score - a.score; });
+    { name: 'Catalyst', score: sig4.score, label: sig4.label },
+    { name: 'Convergence', score: sig5.score, label: sig5.label }
+  ].filter(function(s){ return s.score > 0 && s.label; }).sort(function(a,b){ return b.score - a.score; });
 
-  const topSignal = signals[0].label || 'No signal';
-  const firedSignals = signals.filter(function(s) { return s.score > 0; });
+  var topSignal = signals.length > 0 ? signals[0].label : 'No active signal';
 
-  let category = 'QUIET';
-  if (total >= 75) category = 'SHADOW ALERT';
-  else if (total >= 55) category = 'EARLY SIGNAL';
-  else if (total >= 40) category = 'BUILDING';
+  var category = 'QUIET';
+  if (total >= 70) category = 'SHADOW ALERT';
+  else if (total >= 50) category = 'EARLY SIGNAL';
+  else if (total >= 35) category = 'BUILDING';
 
-  const result = {
-    total: total,
-    category: category,
-    topSignal: topSignal,
-    firedCount: firedSignals.length,
-    signals: {
-      volume: sig1,
-      priceAction: sig2,
-      newsVelocity: sig3,
-      socialBuzz: sig4,
-      insiderPattern: sig5
-    },
-    firedSignals: firedSignals,
-    expectedMove: total >= 75 ? '15-20%' : total >= 55 ? '8-12%' : total >= 40 ? '5-8%' : '<5%'
+  var result = {
+    total: total, category: category, topSignal: topSignal,
+    firedCount: signals.length,
+    signals: { volume: sig1, priceAction: sig2, googleBuzz: sig3, catalyst: sig4, convergence: sig5 },
+    firedSignals: signals,
+    expectedMove: total >= 70 ? '15-20%' : total >= 50 ? '8-12%' : total >= 35 ? '5-8%' : '<5%'
   };
-
   setSmartSignalCache(ticker, result);
   return result;
 }
 
-// Async Google Suggest social buzz fetcher (best-effort, CORS may block)
-async function fetchGoogleBuzz(companyName) {
-  try {
-    const query = encodeURIComponent(companyName + ' share');
-    const url = 'https://suggestqueries.google.com/complete/search?client=firefox&q=' + query;
-    const resp = await fetch(url, { signal: AbortSignal.timeout(3000) });
-    const data = await resp.json();
-    return data[1] ? data[1].length : 0;
-  } catch(e) {
-    return 0; // CORS blocked or timeout — no signal
-  }
-}
-
-// Main Shadow Scan function — scans entire MOVER_UNIVERSE
+// ═══ TWO-PHASE SMART SCAN ═══
 async function runSmartSignalScan() {
-  const container = document.getElementById('aiSmartSignals');
+  var container = document.getElementById('aiSmartSignals');
   if (!container) return;
 
-  // Check cache
   if (window._smartSignalScanResult && (Date.now() - window._smartSignalScanResult.ts) < SMART_SIGNAL_CACHE_TTL) {
     renderSmartSignalResults(window._smartSignalScanResult.results);
     return;
@@ -8376,92 +8372,150 @@ async function runSmartSignalScan() {
 
   container.innerHTML =
     '<div style="background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:12px;padding:24px;text-align:center">' +
-    '<div style="font-size:20px;font-weight:700;color:#a78bfa;margin-bottom:8px">&#128302; Shadow Intelligence Scan</div>' +
-    '<div style="color:#c4b5fd;font-size:13px;margin-bottom:16px">Scanning ' + MOVER_UNIVERSE.length + ' stocks for early signals...</div>' +
+    '<div style="font-size:20px;font-weight:700;color:#a78bfa;margin-bottom:8px">🔮 Shadow Intelligence Scan v2</div>' +
+    '<div style="color:#c4b5fd;font-size:13px;margin-bottom:16px">Phase 1: Scanning ' + MOVER_UNIVERSE.length + ' stocks for volume & price signals…</div>' +
     '<div id="ssProgress" style="background:#374151;border-radius:8px;height:6px;overflow:hidden;margin-bottom:8px">' +
     '<div id="ssBar" style="background:linear-gradient(90deg,#a855f7,#7c3aed);height:100%;width:0%;transition:width 0.3s"></div></div>' +
-    '<div id="ssStatus" style="color:#94a3b8;font-size:12px">Initializing...</div></div>';
+    '<div id="ssStatus" style="color:#94a3b8;font-size:12px">Initialising Phase 1…</div></div>';
 
-  const batchSize = 25;
-  const allResults = [];
-  const totalStocks = MOVER_UNIVERSE.length;
-  let processed = 0;
+  var batchSize = 25;
+  var phase1Candidates = [];
+  var totalStocks = MOVER_UNIVERSE.length;
+  var processed = 0;
 
-  for (let i = 0; i < totalStocks; i += batchSize) {
-    const batch = MOVER_UNIVERSE.slice(i, i + batchSize);
-    const symbols = batch.map(function(m) { return m.t + '.NS'; }).join(',');
-
+  for (var bi = 0; bi < totalStocks; bi += batchSize) {
+    var batch = MOVER_UNIVERSE.slice(bi, bi + batchSize);
+    var symbols = batch.map(function(m){ return m.t + '.NS'; }).join(',');
     try {
-      const resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbols) + '&mode=all', {
-        signal: AbortSignal.timeout(20000)
-      });
-      const json = await resp.json();
-
+      var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbols) + '&mode=all', { signal: AbortSignal.timeout(20000) });
+      var json = await resp.json();
       if (json.success && json.data && json.data.stocks) {
         batch.forEach(function(m) {
           if (isEthicallyExcluded(m.s)) return;
-
-          const yfKey = m.t + '.NS';
-          const d = json.data.stocks[yfKey];
+          var yfKey = m.t + '.NS';
+          var d = json.data.stocks[yfKey];
           if (!d || !d.price) return;
-
-          const smartSig = computeSmartSignal(m.t, {
-            price: d.price,
-            prevClose: d.prevClose || d.price,
-            volume: d.volume || 0,
-            high52: d.high52 || d.price,
-            low52: d.low52 || d.price,
-            dayHigh: d.dayHigh || d.price,
-            dayLow: d.dayLow || d.price
-          });
-
-          if (smartSig.total >= 35) {
-            const changePct = d.prevClose ? ((d.price - d.prevClose) / d.prevClose * 100) : 0;
-            allResults.push({
-              ticker: m.t,
-              name: m.n,
-              sector: m.s,
-              cap: m.c,
-              cmp: d.price,
-              changePct: changePct,
-              signal: smartSig
+          var price = d.price;
+          var prevClose = d.prevClose || price;
+          var volume = d.volume || 0;
+          var changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
+          var vs = sigVolume(volume, price, prevClose, d.dayHigh || price, d.dayLow || price);
+          var ps = sigPriceAction(price, prevClose, d.high52 || price, d.low52 || price, d.dayHigh || price, d.dayLow || price);
+          var cs = sigCatalyst(m.t);
+          var quickScore = Math.max(0, vs.score) + Math.max(0, ps.score) + cs.score;
+          if (quickScore >= 8 || changePct > 2 || changePct < -3) {
+            phase1Candidates.push({
+              ticker: m.t, name: m.n, sector: m.s, cap: m.c,
+              data: { price: price, prevClose: prevClose, volume: volume, high52: d.high52 || price, low52: d.low52 || price, dayHigh: d.dayHigh || price, dayLow: d.dayLow || price },
+              changePct: changePct, quickScore: quickScore, vs: vs, ps: ps, cs: cs
             });
           }
         });
       }
-    } catch(e) {
-      console.warn('[SMART-SIGNAL] Batch error:', e.message);
-    }
+    } catch(e) { console.warn('[SMART-SIGNAL] Phase 1 batch error:', e.message); }
 
     processed += batch.length;
-    const pct = Math.min(100, (processed / totalStocks * 100)).toFixed(0);
-    const bar = document.getElementById('ssBar');
-    const status = document.getElementById('ssStatus');
+    var pct = Math.min(50, (processed / totalStocks * 50)).toFixed(0);
+    var bar = document.getElementById('ssBar');
+    var status = document.getElementById('ssStatus');
     if (bar) bar.style.width = pct + '%';
-    if (status) status.textContent = 'Scanned ' + processed + '/' + totalStocks + ' stocks...';
+    if (status) status.textContent = 'Phase 1: Scanned ' + processed + '/' + totalStocks + ' stocks…';
   }
 
-  // Sort by signal score descending
-  allResults.sort(function(a, b) { return b.signal.total - a.signal.total; });
+  phase1Candidates.sort(function(a,b){ return b.quickScore - a.quickScore; });
+  var buzzCandidates = phase1Candidates.slice(0, 50);
 
-  // Cache results
+  // ═══ PHASE 2: Google Buzz on top candidates ═══
+  var statusEl = document.getElementById('ssStatus');
+  if (statusEl) statusEl.textContent = 'Phase 2: Analysing Google search buzz for top ' + buzzCandidates.length + ' candidates…';
+
+  var allResults = [];
+  var buzzProcessed = 0;
+
+  for (var gi = 0; gi < buzzCandidates.length; gi += 5) {
+    var buzzBatch = buzzCandidates.slice(gi, gi + 5);
+    var buzzResults = await Promise.all(buzzBatch.map(async function(c) {
+      var buzz = await sigGoogleBuzz(c.name, c.ticker);
+      var conv = sigConvergence(c.vs.score, c.ps.score, buzz.score, c.cs.score);
+      var total = Math.max(0, Math.min(100,
+        Math.max(0, c.vs.score) + Math.max(0, c.ps.score) + Math.max(0, buzz.score) +
+        Math.max(0, c.cs.score) + Math.max(0, conv.score)
+      ));
+      var signals = [
+        { name: 'Google Buzz', score: buzz.score, label: buzz.label },
+        { name: 'Volume', score: c.vs.score, label: c.vs.label },
+        { name: 'Price Action', score: c.ps.score, label: c.ps.label },
+        { name: 'Catalyst', score: c.cs.score, label: c.cs.label },
+        { name: 'Convergence', score: conv.score, label: conv.label }
+      ].filter(function(s){ return s.score > 0 && s.label; }).sort(function(a,b){ return b.score - a.score; });
+      var topSignal = signals.length > 0 ? signals[0].label : 'No active signal';
+      var category = 'QUIET';
+      if (total >= 70) category = 'SHADOW ALERT';
+      else if (total >= 50) category = 'EARLY SIGNAL';
+      else if (total >= 35) category = 'BUILDING';
+      var result = {
+        total: total, category: category, topSignal: topSignal, firedCount: signals.length,
+        signals: { volume: c.vs, priceAction: c.ps, googleBuzz: buzz, catalyst: c.cs, convergence: conv },
+        firedSignals: signals,
+        expectedMove: total >= 70 ? '15-20%' : total >= 50 ? '8-12%' : total >= 35 ? '5-8%' : '<5%'
+      };
+      setSmartSignalCache(c.ticker, result);
+      return { ticker: c.ticker, name: c.name, sector: c.sector, cap: c.cap, cmp: c.data.price, changePct: c.changePct, signal: result };
+    }));
+
+    buzzResults.forEach(function(r) { if (r.signal.total >= 30) allResults.push(r); });
+    buzzProcessed += buzzBatch.length;
+    var pct2 = (50 + (buzzProcessed / Math.max(1, buzzCandidates.length) * 50)).toFixed(0);
+    var bar2 = document.getElementById('ssBar');
+    if (bar2) bar2.style.width = pct2 + '%';
+    if (statusEl) statusEl.textContent = 'Phase 2: Google Buzz ' + buzzProcessed + '/' + buzzCandidates.length + '…';
+    if (gi + 5 < buzzCandidates.length) await new Promise(function(r){ setTimeout(r, 300); });
+  }
+
+  // Add remaining phase-1 candidates that scored well but were not buzz-analysed
+  for (var ri = 50; ri < phase1Candidates.length; ri++) {
+    var rc = phase1Candidates[ri];
+    var rconv = sigConvergence(rc.vs.score, rc.ps.score, 0, rc.cs.score);
+    var rtotal = Math.max(0, Math.min(100, Math.max(0, rc.vs.score) + Math.max(0, rc.ps.score) + Math.max(0, rc.cs.score) + Math.max(0, rconv.score)));
+    if (rtotal >= 35) {
+      var rsignals = [
+        { name: 'Volume', score: rc.vs.score, label: rc.vs.label },
+        { name: 'Price Action', score: rc.ps.score, label: rc.ps.label },
+        { name: 'Catalyst', score: rc.cs.score, label: rc.cs.label },
+        { name: 'Convergence', score: rconv.score, label: rconv.label }
+      ].filter(function(s){ return s.score > 0 && s.label; }).sort(function(a,b){ return b.score - a.score; });
+      var rtopSig = rsignals.length > 0 ? rsignals[0].label : 'No active signal';
+      var rcat = 'QUIET';
+      if (rtotal >= 70) rcat = 'SHADOW ALERT';
+      else if (rtotal >= 50) rcat = 'EARLY SIGNAL';
+      else if (rtotal >= 35) rcat = 'BUILDING';
+      var rresult = {
+        total: rtotal, category: rcat, topSignal: rtopSig, firedCount: rsignals.length,
+        signals: { volume: rc.vs, priceAction: rc.ps, googleBuzz: { score: 0, label: 'Not scanned', detail: '', hotWords: [], categories: [] }, catalyst: rc.cs, convergence: rconv },
+        firedSignals: rsignals,
+        expectedMove: rtotal >= 70 ? '15-20%' : rtotal >= 50 ? '8-12%' : rtotal >= 35 ? '5-8%' : '<5%'
+      };
+      setSmartSignalCache(rc.ticker, rresult);
+      allResults.push({ ticker: rc.ticker, name: rc.name, sector: rc.sector, cap: rc.cap, cmp: rc.data.price, changePct: rc.changePct, signal: rresult });
+    }
+  }
+
+  allResults.sort(function(a,b){ return b.signal.total - a.signal.total; });
   window._smartSignalScanResult = { ts: Date.now(), results: allResults };
-
   renderSmartSignalResults(allResults);
 }
 
 function renderSmartSignalResults(results) {
-  const container = document.getElementById('aiSmartSignals');
+  var container = document.getElementById('aiSmartSignals');
   if (!container) return;
+  var top20 = results.slice(0, 20);
+  var shadowAlerts = results.filter(function(r){ return r.signal.category === 'SHADOW ALERT'; }).length;
+  var earlySignals = results.filter(function(r){ return r.signal.category === 'EARLY SIGNAL'; }).length;
+  var building = results.filter(function(r){ return r.signal.category === 'BUILDING'; }).length;
 
-  const top20 = results.slice(0, 20);
-  const shadowAlerts = results.filter(function(r) { return r.signal.category === 'SHADOW ALERT'; }).length;
-  const earlySignals = results.filter(function(r) { return r.signal.category === 'EARLY SIGNAL'; }).length;
-  const building = results.filter(function(r) { return r.signal.category === 'BUILDING'; }).length;
-
-  let html = '<div style="background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:12px;padding:20px;margin-bottom:16px">';
+  var html = '<div style="background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:12px;padding:20px;margin-bottom:16px">';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">';
-  html += '<div style="font-size:18px;font-weight:700;color:#a78bfa">&#128302; Shadow Intelligence Report</div>';
+  html += '<div style="font-size:18px;font-weight:700;color:#a78bfa">🔮 Shadow Intelligence Report v2</div>';
   html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
   if (shadowAlerts > 0) html += '<span style="background:#dc2626;color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">' + shadowAlerts + ' SHADOW ALERTS</span>';
   if (earlySignals > 0) html += '<span style="background:#f59e0b;color:#000;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">' + earlySignals + ' EARLY SIGNALS</span>';
@@ -8471,67 +8525,65 @@ function renderSmartSignalResults(results) {
   if (top20.length === 0) {
     html += '<div style="text-align:center;color:#94a3b8;padding:20px">No significant smart signals detected in the universe right now.</div>';
   } else {
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">';
-
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">';
     top20.forEach(function(r) {
-      const catColor = r.signal.category === 'SHADOW ALERT' ? '#dc2626' :
-                        r.signal.category === 'EARLY SIGNAL' ? '#f59e0b' :
-                        r.signal.category === 'BUILDING' ? '#6366f1' : '#64748b';
-      const catBg = r.signal.category === 'SHADOW ALERT' ? 'rgba(220,38,38,0.15)' :
-                     r.signal.category === 'EARLY SIGNAL' ? 'rgba(245,158,11,0.15)' :
-                     r.signal.category === 'BUILDING' ? 'rgba(99,102,241,0.15)' : 'rgba(100,116,139,0.1)';
-      const changeColor = r.changePct >= 0 ? '#22c55e' : '#ef4444';
-      const changeSign = r.changePct >= 0 ? '+' : '';
+      var catColor = r.signal.category === 'SHADOW ALERT' ? '#dc2626' : r.signal.category === 'EARLY SIGNAL' ? '#f59e0b' : r.signal.category === 'BUILDING' ? '#6366f1' : '#64748b';
+      var catBg = r.signal.category === 'SHADOW ALERT' ? 'rgba(220,38,38,0.15)' : r.signal.category === 'EARLY SIGNAL' ? 'rgba(245,158,11,0.15)' : r.signal.category === 'BUILDING' ? 'rgba(99,102,241,0.15)' : 'rgba(100,116,139,0.1)';
+      var changeColor = r.changePct >= 0 ? '#22c55e' : '#ef4444';
+      var changeSign = r.changePct >= 0 ? '+' : '';
 
       html += '<div style="background:#1e293b;border-radius:10px;padding:14px;border-left:3px solid ' + catColor + '">';
-
-      // Header: name, ticker, badge
       html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
       html += '<div><div style="font-size:14px;font-weight:700;color:#e2e8f0">' + r.name + '</div>';
-      html += '<div style="font-size:11px;color:#94a3b8">' + r.ticker + ' &middot; ' + (r.sector || '') + '</div></div>';
+      html += '<div style="font-size:11px;color:#94a3b8">' + r.ticker + ' · ' + (r.sector || '') + '</div></div>';
       html += '<span style="background:' + catBg + ';color:' + catColor + ';padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap">' + r.signal.category + '</span>';
       html += '</div>';
 
-      // Price and score
       html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
-      html += '<div style="font-size:16px;font-weight:700;color:#f8fafc">&#8377;' + r.cmp.toFixed(2) + ' <span style="font-size:12px;color:' + changeColor + '">' + changeSign + r.changePct.toFixed(1) + '%</span></div>';
+      html += '<div style="font-size:16px;font-weight:700;color:#f8fafc">₹' + r.cmp.toFixed(2) + ' <span style="font-size:12px;color:' + changeColor + '">' + changeSign + r.changePct.toFixed(1) + '%</span></div>';
       html += '<div style="text-align:right"><div style="font-size:22px;font-weight:800;color:' + catColor + '">' + r.signal.total + '</div><div style="font-size:9px;color:#94a3b8">SIGNAL SCORE</div></div>';
       html += '</div>';
 
-      // Signal breakdown bars
       html += '<div style="margin-bottom:8px">';
+      var buzzSc = (r.signal.signals.googleBuzz) ? r.signal.signals.googleBuzz.score : 0;
+      var catSc = (r.signal.signals.catalyst) ? r.signal.signals.catalyst.score : 0;
+      var convSc = (r.signal.signals.convergence) ? r.signal.signals.convergence.score : 0;
       var sigItems = [
-        { name: 'Vol', score: r.signal.signals.volume.score, max: 25, color: '#3b82f6' },
-        { name: 'Price', score: r.signal.signals.priceAction.score, max: 25, color: '#22c55e' },
-        { name: 'News', score: r.signal.signals.newsVelocity.score, max: 20, color: '#f59e0b' },
-        { name: 'Buzz', score: r.signal.signals.socialBuzz.score, max: 15, color: '#a855f7' },
-        { name: 'Insider', score: r.signal.signals.insiderPattern.score, max: 15, color: '#ec4899' }
+        { name: '🔍 Buzz', score: buzzSc, max: 30, color: '#f59e0b' },
+        { name: '📊 Vol', score: r.signal.signals.volume.score, max: 20, color: '#3b82f6' },
+        { name: '📈 Price', score: r.signal.signals.priceAction.score, max: 20, color: '#22c55e' },
+        { name: '📰 Cat', score: catSc, max: 15, color: '#a855f7' },
+        { name: '🔗 Conv', score: convSc, max: 15, color: '#ec4899' }
       ];
       sigItems.forEach(function(si) {
-        const pct = si.max > 0 ? Math.max(0, (si.score / si.max * 100)) : 0;
+        var pctBar = si.max > 0 ? Math.max(0, (Math.max(0,si.score) / si.max * 100)) : 0;
         html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">';
-        html += '<div style="width:42px;font-size:10px;color:#94a3b8;text-align:right">' + si.name + '</div>';
-        html += '<div style="flex:1;background:#374151;border-radius:3px;height:4px;overflow:hidden"><div style="background:' + si.color + ';height:100%;width:' + pct + '%;border-radius:3px"></div></div>';
+        html += '<div style="width:56px;font-size:10px;color:#94a3b8;text-align:right">' + si.name + '</div>';
+        html += '<div style="flex:1;background:#374151;border-radius:3px;height:4px;overflow:hidden"><div style="background:' + si.color + ';height:100%;width:' + pctBar + '%;border-radius:3px"></div></div>';
         html += '<div style="width:24px;font-size:10px;color:' + si.color + ';font-weight:600">' + Math.max(0, si.score) + '</div>';
         html += '</div>';
       });
       html += '</div>';
 
-      // Top signal + expected move
+      if (r.signal.signals.googleBuzz && r.signal.signals.googleBuzz.hotWords && r.signal.signals.googleBuzz.hotWords.length > 0) {
+        html += '<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:3px">';
+        r.signal.signals.googleBuzz.hotWords.slice(0, 5).forEach(function(hw) {
+          html += '<span style="background:rgba(245,158,11,0.15);color:#fbbf24;padding:1px 6px;border-radius:4px;font-size:9px">' + hw + '</span>';
+        });
+        html += '</div>';
+      }
+
       html += '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #334155;padding-top:6px">';
-      html += '<div style="font-size:11px;color:#c4b5fd;font-style:italic">' + r.signal.topSignal + '</div>';
+      html += '<div style="font-size:11px;color:#c4b5fd;font-style:italic;max-width:70%">' + r.signal.topSignal + '</div>';
       html += '<div style="font-size:10px;color:#94a3b8">Move: <span style="color:#22c55e;font-weight:700">' + r.signal.expectedMove + '</span></div>';
       html += '</div>';
-
       html += '</div>';
     });
-
     html += '</div>';
   }
 
-  html += '<div style="text-align:center;color:#64748b;font-size:11px;margin-top:12px">Scanned ' + MOVER_UNIVERSE.length + ' stocks &middot; ' + results.length + ' with signals &middot; Cached for 15 min</div>';
+  html += '<div style="text-align:center;color:#64748b;font-size:11px;margin-top:12px">Scanned ' + MOVER_UNIVERSE.length + ' stocks · Phase 1: volume+price · Phase 2: Google Buzz top 50 · Cached 15 min</div>';
   html += '</div>';
-
   container.innerHTML = html;
 }
 // ═══ END SMART SIGNAL INTELLIGENCE ENGINE ═══
@@ -8673,9 +8725,9 @@ function computeScore(data, yfTicker, portfolioStock) {
   // === 9. SMART SIGNAL INTELLIGENCE (0-12) ===
   let smartSigScore = 0;
   const smartSig = getSmartSignal(_tk.replace('%26','&'));
-  if (smartSig && smartSig.total >= 75) { smartSigScore = 12; }
-  else if (smartSig && smartSig.total >= 55) { smartSigScore = 8; }
-  else if (smartSig && smartSig.total >= 40) { smartSigScore = 5; }
+  if (smartSig && smartSig.total >= 70) { smartSigScore = 12; }
+  else if (smartSig && smartSig.total >= 50) { smartSigScore = 8; }
+  else if (smartSig && smartSig.total >= 35) { smartSigScore = 5; }
   else { smartSigScore = 0; }
 
   const totalScore = trendScore + momScore + breakoutScore + compressionScore + strengthScore + valScore + volScore + qualScore + intelScore + smartSigScore;
