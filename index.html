@@ -4263,6 +4263,365 @@ function getDashboardBonus(ticker) {
   return { bonus: Math.max(-15, Math.min(15, bonus)), factors, sources };
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+//  UNIFIED 12-DIMENSION INTELLIGENCE ENGINE v1.0
+//  Covers: Market Analysis, Diversification, Risk, Technical, Economic,
+//  Value Investing, Sentiment, Earnings, Growth, World Events,
+//  Astrological, Weather/Monsoon — all wired into every AI engine
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── DIMENSION 2: PORTFOLIO DIVERSIFICATION SCORING ──
+function computeDiversificationScore() {
+  const sectorMap = {};
+  let total = 0;
+  stocks.forEach(s => {
+    const sec = (s.sector || 'Unknown').split('/')[0].trim();
+    sectorMap[sec] = (sectorMap[sec] || 0) + 1;
+    total++;
+  });
+  const sectors = Object.keys(sectorMap);
+  const sectorCount = sectors.length;
+  let hhi = 0;
+  sectors.forEach(sec => {
+    const share = sectorMap[sec] / total;
+    hhi += share * share;
+  });
+  const concentrated = sectors.filter(s => sectorMap[s] / total > 0.25);
+  let score = 0;
+  if (sectorCount >= 8) score += 4; else if (sectorCount >= 5) score += 2;
+  if (hhi < 0.15) score += 3; else if (hhi < 0.25) score += 1;
+  if (concentrated.length === 0) score += 3; else score -= 2;
+  return {
+    score: Math.max(0, Math.min(10, score)),
+    sectorCount, hhi: Math.round(hhi * 100) / 100,
+    concentrated, sectorMap,
+    label: concentrated.length > 0
+      ? 'CONCENTRATED: ' + concentrated.join(', ') + ' > 25%'
+      : 'Well diversified (' + sectorCount + ' sectors, HHI=' + (Math.round(hhi*100)/100) + ')'
+  };
+}
+
+// ── DIMENSION 3: RISK MANAGEMENT SCORING (per stock) ──
+function computeRiskScore(s) {
+  let risk = 0;
+  const factors = [];
+  if (s.high52 && s.cmp) {
+    const dd = ((s.high52 - s.cmp) / s.high52 * 100);
+    if (dd > 50) { risk += 4; factors.push('DEEP DRAWDOWN -' + Math.round(dd) + '%'); }
+    else if (dd > 30) { risk += 3; factors.push('Drawdown -' + Math.round(dd) + '%'); }
+    else if (dd > 15) { risk += 1; }
+  }
+  if (s.high52 && s.low52 && s.cmp) {
+    const volatility = (s.high52 - s.low52) / s.cmp * 100;
+    if (volatility > 100) { risk += 3; factors.push('EXTREME VOLATILITY'); }
+    else if (volatility > 60) { risk += 2; factors.push('High volatility'); }
+    else if (volatility > 40) { risk += 1; }
+  }
+  if (s.pe && s.pe < 0) { risk += 2; factors.push('NEGATIVE PE'); }
+  else if (s.pe && s.pe > 100) { risk += 2; factors.push('Stretched PE > 100'); }
+  else if (s.pe && s.pe > 60) { risk += 1; }
+  if (s.mcap && s.mcap < 5000) { risk += 1; factors.push('Small cap risk'); }
+  if (s.changePct && Math.abs(s.changePct) > 8) { risk += 2; factors.push('Near circuit limit'); }
+  const riskLevel = risk >= 8 ? 'HIGH RISK' : risk >= 5 ? 'MODERATE RISK' : 'LOW RISK';
+  return {
+    score: Math.min(10, risk), riskLevel, factors,
+    maxPositionPct: risk >= 8 ? 3 : risk >= 5 ? 5 : 8,
+    stopLossPct: risk >= 8 ? -3 : risk >= 5 ? -5 : -7
+  };
+}
+
+// ── DIMENSION 5: ECONOMIC INDICATORS ──
+function getEconomicIndicators() {
+  const indicators = { score: 0, label: '', factors: [], fiiDii: 'neutral', crudeImpact: 'neutral' };
+  if (typeof PRE_MARKET_GLOBAL !== 'undefined') {
+    const pm = PRE_MARKET_GLOBAL;
+    // FII/DII flows
+    if (pm.fiiFlow && pm.fiiFlow.value !== undefined) {
+      const fiiVal = pm.fiiFlow.value;
+      if (fiiVal > 500) { indicators.score += 3; indicators.fiiDii = 'strong_buy'; indicators.factors.push('FII strong buying +' + fiiVal + 'Cr'); }
+      else if (fiiVal > 0) { indicators.score += 1; indicators.fiiDii = 'mild_buy'; }
+      else if (fiiVal < -500) { indicators.score -= 2; indicators.fiiDii = 'strong_sell'; indicators.factors.push('FII heavy selling ' + fiiVal + 'Cr'); }
+      else if (fiiVal < 0) { indicators.score -= 1; indicators.fiiDii = 'mild_sell'; }
+    }
+    // Crude oil impact
+    if (pm.brentCrude && pm.brentCrude.value !== undefined) {
+      const crude = pm.brentCrude.value;
+      if (crude > 90) { indicators.score -= 2; indicators.crudeImpact = 'negative'; indicators.factors.push('Crude > $90 — margin pressure'); }
+      else if (crude > 80) { indicators.score -= 1; indicators.crudeImpact = 'mildNeg'; }
+      else if (crude < 65) { indicators.score += 2; indicators.crudeImpact = 'positive'; indicators.factors.push('Crude < $65 — India tailwind'); }
+      else if (crude < 75) { indicators.score += 1; indicators.crudeImpact = 'mildPos'; }
+    }
+    // VIX as fear gauge
+    if (pm.indiaVix && pm.indiaVix.value !== undefined) {
+      const vix = pm.indiaVix.value;
+      if (vix > 25) { indicators.score -= 2; indicators.factors.push('VIX > 25 — high fear'); }
+      else if (vix > 18) { indicators.score -= 1; }
+      else if (vix < 12) { indicators.score += 2; indicators.factors.push('VIX < 12 — complacency caution'); }
+      else if (vix < 15) { indicators.score += 1; indicators.factors.push('Low VIX — calm markets'); }
+    }
+  }
+  const month = new Date().getMonth();
+  const rbiMonths = [1, 3, 5, 7, 9, 11];
+  if (rbiMonths.includes(month)) indicators.factors.push('RBI policy review month');
+  if (month >= 6 && month <= 8) indicators.factors.push('Monsoon quarter — agri/rural watch');
+  else if (month >= 9 && month <= 11) { indicators.factors.push('Festival quarter — consumer demand strong'); indicators.score += 1; }
+  else if (month >= 0 && month <= 1) indicators.factors.push('Budget season — policy-sensitive sectors');
+  indicators.score = Math.max(-5, Math.min(5, indicators.score));
+  indicators.label = indicators.score >= 3 ? 'MACRO TAILWIND' : indicators.score >= 1 ? 'Macro supportive' :
+    indicators.score <= -3 ? 'MACRO HEADWIND' : indicators.score <= -1 ? 'Macro cautious' : 'Macro neutral';
+  return indicators;
+}
+
+// ── DIMENSION 7: ENHANCED MARKET SENTIMENT ──
+function computeMarketSentimentScore() {
+  const sentiment = { score: 0, label: 'Neutral', factors: [], fearGreed: 50 };
+  if (typeof PRE_MARKET_GLOBAL !== 'undefined' && PRE_MARKET_GLOBAL.indiaVix) {
+    const vix = PRE_MARKET_GLOBAL.indiaVix.value || 15;
+    if (vix > 25) { sentiment.fearGreed = 15; sentiment.factors.push('EXTREME FEAR (VIX ' + vix + ')'); }
+    else if (vix > 20) { sentiment.fearGreed = 30; sentiment.factors.push('Fear zone'); }
+    else if (vix < 12) { sentiment.fearGreed = 85; sentiment.factors.push('EXTREME GREED (VIX ' + vix + ')'); }
+    else if (vix < 15) { sentiment.fearGreed = 70; sentiment.factors.push('Greed zone'); }
+    else { sentiment.fearGreed = 50; }
+  }
+  if (window._moverScan && window._moverScan.scored) {
+    const scored = window._moverScan.scored;
+    const up = scored.filter(s => s.changePct > 0).length;
+    const total = scored.length || 1;
+    const breadth = up / total * 100;
+    if (breadth > 70) { sentiment.score += 3; sentiment.factors.push('BROAD RALLY (' + Math.round(breadth) + '% advancing)'); }
+    else if (breadth > 55) { sentiment.score += 1; }
+    else if (breadth < 30) { sentiment.score -= 3; sentiment.factors.push('BROAD SELLOFF (' + Math.round(breadth) + '% advancing)'); }
+    else if (breadth < 45) { sentiment.score -= 1; }
+  }
+  if (window._smartSignalCache) {
+    const alerts = Object.values(window._smartSignalCache).filter(s => s.total >= 60).length;
+    if (alerts > 10) { sentiment.score += 2; sentiment.factors.push(alerts + ' Shadow Alerts — accumulation'); }
+    else if (alerts > 5) { sentiment.score += 1; }
+  }
+  sentiment.score = Math.max(-5, Math.min(5, sentiment.score));
+  sentiment.label = sentiment.score >= 3 ? 'BULLISH SENTIMENT' : sentiment.score >= 1 ? 'Mildly Bullish' :
+    sentiment.score <= -3 ? 'BEARISH SENTIMENT' : sentiment.score <= -1 ? 'Mildly Bearish' : 'Neutral';
+  return sentiment;
+}
+
+// ── DIMENSION 9: GROWTH STOCK SCORING ──
+function scoreGrowthPotential(muData) {
+  if (!muData) return { score: 0, label: 'No data', isGrowth: false, factors: [] };
+  let score = 0;
+  const factors = [];
+  const roce = muData.ro || 0;
+  if (roce >= 25) { score += 4; factors.push('Elite ROCE ' + roce + '%'); }
+  else if (roce >= 18) { score += 3; factors.push('Strong ROCE ' + roce + '%'); }
+  else if (roce >= 12) { score += 2; }
+  const pe = muData.pe || 0;
+  if (pe > 0 && roce > 0) {
+    const peg = pe / roce;
+    if (peg < 1) { score += 3; factors.push('GARP: PE/ROCE=' + peg.toFixed(1)); }
+    else if (peg < 1.5) { score += 2; factors.push('Reasonable growth pricing'); }
+    else if (peg > 3) { score -= 1; factors.push('Expensive for growth'); }
+  }
+  const cap = muData.c || '';
+  if (cap === 'MID') { score += 2; factors.push('Mid-cap growth sweet spot'); }
+  else if (cap === 'SMALL') { score += 1; factors.push('Small-cap high-growth potential'); }
+  const growthSectors = ['IT', 'AI', 'EMS', 'Solar', 'EV', 'Digital', 'Fintech', 'Speciality Chemicals', 'Data Center', 'Renewables'];
+  if (growthSectors.some(gs => (muData.s || '').includes(gs))) { score += 2; factors.push('High-growth sector: ' + muData.s); }
+  return {
+    score: Math.max(0, Math.min(10, score)),
+    label: score >= 7 ? 'HIGH GROWTH' : score >= 4 ? 'Growth stock' : score >= 2 ? 'Moderate growth' : 'Value/Stable',
+    isGrowth: score >= 5, factors
+  };
+}
+
+// ── DIMENSION 10: WORLD EVENTS / GEOPOLITICAL SCORING ──
+function scoreWorldEvents() {
+  const events = { score: 0, factors: [], riskLevel: 'LOW', chinaPlus1Sectors: [] };
+  if (window._globalTrends && window._globalTrends.length > 0) {
+    events.score += Math.min(3, window._globalTrends.length);
+    window._globalTrends.forEach(t => events.factors.push('Global: ' + t.theme + ' → ' + (t.sectors||[]).join(', ')));
+  }
+  if (window._newsIntelData) {
+    const geoNews = (window._newsIntelData || []).filter(n =>
+      /geopolit|war|sanction|tariff|trade.war|tension|conflict|missile|nuclear/i.test(n.title || n.headline || '')
+    );
+    if (geoNews.length > 3) { events.score -= 2; events.factors.push('HIGH GEO RISK: ' + geoNews.length + ' conflict headlines'); events.riskLevel = 'HIGH'; }
+    else if (geoNews.length > 0) { events.score -= 1; events.factors.push('Geo tension: ' + geoNews.length + ' headlines'); events.riskLevel = 'MODERATE'; }
+  }
+  events.chinaPlus1Sectors = ['EMS/Technology', 'Electronics', 'Speciality Chemicals', 'Auto Ancillary', 'Textiles', 'Solar/Energy'];
+  const month = new Date().getMonth();
+  if (month === 0 || month === 1) events.factors.push('US earnings season — global sentiment driver');
+  if (month === 8 || month === 9) events.factors.push('US Fed Sept/Oct — rate decision impact');
+  events.score = Math.max(-5, Math.min(5, events.score));
+  return events;
+}
+
+// ── DIMENSION 12: WEATHER / MONSOON IMPACT ──
+function getWeatherImpact(sector) {
+  const impact = { score: 0, label: 'No weather impact', factors: [], isMonsoonSensitive: false };
+  const now = new Date();
+  const month = now.getMonth();
+  const monsoonPositive = ['Fertilizers', 'Agri', 'Seeds', 'Pesticides', 'Farm Equipment', 'Tractor', 'Rural', 'Microfinance', 'Two Wheeler', 'Cement'];
+  const monsoonNegative = ['Mining', 'Construction', 'Real Estate', 'Infrastructure', 'Road', 'Highway', 'Logistics'];
+  const sectorStr = (sector || '').toLowerCase();
+  const isPositive = monsoonPositive.some(s => sectorStr.includes(s.toLowerCase()));
+  const isNegative = monsoonNegative.some(s => sectorStr.includes(s.toLowerCase()));
+  if (isPositive || isNegative) impact.isMonsoonSensitive = true;
+  if (month >= 5 && month <= 8) {
+    if (isPositive) { impact.score += 3; impact.label = 'MONSOON BOOST'; impact.factors.push('Active monsoon — positive for agri/rural'); }
+    else if (isNegative) { impact.score -= 2; impact.label = 'MONSOON DRAG'; impact.factors.push('Monsoon disrupts outdoor ops'); }
+  }
+  if (month >= 9 && month <= 10 && isPositive) { impact.score += 2; impact.factors.push('Kharif harvest — rural income boost'); }
+  if (month >= 10 && month <= 11 && (sectorStr.includes('seed') || sectorStr.includes('fertiliz'))) { impact.score += 2; impact.factors.push('Rabi sowing — seed/fertilizer demand peak'); }
+  if (month >= 3 && month <= 5) {
+    const summerSectors = ['consumer durables', 'ac', 'beverages', 'power', 'electricity'];
+    if (summerSectors.some(s => sectorStr.includes(s))) { impact.score += 2; impact.label = 'SUMMER PEAK DEMAND'; impact.factors.push('Peak summer — cooling/power demand'); }
+  }
+  if ((month >= 11 || month <= 1) && (sectorStr.includes('textile') || sectorStr.includes('apparel'))) { impact.score += 1; impact.factors.push('Winter — textile demand'); }
+  if (month >= 4 && month <= 9) impact.factors.push('Monitor IMD monsoon forecast');
+  impact.score = Math.max(-5, Math.min(5, impact.score));
+  return impact;
+}
+
+// ── MASTER: getUnifiedIntelligence(ticker) — all 12 dimensions ──
+window._unifiedIntelCache = {};
+function getUnifiedIntelligence(ticker) {
+  const tk = (ticker || '').replace('.NS','').replace('.BO','').replace('&','%26');
+  // Cache check (5 min TTL)
+  if (window._unifiedIntelCache[tk] && (Date.now() - (window._unifiedIntelCache[tk].timestamp || 0)) < 300000) {
+    return window._unifiedIntelCache[tk];
+  }
+  const stock = stocks.find(s => {
+    const st = (s.ticker||'').replace('.NS','').replace('.BO','').replace('&','%26');
+    return st === tk || st === ticker;
+  });
+  const muData = typeof MOVER_UNIVERSE !== 'undefined'
+    ? MOVER_UNIVERSE.find(m => m.t === tk || m.t === tk.replace('%26','&') || m.t === ticker) : null;
+  const intel = { ticker: tk, timestamp: Date.now(), dimensions: {}, totalBoost: 0, totalPenalty: 0, netScore: 0, insights: [] };
+
+  // Dim 1: Market Analysis
+  try {
+    const regime = typeof getMarketRegime === 'function' ? getMarketRegime() : { mode: 'NEUTRAL' };
+    intel.dimensions.marketAnalysis = regime;
+    if (regime.mode === 'BULL') intel.totalBoost += 3;
+    else if (regime.mode === 'BEAR') intel.totalPenalty += 3;
+  } catch(e) { intel.dimensions.marketAnalysis = { mode: 'NEUTRAL' }; }
+
+  // Dim 2: Diversification
+  try { intel.dimensions.diversification = computeDiversificationScore(); } catch(e) { intel.dimensions.diversification = { score: 5 }; }
+
+  // Dim 3: Risk
+  try {
+    intel.dimensions.risk = computeRiskScore(stock || muData || {});
+    if (intel.dimensions.risk.riskLevel === 'HIGH RISK') intel.totalPenalty += 3;
+  } catch(e) { intel.dimensions.risk = { score: 0, riskLevel: 'UNKNOWN' }; }
+
+  // Dim 4: Technical (from existing dashboard intel)
+  try {
+    const techData = window._dashboardIntel && window._dashboardIntel[tk] && window._dashboardIntel[tk].technical;
+    intel.dimensions.technical = techData || { score: 0, label: 'No technical data' };
+    if (techData && (techData.action === 'BUY' || techData.trend === 'BULLISH')) intel.totalBoost += 2;
+    else if (techData && (techData.action === 'SELL' || techData.trend === 'BEARISH')) intel.totalPenalty += 2;
+  } catch(e) { intel.dimensions.technical = { score: 0 }; }
+
+  // Dim 5: Economic
+  try {
+    intel.dimensions.economic = getEconomicIndicators();
+    intel.totalBoost += Math.max(0, intel.dimensions.economic.score);
+    intel.totalPenalty += Math.abs(Math.min(0, intel.dimensions.economic.score));
+  } catch(e) { intel.dimensions.economic = { score: 0 }; }
+
+  // Dim 6: Value Investing
+  try {
+    if (muData) {
+      const pe = muData.pe || 0;
+      const roce = muData.ro || 0;
+      const peToRoce = roce > 0 ? pe / roce : 99;
+      intel.dimensions.value = {
+        pe, roce, peToRoce: Math.round(peToRoce * 100) / 100,
+        isBuffettZone: peToRoce > 0 && peToRoce < 1.5 && roce >= 15,
+        isDeep: pe > 0 && pe < 15 && roce >= 12,
+        label: peToRoce < 1 ? 'DEEP VALUE + QUALITY' : peToRoce < 1.5 ? 'BUFFETT ZONE' : pe < 15 ? 'Value' : pe > 50 ? 'Expensive' : 'Fair'
+      };
+      if (intel.dimensions.value.isBuffettZone) intel.totalBoost += 2;
+      if (intel.dimensions.value.isDeep) intel.totalBoost += 3;
+    } else { intel.dimensions.value = { label: 'No data' }; }
+  } catch(e) { intel.dimensions.value = { label: 'Error' }; }
+
+  // Dim 7: Sentiment
+  try {
+    intel.dimensions.sentiment = computeMarketSentimentScore();
+    intel.totalBoost += Math.max(0, intel.dimensions.sentiment.score);
+    intel.totalPenalty += Math.abs(Math.min(0, intel.dimensions.sentiment.score));
+  } catch(e) { intel.dimensions.sentiment = { score: 0, label: 'Unknown' }; }
+
+  // Dim 8: Earnings
+  try {
+    const earningsData = window._dashboardIntel && window._dashboardIntel[tk] && window._dashboardIntel[tk].earnings;
+    if (earningsData) {
+      intel.dimensions.earnings = earningsData;
+      if (earningsData.epsGrowth > 20) intel.totalBoost += 2;
+      else if (earningsData.epsGrowth < -10) intel.totalPenalty += 2;
+    } else { intel.dimensions.earnings = { label: 'No earnings data' }; }
+  } catch(e) { intel.dimensions.earnings = { label: 'Error' }; }
+
+  // Dim 9: Growth
+  try {
+    intel.dimensions.growth = scoreGrowthPotential(muData);
+    if (intel.dimensions.growth.isGrowth) intel.totalBoost += 2;
+  } catch(e) { intel.dimensions.growth = { score: 0 }; }
+
+  // Dim 10: World Events
+  try {
+    intel.dimensions.worldEvents = scoreWorldEvents();
+    if (muData && intel.dimensions.worldEvents.chinaPlus1Sectors) {
+      if (intel.dimensions.worldEvents.chinaPlus1Sectors.some(cs => (muData.s||'').includes(cs))) {
+        intel.totalBoost += 1; intel.insights.push('China+1 beneficiary');
+      }
+    }
+  } catch(e) { intel.dimensions.worldEvents = { score: 0 }; }
+
+  // Dim 11: Astrological
+  try {
+    const cosmic = typeof getCosmicSentiment === 'function' ? getCosmicSentiment() : null;
+    intel.dimensions.astro = cosmic || { cosmicScore: 0, overall: 'Unknown' };
+    if (cosmic && cosmic.cosmicScore >= 3) intel.totalBoost += 1;
+    else if (cosmic && cosmic.cosmicScore <= -2) intel.totalPenalty += 1;
+  } catch(e) { intel.dimensions.astro = { cosmicScore: 0 }; }
+
+  // Dim 12: Weather/Monsoon
+  try {
+    const sector = muData ? muData.s : (stock ? stock.sector : '');
+    intel.dimensions.weather = getWeatherImpact(sector);
+    intel.totalBoost += Math.max(0, intel.dimensions.weather.score);
+    intel.totalPenalty += Math.abs(Math.min(0, intel.dimensions.weather.score));
+  } catch(e) { intel.dimensions.weather = { score: 0 }; }
+
+  intel.netScore = intel.totalBoost - intel.totalPenalty;
+  // Build top insights
+  if (intel.dimensions.risk && intel.dimensions.risk.riskLevel === 'HIGH RISK') intel.insights.unshift('HIGH RISK: ' + (intel.dimensions.risk.factors || []).join(', '));
+  if (intel.dimensions.economic && intel.dimensions.economic.factors) intel.insights.push(...intel.dimensions.economic.factors.slice(0, 2));
+  if (intel.dimensions.weather && intel.dimensions.weather.score !== 0) intel.insights.push(intel.dimensions.weather.label);
+  if (intel.dimensions.growth && intel.dimensions.growth.isGrowth) intel.insights.push(intel.dimensions.growth.label);
+
+  window._unifiedIntelCache[tk] = intel;
+  return intel;
+}
+
+// ── CONTINUOUS INTELLIGENCE REFRESH (every 10 min) ──
+function startContinuousIntelligence() {
+  console.log('[UNIFIED INTEL] Starting continuous 12-dimension intelligence...');
+  setInterval(() => {
+    try {
+      window._cachedEconomic = getEconomicIndicators();
+      window._cachedSentiment = computeMarketSentimentScore();
+      window._cachedWorldEvents = scoreWorldEvents();
+      window._cachedDiversification = computeDiversificationScore();
+      window._unifiedIntelCache = {};
+      console.log('[UNIFIED INTEL] Refreshed macro intelligence at ' + new Date().toLocaleTimeString());
+    } catch(e) { console.warn('[UNIFIED INTEL] Refresh error:', e.message); }
+  }, 600000);
+}
+setTimeout(startContinuousIntelligence, 15000);
+
 // ═══════════════════════════════════════════════════════════
 //  MULTI-FACTOR AI SCORING ENGINE (0-100) + Dashboard Intel
 // ═══════════════════════════════════════════════════════════
@@ -4406,9 +4765,42 @@ function aiScore(s) {
   // ── DASHBOARD INTELLIGENCE BONUS (±15 from cross-tab data) ──
   const dBonus = getDashboardBonus(s.ticker);
   if (dBonus.factors.length > 0) factors.push(...dBonus.factors);
-  const total = Math.max(0, Math.min(100, baseTotal + dBonus.bonus));
 
-  return { total: Math.round(total), momentum: Math.min(25, momentum), value: Math.min(25, value), quality: Math.min(25, quality), signal: Math.min(25, signal), dashboardBonus: dBonus.bonus, intelSources: dBonus.sources, factors };
+  // ── 12-DIMENSION UNIFIED INTELLIGENCE OVERLAY ──
+  let unifiedBoost = 0;
+  try {
+    const uIntel = getUnifiedIntelligence(s.ticker);
+    // Economic indicators boost/penalty
+    if (uIntel.dimensions.economic && uIntel.dimensions.economic.score >= 2) { unifiedBoost += 3; factors.push('📊 Macro: ' + uIntel.dimensions.economic.label); }
+    else if (uIntel.dimensions.economic && uIntel.dimensions.economic.score <= -2) { unifiedBoost -= 3; factors.push('📊 Macro: ' + uIntel.dimensions.economic.label); }
+    // Risk management penalty
+    if (uIntel.dimensions.risk && uIntel.dimensions.risk.riskLevel === 'HIGH RISK') { unifiedBoost -= 4; factors.push('⚠️ ' + uIntel.dimensions.risk.factors.slice(0,2).join(', ')); }
+    // Growth stock boost
+    if (uIntel.dimensions.growth && uIntel.dimensions.growth.isGrowth) { unifiedBoost += 3; factors.push('🚀 ' + uIntel.dimensions.growth.label); }
+    // Weather/Monsoon impact
+    if (uIntel.dimensions.weather && uIntel.dimensions.weather.score >= 2) { unifiedBoost += 2; factors.push('🌧️ ' + uIntel.dimensions.weather.label); }
+    else if (uIntel.dimensions.weather && uIntel.dimensions.weather.score <= -2) { unifiedBoost -= 2; factors.push('🌧️ ' + uIntel.dimensions.weather.label); }
+    // Sentiment boost
+    if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score >= 2) { unifiedBoost += 2; factors.push('📈 ' + uIntel.dimensions.sentiment.label); }
+    else if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score <= -2) { unifiedBoost -= 2; factors.push('📉 ' + uIntel.dimensions.sentiment.label); }
+    // Value investing deep value bonus
+    if (uIntel.dimensions.value && uIntel.dimensions.value.isBuffettZone) { unifiedBoost += 3; factors.push('💎 BUFFETT ZONE'); }
+    // World events
+    if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.riskLevel === 'HIGH') { unifiedBoost -= 2; factors.push('🌍 Geo risk HIGH'); }
+    // Astro overlay
+    if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore >= 3) { unifiedBoost += 1; factors.push(uIntel.dimensions.astro.overall); }
+    else if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore <= -2) { unifiedBoost -= 1; }
+    // Diversification warning
+    if (uIntel.dimensions.diversification && uIntel.dimensions.diversification.concentrated && uIntel.dimensions.diversification.concentrated.length > 0) {
+      const sectorStr = (s.sector || '').split('/')[0].trim();
+      if (uIntel.dimensions.diversification.concentrated.includes(sectorStr)) { unifiedBoost -= 2; factors.push('⚖️ OVER-CONCENTRATED in ' + sectorStr); }
+    }
+  } catch(e) { /* unified intel error — proceed without */ }
+  unifiedBoost = Math.max(-10, Math.min(10, unifiedBoost));
+
+  const total = Math.max(0, Math.min(100, baseTotal + dBonus.bonus + unifiedBoost));
+
+  return { total: Math.round(total), momentum: Math.min(25, momentum), value: Math.min(25, value), quality: Math.min(25, quality), signal: Math.min(25, signal), dashboardBonus: dBonus.bonus, unifiedBoost, intelSources: dBonus.sources, factors };
 }
 
 function aiScoreGrade(score) {
@@ -4903,6 +5295,23 @@ async function runAIAutoTrade() {
         // Layer 6: Sector heat bonus
         const sHeat = getSectorHeat(m.sector);
         tradeScore += sHeat.bonus;
+
+        // Layer 7: Unified 12-Dimension Intelligence boost
+        try {
+          const uIntel = getUnifiedIntelligence(m.ticker);
+          if (uIntel.dimensions.economic && uIntel.dimensions.economic.score >= 2) tradeScore += 3;
+          else if (uIntel.dimensions.economic && uIntel.dimensions.economic.score <= -2) tradeScore -= 3;
+          if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score >= 2) tradeScore += 2;
+          else if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score <= -2) tradeScore -= 2;
+          if (uIntel.dimensions.risk && uIntel.dimensions.risk.riskLevel === 'HIGH RISK') tradeScore -= 5;
+          if (uIntel.dimensions.growth && uIntel.dimensions.growth.isGrowth) tradeScore += 3;
+          if (uIntel.dimensions.value && uIntel.dimensions.value.isBuffettZone) tradeScore += 3;
+          if (uIntel.dimensions.weather && uIntel.dimensions.weather.score >= 2) tradeScore += 2;
+          else if (uIntel.dimensions.weather && uIntel.dimensions.weather.score <= -2) tradeScore -= 2;
+          if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore >= 3) tradeScore += 1;
+          else if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore <= -2) tradeScore -= 1;
+          if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.riskLevel === 'HIGH') tradeScore -= 2;
+        } catch(e) { /* proceed without */ }
 
         return {
           stock: { ticker: m.ticker, name: m.name, sector: m.sector, cmp: m.cmp, changePct: m.changePct, vol: m.vol },
@@ -9147,6 +9556,45 @@ function renderSmartSignalResults(results) {
   html += '</div>';
   html += '</div></div>';
 
+  // ── 12-DIMENSION INTELLIGENCE DASHBOARD ──
+  try {
+    var econI = getEconomicIndicators();
+    var sentI = computeMarketSentimentScore();
+    var divI = computeDiversificationScore();
+    var wevI = scoreWorldEvents();
+    html += '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
+    // Economic
+    var econColor = econI.score >= 2 ? '#22c55e' : econI.score <= -2 ? '#ef4444' : '#f59e0b';
+    html += '<div style="flex:1;min-width:140px;background:#1e293b;border-radius:8px;padding:8px 12px;text-align:center;border:1px solid ' + econColor + '30">';
+    html += '<div style="font-size:9px;color:#94a3b8">📊 ECONOMIC</div>';
+    html += '<div style="font-size:12px;font-weight:700;color:' + econColor + '">' + econI.label + '</div>';
+    if (econI.factors.length > 0) html += '<div style="font-size:8px;color:#64748b;margin-top:2px">' + econI.factors[0] + '</div>';
+    html += '</div>';
+    // Sentiment
+    var sentColor = sentI.score >= 2 ? '#22c55e' : sentI.score <= -2 ? '#ef4444' : '#f59e0b';
+    html += '<div style="flex:1;min-width:140px;background:#1e293b;border-radius:8px;padding:8px 12px;text-align:center;border:1px solid ' + sentColor + '30">';
+    html += '<div style="font-size:9px;color:#94a3b8">📈 SENTIMENT</div>';
+    html += '<div style="font-size:12px;font-weight:700;color:' + sentColor + '">' + sentI.label + '</div>';
+    html += '<div style="font-size:8px;color:#64748b;margin-top:2px">Fear/Greed: ' + sentI.fearGreed + '/100</div>';
+    html += '</div>';
+    // Diversification
+    var divColor = divI.score >= 7 ? '#22c55e' : divI.score >= 4 ? '#f59e0b' : '#ef4444';
+    html += '<div style="flex:1;min-width:140px;background:#1e293b;border-radius:8px;padding:8px 12px;text-align:center;border:1px solid ' + divColor + '30">';
+    html += '<div style="font-size:9px;color:#94a3b8">⚖️ DIVERSIFICATION</div>';
+    html += '<div style="font-size:12px;font-weight:700;color:' + divColor + '">' + divI.sectorCount + ' Sectors</div>';
+    html += '<div style="font-size:8px;color:#64748b;margin-top:2px">HHI: ' + divI.hhi + (divI.concentrated.length > 0 ? ' ⚠️' : ' ✓') + '</div>';
+    html += '</div>';
+    // Weather
+    var now_m = new Date().getMonth();
+    var weatherLabel = (now_m >= 5 && now_m <= 8) ? '🌧️ MONSOON' : (now_m >= 3 && now_m <= 5) ? '☀️ SUMMER' : (now_m >= 9 && now_m <= 11) ? '🎉 FESTIVAL' : '❄️ WINTER';
+    html += '<div style="flex:1;min-width:140px;background:#1e293b;border-radius:8px;padding:8px 12px;text-align:center;border:1px solid #6366f130">';
+    html += '<div style="font-size:9px;color:#94a3b8">🌤️ WEATHER/SEASON</div>';
+    html += '<div style="font-size:12px;font-weight:700;color:#a78bfa">' + weatherLabel + '</div>';
+    html += '<div style="font-size:8px;color:#64748b;margin-top:2px">Sector impacts active</div>';
+    html += '</div>';
+    html += '</div>';
+  } catch(e) { /* render without */ }
+
   // ── Intel Quality + Global Trends ──
   html += '<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">';
   // Intel Quality
@@ -9414,22 +9862,52 @@ function computeScore(data, yfTicker, portfolioStock) {
   else if (smartSig && smartSig.total >= 25) { smartSigScore = 5; }
   else { smartSigScore = 0; }
 
-  const totalScore = trendScore + momScore + breakoutScore + compressionScore + strengthScore + valScore + volScore + qualScore + intelScore + smartSigScore;
+  // === 10. UNIFIED 12-DIMENSION INTELLIGENCE (0-15) ===
+  let unifiedScore = 7;
+  let unifiedInsights = [];
+  try {
+    const uIntel = getUnifiedIntelligence(yfTicker);
+    let uBoost = 0;
+    // Economic macro
+    if (uIntel.dimensions.economic) uBoost += Math.max(-2, Math.min(2, uIntel.dimensions.economic.score));
+    // Sentiment
+    if (uIntel.dimensions.sentiment) uBoost += Math.max(-2, Math.min(2, uIntel.dimensions.sentiment.score));
+    // Risk penalty
+    if (uIntel.dimensions.risk && uIntel.dimensions.risk.riskLevel === 'HIGH RISK') uBoost -= 3;
+    // Growth bonus
+    if (uIntel.dimensions.growth && uIntel.dimensions.growth.isGrowth) uBoost += 2;
+    // Value bonus
+    if (uIntel.dimensions.value && uIntel.dimensions.value.isBuffettZone) uBoost += 2;
+    // Weather/seasonal
+    if (uIntel.dimensions.weather) uBoost += Math.max(-1, Math.min(1, uIntel.dimensions.weather.score));
+    // Astro
+    if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore >= 3) uBoost += 1;
+    else if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore <= -2) uBoost -= 1;
+    // World events
+    if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.riskLevel === 'HIGH') uBoost -= 2;
+    // Diversification
+    if (uIntel.dimensions.diversification && uIntel.dimensions.diversification.concentrated && uIntel.dimensions.diversification.concentrated.length > 0) uBoost -= 1;
+    unifiedScore = Math.max(0, Math.min(15, 7 + uBoost));
+    unifiedInsights = uIntel.insights || [];
+  } catch(e) { unifiedScore = 7; }
+
+  const totalScore = trendScore + momScore + breakoutScore + compressionScore + strengthScore + valScore + volScore + qualScore + intelScore + smartSigScore + unifiedScore;
 
   let grade, gradeClass, verdict, verdictClass;
-  if (totalScore >= 80) { grade = 'A+'; gradeClass = 'grade-a'; verdict = 'STRONG BUY'; verdictClass = 'verdict-buy'; }
-  else if (totalScore >= 70) { grade = 'A'; gradeClass = 'grade-a'; verdict = 'BUY'; verdictClass = 'verdict-buy'; }
-  else if (totalScore >= 60) { grade = 'B+'; gradeClass = 'grade-b'; verdict = 'ACCUMULATE'; verdictClass = 'verdict-hold'; }
-  else if (totalScore >= 50) { grade = 'B'; gradeClass = 'grade-b'; verdict = 'HOLD'; verdictClass = 'verdict-hold'; }
-  else if (totalScore >= 40) { grade = 'C'; gradeClass = 'grade-c'; verdict = 'WAIT'; verdictClass = 'verdict-wait'; }
+  if (totalScore >= 90) { grade = 'A+'; gradeClass = 'grade-a'; verdict = 'STRONG BUY'; verdictClass = 'verdict-buy'; }
+  else if (totalScore >= 78) { grade = 'A'; gradeClass = 'grade-a'; verdict = 'BUY'; verdictClass = 'verdict-buy'; }
+  else if (totalScore >= 66) { grade = 'B+'; gradeClass = 'grade-b'; verdict = 'ACCUMULATE'; verdictClass = 'verdict-hold'; }
+  else if (totalScore >= 55) { grade = 'B'; gradeClass = 'grade-b'; verdict = 'HOLD'; verdictClass = 'verdict-hold'; }
+  else if (totalScore >= 44) { grade = 'C'; gradeClass = 'grade-c'; verdict = 'WAIT'; verdictClass = 'verdict-wait'; }
   else { grade = 'D'; gradeClass = 'grade-d'; verdict = 'AVOID'; verdictClass = 'verdict-avoid'; }
 
   return {
     price, prevClose, changePct, high52, low52, volume, pe, roce, mcap,
     trendScore, momScore, breakoutScore, compressionScore, strengthScore,
-    valScore, volScore, qualScore, intelScore, smartSigScore, totalScore,
+    valScore, volScore, qualScore, intelScore, smartSigScore, unifiedScore, totalScore,
     grade, gradeClass, verdict, verdictClass, posIn52W,
-    sizeScore: compressionScore + strengthScore
+    sizeScore: compressionScore + strengthScore,
+    unifiedInsights
   };
 }
 
@@ -10580,7 +11058,35 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
     }
   }
 
-  return { total: Math.min(155, Math.round(score)), momentum: changePct.toFixed(2), vol: volume, signals: signals };
+  // ═══ 12-DIMENSION INTELLIGENCE OVERLAY (±20) ═══
+  // Wire unified intelligence into day trade scoring
+  try {
+    var uIntel = getUnifiedIntelligence(ticker);
+    // Economic macro boost/drag
+    if (uIntel.dimensions.economic && uIntel.dimensions.economic.score >= 2) { score += 5; signals.push('MACRO+'); }
+    else if (uIntel.dimensions.economic && uIntel.dimensions.economic.score <= -2) { score -= 5; signals.push('MACRO-'); }
+    // Market sentiment
+    if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score >= 2) { score += 5; signals.push('SENT+'); }
+    else if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score <= -2) { score -= 5; signals.push('SENT-'); }
+    // Risk management — penalize HIGH RISK for day trades
+    if (uIntel.dimensions.risk && uIntel.dimensions.risk.riskLevel === 'HIGH RISK') { score -= 8; signals.push('RISK-HIGH'); }
+    // Weather/seasonal impact
+    if (uIntel.dimensions.weather && Math.abs(uIntel.dimensions.weather.score) >= 2) {
+      score += uIntel.dimensions.weather.score > 0 ? 3 : -3;
+      signals.push(uIntel.dimensions.weather.score > 0 ? 'SEASON+' : 'SEASON-');
+    }
+    // Cosmic/astro for day trading
+    if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore >= 3) { score += 2; signals.push('COSMIC+'); }
+    else if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore <= -2) { score -= 3; signals.push('COSMIC-'); }
+    // Value investing — deep value stocks rarely move fast, penalize for day trade
+    if (uIntel.dimensions.value && uIntel.dimensions.value.pe > 0 && uIntel.dimensions.value.pe < 8) { score -= 2; signals.push('LOW-PE-SLOW'); }
+    // Growth stock bonus — growth stocks move more
+    if (uIntel.dimensions.growth && uIntel.dimensions.growth.isGrowth) { score += 3; signals.push('GROWTH+'); }
+    // World events geopolitical risk
+    if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.riskLevel === 'HIGH') { score -= 3; signals.push('GEO-RISK'); }
+  } catch(e) { /* proceed without unified intel */ }
+
+  return { total: Math.min(175, Math.round(score)), momentum: changePct.toFixed(2), vol: volume, signals: signals };
 }
 
 // ---------------------------------------------------------------
