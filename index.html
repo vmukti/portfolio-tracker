@@ -4397,9 +4397,9 @@ function aiScore(s) {
 
   // Smart Signal Intelligence bonus
   const _smartSig = getSmartSignal((s.ticker||'').replace('.NS','').replace('.BO',''));
-  if (_smartSig && _smartSig.total >= 70) { signal += 8; factors.push('🔮 SHADOW ALERT: ' + _smartSig.topSignal); }
-  else if (_smartSig && _smartSig.total >= 50) { signal += 5; factors.push('🔮 Early signal: ' + _smartSig.topSignal); }
-  else if (_smartSig && _smartSig.total >= 35) { signal += 3; factors.push('🔮 Signal building: ' + _smartSig.topSignal); }
+  if (_smartSig && _smartSig.total >= 60) { signal += 8; factors.push('🔮 SHADOW ALERT: ' + _smartSig.topSignal); }
+  else if (_smartSig && _smartSig.total >= 40) { signal += 5; factors.push('🔮 Early signal: ' + _smartSig.topSignal); }
+  else if (_smartSig && _smartSig.total >= 25) { signal += 3; factors.push('🔮 Signal building: ' + _smartSig.topSignal); }
 
   const baseTotal = Math.min(25, momentum) + Math.min(25, value) + Math.min(25, quality) + Math.min(25, signal);
 
@@ -4844,7 +4844,7 @@ async function runAIAutoTrade() {
 
       // Smart Signal Intelligence boost
       const _ssBuy = getSmartSignal(s.ticker.replace('.NS','').replace('.BO',''));
-      if (_ssBuy && _ssBuy.total >= 50) bonusScore += 8;
+      if (_ssBuy && _ssBuy.total >= 40) bonusScore += 8;
 
       return { stock: s, sc: { total: Math.min(100, Math.max(0, bonusScore)), factors: sc.factors, rawScore: sc.total }, source: 'portfolio', trend, sectorHeat: sHeat };
     })
@@ -8064,13 +8064,30 @@ async function fetchScorerData(yfTicker, rawInput) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// SMART SIGNAL INTELLIGENCE ENGINE v2 — Real Web Intelligence
-// Uses LIVE Google Search data to detect early internet activity.
-// Two-phase scan: fast volume/price filter then targeted Google Buzz.
-// Target: identify 15-20% moves in 5-8 days from hidden signals.
 // ═══════════════════════════════════════════════════════════════════════
+// SHADOW INTELLIGENCE ENGINE v3 — INSTITUTIONAL RESEARCH
+// ═══════════════════════════════════════════════════════════════════════
+// Thinks like a BIG institutional investor doing deep study.
+// Combines FUNDAMENTAL analysis (PE, ROCE, valuation gap),
+// BUSINESS intelligence (catalysts, management actions, M&A),
+// SECTOR analysis (peer comparison, rotation detection),
+// and SMART MONEY flow detection (volume-price efficiency).
+// Google Suggest is used as a BUSINESS INTELLIGENCE tool —
+// detecting real business events (order wins, insider buying,
+// M&A, expansion) from web activity — NOT just buzz counting.
+// The system builds its own historical database over time.
+//
+// SCORING BREAKDOWN (max 100):
+//   Fundamental Quality:     0-20 pts  [DEEP RESEARCH]
+//   Business Intelligence:   0-20 pts  [DEEP RESEARCH]
+//   Institutional Flow:      0-20 pts  [SMART MONEY]
+//   Position & Setup:        0-15 pts  [TECHNICAL]
+//   Sector & Peer Analysis:  0-15 pts  [DEEP RESEARCH]
+//   Convergence Bonus:       0-10 pts  [BONUS]
+// ═══════════════════════════════════════════════════════════════════════
+
 var SMART_SIGNAL_CACHE = {};
-var SMART_SIGNAL_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+var SMART_SIGNAL_CACHE_TTL = 15 * 60 * 1000;
 
 function getSmartSignal(ticker) {
   var now = Date.now();
@@ -8078,515 +8095,1182 @@ function getSmartSignal(ticker) {
   if (cached && (now - cached.ts) < SMART_SIGNAL_CACHE_TTL) return cached.data;
   return null;
 }
-
 function setSmartSignalCache(ticker, data) {
   SMART_SIGNAL_CACHE[ticker] = { ts: Date.now(), data: data };
 }
 
-// ─── Signal 1: Volume Intelligence (0-20 pts) ───
-function sigVolume(volume, price, prevClose, dayHigh, dayLow) {
-  if (!volume || volume <= 0) return { score: 0, label: '', detail: '' };
-  var changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
-  var intradayRange = (dayHigh && dayLow) ? ((dayHigh - dayLow) / price * 100) : 0;
-  var baseVol = volume > 10000000 ? volume / 3.5 :
-                volume > 5000000 ? volume / 3 :
-                volume > 1000000 ? volume / 2.5 :
-                volume > 100000 ? volume / 2 : volume / 1.5;
-  var vr = volume / Math.max(1, baseVol);
+// ─── HISTORICAL DATA INFRASTRUCTURE ───
+var SHADOW_HISTORY_KEY = 'shadowIntel_history_v1';
+var SHADOW_HISTORY_MAX_DAYS = 30;
+var _shadowHistoryLoaded = null;
 
-  if (vr >= 2.5 && Math.abs(changePct) < 1 && intradayRange > 2) {
-    return { score: 20, label: 'Stealth accumulation — ' + vr.toFixed(1) + 'x vol, tight close', detail: 'Smart money absorbing supply' };
-  }
-  if (vr >= 3 && changePct > 2) {
-    return { score: 20, label: 'Heavy buying — vol ' + vr.toFixed(1) + 'x, +' + changePct.toFixed(1) + '%', detail: 'Block deal or institutional entry' };
-  }
-  if (vr >= 2 && changePct > 0.5) {
-    return { score: 15, label: 'Volume surge ' + vr.toFixed(1) + 'x with +' + changePct.toFixed(1) + '% gain', detail: '' };
-  }
-  if (vr >= 2.5 && changePct < -1) {
-    return { score: -5, label: 'Distribution — ' + vr.toFixed(1) + 'x vol, price falling', detail: 'Possible exit by large holders' };
-  }
-  if (vr >= 1.5) {
-    return { score: 8, label: 'Above-avg volume (' + vr.toFixed(1) + 'x)', detail: '' };
-  }
-  return { score: 0, label: '', detail: '' };
+function loadShadowHistory() {
+  if (_shadowHistoryLoaded) return _shadowHistoryLoaded;
+  try { _shadowHistoryLoaded = JSON.parse(localStorage.getItem(SHADOW_HISTORY_KEY)) || {}; }
+  catch(e) { _shadowHistoryLoaded = {}; }
+  return _shadowHistoryLoaded;
 }
-
-// ─── Signal 2: Price Action Pattern (0-20 pts) ───
-function sigPriceAction(price, prevClose, high52, low52, dayHigh, dayLow) {
-  if (!price || price <= 0) return { score: 0, label: '', detail: '' };
-  var changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
-  var range52 = high52 - low52;
-  var pos52 = range52 > 0 ? ((price - low52) / range52 * 100) : 50;
-  var intradayRange = (dayHigh && dayLow) ? ((dayHigh - dayLow) / price * 100) : 0;
-  var fromHigh52 = high52 > 0 ? ((high52 - price) / high52 * 100) : 0;
-
-  if (pos52 >= 97) {
-    return { score: 20, label: '52W high breakout — only ' + fromHigh52.toFixed(1) + '% from ATH', detail: '' };
-  }
-  if (changePct >= 4) {
-    return { score: 20, label: 'Gap-up +' + changePct.toFixed(1) + '% — catalyst in play', detail: '' };
-  }
-  if (changePct >= 2) {
-    return { score: 15, label: 'Strong move +' + changePct.toFixed(1) + '% today', detail: '' };
-  }
-  if (pos52 >= 90) {
-    return { score: 14, label: 'Near 52W high (' + pos52.toFixed(0) + '% of range)', detail: '' };
-  }
-  if (pos52 <= 15 && changePct > 1) {
-    return { score: 16, label: 'Reversal from 52W low — up ' + changePct.toFixed(1) + '% off bottom', detail: '' };
-  }
-  if (intradayRange > 4) {
-    return { score: 12, label: 'Volatile day — ' + intradayRange.toFixed(1) + '% intraday range', detail: '' };
-  }
-  if (changePct > 0.5 && pos52 > 50) {
-    return { score: 8, label: 'Steady momentum +' + changePct.toFixed(1) + '%', detail: '' };
-  }
-  return { score: 0, label: '', detail: '' };
-}
-
-// ─── Signal 3: Google Search Buzz (0-30 pts) ─── PRIMARY WEB INTELLIGENCE
-// Fetches REAL Google Suggest data and analyses content for buzz patterns.
-// This is what makes each stock signal UNIQUE and DIFFERENTIATED.
-async function sigGoogleBuzz(companyName, ticker) {
-  if (!companyName) return { score: 0, label: '', detail: '', hotWords: [], categories: [] };
+function saveShadowHistory(hist) {
   try {
-    var queries = [
-      companyName + ' share price',
-      companyName + ' stock news',
-      companyName + ' share'
-    ];
-    var allSuggestions = [];
-    var proxyBase = 'https://corsproxy.io/?';
-    for (var qi = 0; qi < queries.length; qi++) {
-      try {
-        var surl = 'https://suggestqueries.google.com/complete/search?client=firefox&q=' + encodeURIComponent(queries[qi]);
-        var sresp = await fetch(proxyBase + encodeURIComponent(surl), { signal: AbortSignal.timeout(4000) });
-        var sdata = await sresp.json();
-        if (sdata && sdata[1]) { for (var si = 0; si < sdata[1].length; si++) allSuggestions.push(sdata[1][si]); }
-      } catch(e2) { /* skip */ }
+    var str = JSON.stringify(hist);
+    if (str.length > 4000000) {
+      for (var tk in hist) { if (hist[tk].length > 15) hist[tk] = hist[tk].slice(-15); }
+      str = JSON.stringify(hist);
     }
-    if (allSuggestions.length === 0) return { score: 0, label: 'No search data', detail: '', hotWords: [], categories: [] };
+    localStorage.setItem(SHADOW_HISTORY_KEY, str);
+    _shadowHistoryLoaded = hist;
+  } catch(e) {
+    for (var tk2 in hist) { if (hist[tk2].length > 10) hist[tk2] = hist[tk2].slice(-10); }
+    try { localStorage.setItem(SHADOW_HISTORY_KEY, JSON.stringify(hist)); } catch(e2) {}
+  }
+}
+function addSnapshot(hist, ticker, data) {
+  var today = new Date().toISOString().slice(0,10);
+  if (!hist[ticker]) hist[ticker] = [];
+  for (var i = 0; i < hist[ticker].length; i++) { if (hist[ticker][i].d === today) return; }
+  hist[ticker].push({ d:today, p:data.price, pc:data.prevClose, v:data.volume, h:data.dayHigh, l:data.dayLow, h52:data.high52, l52:data.low52 });
+  if (hist[ticker].length > SHADOW_HISTORY_MAX_DAYS) hist[ticker] = hist[ticker].slice(-SHADOW_HISTORY_MAX_DAYS);
+}
+function getIntelQuality(hist) {
+  var dates = {};
+  for (var tk in hist) { for (var i = 0; i < hist[tk].length; i++) dates[hist[tk][i].d] = true; }
+  var days = Object.keys(dates).length;
+  if (days >= 15) return { level:'FULL', label:'Full Intelligence', days:days, color:'#22c55e' };
+  if (days >= 8) return { level:'STRONG', label:'Strong Intel', days:days, color:'#3b82f6' };
+  if (days >= 4) return { level:'DEVELOPING', label:'Developing', days:days, color:'#f59e0b' };
+  return { level:'BASIC', label:'Building database', days:days, color:'#94a3b8' };
+}
 
-    var hotPatterns = {
-      'news today': { weight: 4, category: 'Breaking news' },
-      'latest news': { weight: 3, category: 'News velocity' },
-      'target tomorrow': { weight: 5, category: 'Near-term catalyst' },
-      'insider buying': { weight: 5, category: 'Insider buying detected' },
-      'buy or sell': { weight: 4, category: 'Decision momentum' },
-      'target price': { weight: 3, category: 'Price target hunt' },
-      'quarterly results': { weight: 4, category: 'Earnings season' },
-      'bulk deal': { weight: 4, category: 'Bulk deal activity' },
-      'block deal': { weight: 4, category: 'Block deal activity' },
-      'order win': { weight: 5, category: 'Order win buzz' },
-      'today': { weight: 3, category: 'Active buzz' },
-      'latest': { weight: 2, category: 'Recent interest' },
-      'breaking': { weight: 5, category: 'Breaking catalyst' },
-      'live': { weight: 2, category: 'Real-time tracking' },
-      'results': { weight: 4, category: 'Earnings catalyst' },
-      'acquisition': { weight: 5, category: 'M&A speculation' },
-      'takeover': { weight: 5, category: 'Takeover buzz' },
-      'merger': { weight: 5, category: 'Merger speculation' },
-      'bonus': { weight: 4, category: 'Bonus/split catalyst' },
-      'split': { weight: 4, category: 'Stock split buzz' },
-      'dividend': { weight: 3, category: 'Dividend catalyst' },
-      'insider': { weight: 4, category: 'Insider activity' },
-      'expansion': { weight: 3, category: 'Growth catalyst' },
-      'contract': { weight: 3, category: 'New contract buzz' },
-      'deal': { weight: 3, category: 'Deal activity' },
-      'rally': { weight: 3, category: 'Rally expectation' },
-      'multibagger': { weight: 4, category: 'Multibagger hunt' },
-      'breakout': { weight: 4, category: 'Breakout expected' }
-    };
-    var coldPatterns = ['2030','2028','2029','history','wiki','full form','company profile','about','careers'];
-    var sortedPats = Object.keys(hotPatterns).sort(function(a,b){ return b.length - a.length; });
+// ─── SECTOR STATISTICS (computed once per scan) ───
+var _sectorStats = null;
+function computeSectorStats() {
+  if (_sectorStats) return _sectorStats;
+  _sectorStats = {};
+  for (var i = 0; i < MOVER_UNIVERSE.length; i++) {
+    var m = MOVER_UNIVERSE[i];
+    if (!m.s) continue;
+    if (!_sectorStats[m.s]) _sectorStats[m.s] = { pes:[], ros:[], mcs:[], tickers:[] };
+    if (m.pe && m.pe > 0) _sectorStats[m.s].pes.push(m.pe);
+    if (m.ro && m.ro > 0) _sectorStats[m.s].ros.push(m.ro);
+    if (m.mc && m.mc > 0) _sectorStats[m.s].mcs.push(m.mc);
+    _sectorStats[m.s].tickers.push(m.t);
+  }
+  for (var sec in _sectorStats) {
+    var ss = _sectorStats[sec];
+    ss.avgPE = ss.pes.length > 0 ? ss.pes.reduce(function(a,b){return a+b;},0)/ss.pes.length : 0;
+    ss.medPE = ss.pes.length > 0 ? ss.pes.sort(function(a,b){return a-b;})[Math.floor(ss.pes.length/2)] : 0;
+    ss.avgROCE = ss.ros.length > 0 ? ss.ros.reduce(function(a,b){return a+b;},0)/ss.ros.length : 0;
+    ss.stockCount = ss.tickers.length;
+    // ROCE percentile thresholds
+    var sortedRO = ss.ros.slice().sort(function(a,b){return a-b;});
+    ss.roceP75 = sortedRO.length > 0 ? sortedRO[Math.floor(sortedRO.length*0.75)] : 20;
+  }
+  return _sectorStats;
+}
 
-    var totalWeight = 0;
-    var foundCategories = [];
-    var foundHotWords = [];
-    var coldCount = 0;
 
-    for (var i = 0; i < allSuggestions.length; i++) {
-      var sl = allSuggestions[i].toLowerCase();
-      for (var p = 0; p < sortedPats.length; p++) {
-        if (sl.indexOf(sortedPats[p]) !== -1) {
-          var hp = hotPatterns[sortedPats[p]];
-          totalWeight += hp.weight;
-          if (foundCategories.indexOf(hp.category) === -1) foundCategories.push(hp.category);
-          if (foundHotWords.indexOf(sortedPats[p]) === -1) foundHotWords.push(sortedPats[p]);
-          break;
+// ═══════════════════════════════════════════════════════════════
+// SIGNAL 1: FUNDAMENTAL QUALITY (0-20 pts)
+// ═══════════════════════════════════════════════════════════════
+// Like Buffett: "Wonderful company at a fair price."
+// PE below sector average + high ROCE = undervalued quality.
+// This is what institutional investors ACTUALLY screen for.
+function sigFundamental(muData, sectorStats) {
+  var pe = muData.pe || 0;
+  var roce = muData.ro || 0;
+  var mc = muData.mc || 0;
+  var sector = muData.s || '';
+  var cap = muData.c || '';
+  var ss = sectorStats[sector] || {};
+  if (!pe || pe <= 0) return { score: 0, label: 'No PE data', detail: '' };
+
+  var avgPE = ss.medPE || ss.avgPE || 0;
+  var avgROCE = ss.avgROCE || 0;
+  var peDiscount = avgPE > 0 ? ((avgPE - pe) / avgPE * 100) : 0;
+  var peToRoce = (pe > 0 && roce > 0) ? (pe / roce) : 99;
+  var roceRank = roce >= 30 ? 'exceptional' : roce >= 20 ? 'strong' : roce >= 15 ? 'good' : roce >= 10 ? 'average' : 'weak';
+
+  var score = 0, label = '', detail = '';
+
+  // BUFFETT ZONE: Low PE vs sector + High ROCE
+  if (pe < avgPE * 0.65 && roce >= 20) {
+    score = 20;
+    label = 'BUFFETT ZONE: PE ' + pe + ' (' + Math.abs(peDiscount).toFixed(0) + '% below sector ' + avgPE.toFixed(0) + '), ROCE ' + roce + '%';
+    detail = 'Undervalued quality — institutional favorite profile';
+  }
+  // VALUE + QUALITY
+  else if (pe < avgPE * 0.8 && roce >= 18) {
+    score = 17;
+    label = 'VALUE + QUALITY: PE ' + pe + ' (sector ' + avgPE.toFixed(0) + '), ROCE ' + roce + '% — attractively priced';
+    detail = 'PE/ROCE ratio: ' + peToRoce.toFixed(1);
+  }
+  // QUALITY COMPOUNDER (high ROCE even if PE is fair)
+  else if (roce >= 25 && pe <= avgPE * 1.2) {
+    score = 15;
+    label = 'QUALITY COMPOUNDER: ROCE ' + roce + '% (' + roceRank + '), PE ' + pe + ' — capital-efficient business';
+  }
+  // UNDERVALUED (low PE, average quality)
+  else if (pe < avgPE * 0.7 && roce >= 10) {
+    score = 13;
+    label = 'UNDERVALUED: PE ' + pe + ' (' + Math.abs(peDiscount).toFixed(0) + '% below sector), ROCE ' + roce + '%';
+  }
+  // GOOD FUNDAMENTALS
+  else if (roce >= 15 && pe <= avgPE) {
+    score = 10;
+    label = 'SOLID: PE ' + pe + ' ≤ sector ' + avgPE.toFixed(0) + ', ROCE ' + roce + '% (' + roceRank + ')';
+  }
+  // FAIRLY PRICED QUALITY
+  else if (roce >= 20 && pe <= avgPE * 1.3) {
+    score = 8;
+    label = 'Quality at fair price: ROCE ' + roce + '%, PE ' + pe;
+  }
+  // EXPENSIVE vs sector
+  else if (pe > avgPE * 1.5 && roce < 20) {
+    score = -3;
+    label = 'EXPENSIVE: PE ' + pe + ' (' + Math.abs(peDiscount).toFixed(0) + '% above sector), ROCE only ' + roce + '%';
+  }
+  // AVERAGE
+  else if (roce >= 10) {
+    score = 4;
+    label = 'Average: PE ' + pe + ', ROCE ' + roce + '%';
+  }
+
+  return { score: Math.min(20, Math.max(-5, score)), label: label, detail: detail, pe: pe, roce: roce, peDiscount: peDiscount, peToRoce: peToRoce };
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// SIGNAL 2: BUSINESS INTELLIGENCE (0-20 pts)
+// ═══════════════════════════════════════════════════════════════
+// Detects REAL business events from multiple sources:
+// — Google Suggest (used as BUSINESS EVENT detector, not just buzz)
+// — Portfolio catalyst text
+// — Dashboard intelligence
+// Categories: Order wins, M&A, Expansion, Management actions,
+// Earnings catalysts. THIS is how big investors stay ahead.
+async function sigBusinessIntel(companyName, ticker, muData) {
+  var score = 0, label = '', detail = '';
+  var events = []; // {type, category, source, weight}
+
+  // ─── SOURCE 1: Google Suggest as BUSINESS EVENT scanner ───
+  if (companyName) {
+    try {
+      var queries = [companyName + ' share', companyName + ' stock news', companyName + ' company'];
+      var allSugg = [];
+      var proxyBase = 'https://corsproxy.io/?';
+      for (var qi = 0; qi < queries.length; qi++) {
+        try {
+          var surl = 'https://suggestqueries.google.com/complete/search?client=firefox&q=' + encodeURIComponent(queries[qi]);
+          var sresp = await fetch(proxyBase + encodeURIComponent(surl), { signal: AbortSignal.timeout(4000) });
+          var sdata = await sresp.json();
+          if (sdata && sdata[1]) { for (var si = 0; si < sdata[1].length; si++) allSugg.push(sdata[1][si].toLowerCase()); }
+        } catch(e2) {}
+      }
+      // Categorize suggestions by BUSINESS EVENT TYPE
+      var bizPatterns = {
+        // Management Actions (highest value — insiders know most)
+        'insider buying': {w:6,cat:'Insider Buying',type:'mgmt'},
+        'buyback': {w:5,cat:'Buyback',type:'mgmt'},
+        'promoter buying': {w:6,cat:'Promoter Buying',type:'mgmt'},
+        'promoter': {w:3,cat:'Promoter Activity',type:'mgmt'},
+        'insider': {w:4,cat:'Insider Activity',type:'mgmt'},
+        // Business Events (high value — real corporate developments)
+        'order win': {w:6,cat:'Order Win',type:'biz'},
+        'acquisition': {w:6,cat:'Acquisition',type:'biz'},
+        'takeover': {w:6,cat:'Takeover',type:'biz'},
+        'merger': {w:6,cat:'Merger',type:'biz'},
+        'expansion': {w:4,cat:'Expansion',type:'biz'},
+        'contract': {w:4,cat:'New Contract',type:'biz'},
+        'partnership': {w:4,cat:'Partnership',type:'biz'},
+        'deal': {w:3,cat:'Deal Activity',type:'biz'},
+        'capex': {w:3,cat:'Capex',type:'biz'},
+        'plant': {w:3,cat:'New Plant',type:'biz'},
+        'demerger': {w:5,cat:'Demerger',type:'biz'},
+        'restructuring': {w:4,cat:'Restructuring',type:'biz'},
+        // Shareholder Rewards (medium-high value)
+        'bonus': {w:5,cat:'Bonus Issue',type:'reward'},
+        'split': {w:5,cat:'Stock Split',type:'reward'},
+        'dividend': {w:3,cat:'Dividend',type:'reward'},
+        'buyback': {w:5,cat:'Buyback',type:'reward'},
+        // Earnings Catalysts (medium value)
+        'quarterly results': {w:4,cat:'Earnings',type:'earn'},
+        'results': {w:3,cat:'Results Watch',type:'earn'},
+        'q1 results': {w:4,cat:'Q1 Earnings',type:'earn'},
+        'q2 results': {w:4,cat:'Q2 Earnings',type:'earn'},
+        'q3 results': {w:4,cat:'Q3 Earnings',type:'earn'},
+        'q4 results': {w:4,cat:'Q4 Earnings',type:'earn'},
+        // Market Sentiment (lower value — secondary)
+        'bulk deal': {w:4,cat:'Bulk Deal',type:'flow'},
+        'block deal': {w:4,cat:'Block Deal',type:'flow'},
+        'target tomorrow': {w:3,cat:'Target Hunt',type:'sent'},
+        'buy or sell': {w:2,cat:'Decision Point',type:'sent'},
+        'news today': {w:2,cat:'News Activity',type:'sent'},
+        'target price': {w:2,cat:'Price Target',type:'sent'},
+        'multibagger': {w:3,cat:'Multibagger Hunt',type:'sent'},
+        'breakout': {w:3,cat:'Breakout Buzz',type:'sent'},
+        'rally': {w:2,cat:'Rally Buzz',type:'sent'}
+      };
+      var sortedPats = Object.keys(bizPatterns).sort(function(a,b){return b.length-a.length;});
+      var foundCats = [];
+      for (var si2 = 0; si2 < allSugg.length; si2++) {
+        for (var p = 0; p < sortedPats.length; p++) {
+          if (allSugg[si2].indexOf(sortedPats[p]) !== -1) {
+            var bp = bizPatterns[sortedPats[p]];
+            if (foundCats.indexOf(bp.cat) === -1) {
+              events.push({type: bp.type, category: bp.cat, source: 'web', weight: bp.w});
+              foundCats.push(bp.cat);
+            }
+            break;
+          }
         }
       }
-      for (var c = 0; c < coldPatterns.length; c++) {
-        if (sl.indexOf(coldPatterns[c]) !== -1) { coldCount++; break; }
-      }
-    }
-
-    var score = 0;
-    var diversityBonus = Math.min(8, foundCategories.length * 2);
-    if (totalWeight >= 20) score = 30;
-    else if (totalWeight >= 15) score = 25;
-    else if (totalWeight >= 10) score = 20;
-    else if (totalWeight >= 6) score = 14;
-    else if (totalWeight >= 3) score = 8;
-    else score = Math.min(5, totalWeight * 2);
-    score = Math.min(30, score + diversityBonus);
-    if (coldCount > foundHotWords.length * 2) score = Math.max(0, score - 5);
-
-    var label = '';
-    if (foundCategories.length >= 3) {
-      label = '🔍 Multi-catalyst buzz: ' + foundCategories.slice(0, 3).join(' + ');
-    } else if (foundCategories.length >= 2) {
-      label = '🔍 Search spike: ' + foundCategories.slice(0, 2).join(' + ');
-    } else if (foundCategories.length === 1) {
-      label = '🔍 ' + foundCategories[0];
-    } else {
-      label = 'Generic search interest';
-    }
-
-    return { score: score, label: label, detail: 'Hot: ' + foundHotWords.join(', ') + ' (' + totalWeight + ' wt)', hotWords: foundHotWords, categories: foundCategories, buzzWeight: totalWeight };
-  } catch(e) {
-    return { score: 0, label: 'Buzz scan failed', detail: e.message, hotWords: [], categories: [] };
+    } catch(e) {}
   }
-}
 
-// ─── Signal 4: Catalyst Intelligence (0-15 pts) ───
-function sigCatalyst(ticker) {
+  // ─── SOURCE 2: Dashboard Intelligence ───
   var intel = window._dashboardIntel && window._dashboardIntel[ticker];
-  var score = 0;
-  var label = '';
-  var detail = '';
-  var catalysts = [];
-
   if (intel) {
     if (intel.earnings) {
-      if (intel.earnings.epsGrowth > 40) { score += 6; catalysts.push('EPS +' + intel.earnings.epsGrowth.toFixed(0) + '%'); }
-      else if (intel.earnings.epsGrowth > 25) { score += 4; catalysts.push('EPS growing'); }
-      if (intel.earnings.revenueGrowth > 30) { score += 4; catalysts.push('Revenue +' + intel.earnings.revenueGrowth.toFixed(0) + '%'); }
-      else if (intel.earnings.revenueGrowth > 20) { score += 2; catalysts.push('Revenue up'); }
+      if (intel.earnings.epsGrowth > 40) events.push({type:'earn',category:'EPS +'+intel.earnings.epsGrowth.toFixed(0)+'%',source:'dash',weight:6});
+      else if (intel.earnings.epsGrowth > 25) events.push({type:'earn',category:'EPS growing',source:'dash',weight:4});
+      if (intel.earnings.revenueGrowth > 30) events.push({type:'earn',category:'Revenue +'+intel.earnings.revenueGrowth.toFixed(0)+'%',source:'dash',weight:5});
+      else if (intel.earnings.revenueGrowth > 20) events.push({type:'earn',category:'Revenue up',source:'dash',weight:3});
     }
-    if (intel.technical) {
-      if (intel.technical.trend === 'STRONG_UP') { score += 3; catalysts.push('Strong uptrend'); }
-      if (intel.technical.volumeTrend === 'RISING') { score += 2; catalysts.push('Rising volume'); }
-    }
-    if (intel.ranking) {
-      if (intel.ranking.grade === 'A+') { score += 3; catalysts.push('A+ ranked'); }
-      else if (intel.ranking.grade === 'A') { score += 2; catalysts.push('A ranked'); }
-    }
+    if (intel.ranking && intel.ranking.grade === 'A+') events.push({type:'rank',category:'A+ Ranked',source:'dash',weight:4});
+    else if (intel.ranking && intel.ranking.grade === 'A') events.push({type:'rank',category:'A Ranked',source:'dash',weight:3});
   }
 
+  // ─── SOURCE 3: Portfolio Catalyst Text ───
   if (typeof stocks !== 'undefined') {
     var pStock = stocks.find(function(s) { return s.ticker === ticker; });
     if (pStock && pStock.catalyst && pStock.catalyst.length > 10) {
-      var catTerms = ['order win','approval','partnership','acquisition','buyback','split','bonus','demerger','merger','expansion','capex','contract','licence','breakthrough','restructuring'];
+      var catTerms = [
+        {pat:'order win',cat:'Order Win',w:5},{pat:'approval',cat:'Regulatory Approval',w:5},
+        {pat:'partnership',cat:'Partnership',w:4},{pat:'acquisition',cat:'Acquisition',w:5},
+        {pat:'buyback',cat:'Buyback',w:5},{pat:'split',cat:'Stock Split',w:4},
+        {pat:'bonus',cat:'Bonus',w:4},{pat:'demerger',cat:'Demerger',w:5},
+        {pat:'merger',cat:'Merger',w:5},{pat:'expansion',cat:'Expansion',w:4},
+        {pat:'capex',cat:'Capex',w:3},{pat:'contract',cat:'Contract Win',w:4},
+        {pat:'restructuring',cat:'Restructuring',w:4},{pat:'breakthrough',cat:'Breakthrough',w:5}
+      ];
+      var cl = pStock.catalyst.toLowerCase();
       for (var ct = 0; ct < catTerms.length; ct++) {
-        if (pStock.catalyst.toLowerCase().indexOf(catTerms[ct]) !== -1) {
-          score += 3;
-          catalysts.push(catTerms[ct].charAt(0).toUpperCase() + catTerms[ct].slice(1));
-          break;
+        if (cl.indexOf(catTerms[ct].pat) !== -1) {
+          events.push({type:'biz',category:catTerms[ct].cat,source:'portfolio',weight:catTerms[ct].w});
         }
       }
     }
   }
 
+  // ─── Scoring ───
+  if (events.length === 0) return { score: 0, label: 'No business catalysts detected', detail: '', events: [], hotWords: [], categories: [] };
+
+  // Weight by event type (mgmt > biz > earn > flow > sent)
+  var typeMultiplier = {mgmt:1.5, biz:1.3, earn:1.1, reward:1.2, rank:1.0, flow:1.1, sent:0.6};
+  var totalW = 0;
+  var topEvents = [];
+  events.forEach(function(ev) {
+    var mult = typeMultiplier[ev.type] || 1;
+    totalW += ev.weight * mult;
+    topEvents.push(ev.category);
+  });
+
+  // Diversity bonus: multiple different event types = stronger signal
+  var types = {};
+  events.forEach(function(ev) { types[ev.type] = true; });
+  var typeCount = Object.keys(types).length;
+
+  if (totalW >= 20 && typeCount >= 3) score = 20;
+  else if (totalW >= 15 && typeCount >= 2) score = 18;
+  else if (totalW >= 12) score = 15;
+  else if (totalW >= 8) score = 12;
+  else if (totalW >= 5) score = 8;
+  else if (totalW >= 3) score = 5;
+  else score = Math.min(3, Math.round(totalW));
+
+  // Build label — prioritize management & business events
+  var mgmtEvents = events.filter(function(e){return e.type==='mgmt';}).map(function(e){return e.category;});
+  var bizEvents = events.filter(function(e){return e.type==='biz'||e.type==='reward';}).map(function(e){return e.category;});
+  var earnEvents = events.filter(function(e){return e.type==='earn';}).map(function(e){return e.category;});
+
+  if (mgmtEvents.length > 0) {
+    label = 'MGMT ACTION: ' + mgmtEvents.slice(0,2).join(' + ');
+    if (bizEvents.length > 0) label += ' + ' + bizEvents[0];
+  } else if (bizEvents.length > 0) {
+    label = 'BUSINESS CATALYST: ' + bizEvents.slice(0,2).join(' + ');
+    if (earnEvents.length > 0) label += ' + ' + earnEvents[0];
+  } else if (earnEvents.length > 0) {
+    label = 'EARNINGS CATALYST: ' + earnEvents.slice(0,2).join(' + ');
+  } else {
+    label = 'Activity: ' + topEvents.slice(0,2).join(' + ');
+  }
+
+  var hotWords = events.filter(function(e){return e.source==='web';}).map(function(e){return e.category;});
+  return { score: Math.min(20, score), label: label, detail: typeCount+' event types', events: events, hotWords: hotWords, categories: topEvents };
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// SIGNAL 3: INSTITUTIONAL FLOW (0-20 pts)
+// ═══════════════════════════════════════════════════════════════
+// Detects smart money through volume-price efficiency.
+// When institutions buy, they move large volume but try
+// to keep price stable (accumulation). We detect this mismatch.
+function sigInstitutionalFlow(d, hist) {
+  var price = d.price||0, prevClose = d.prevClose||price;
+  var volume = d.volume||0, dayHigh = d.dayHigh||price, dayLow = d.dayLow||price;
+  if (!volume || volume<=0 || !price) return {score:0,label:'',detail:''};
+
+  var changePct = prevClose?((price-prevClose)/prevClose*100):0;
+  var absChange = Math.abs(changePct);
+  var direction = price - prevClose;
+  var intradayRange = (dayHigh>dayLow)?((dayHigh-dayLow)/price*100):0;
+
+  // Volume baseline
+  var avgVol = 0;
+  if (hist && hist.length >= 3) {
+    var vS=0,vC=0;
+    for (var i=0;i<hist.length;i++){if(hist[i].v>0){vS+=hist[i].v;vC++;}}
+    if (vC>0) avgVol = vS/vC;
+  }
+  if (avgVol<=0) {
+    avgVol = volume>10000000?volume/3.5:volume>5000000?volume/3:volume>1000000?volume/2.5:volume>100000?volume/2:volume/1.5;
+  }
+  var vr = avgVol>0?(volume/avgVol):1;
+  var closePos = (dayHigh>dayLow)?((price-dayLow)/(dayHigh-dayLow)):0.5;
+
+  var score=0,label='',detail='';
+
+  // STEALTH ACCUMULATION
+  if (vr>=2.5 && absChange<1.5 && intradayRange>=1.5 && direction>=0) {
+    score=20; label='STEALTH ACCUMULATION: Vol '+vr.toFixed(1)+'x, price flat ±'+absChange.toFixed(1)+'%';
+    detail='Supply absorption — institutional signature';
+  }
+  // CONTROLLED ENTRY
+  else if (vr>=2 && direction>0 && absChange<2.5 && closePos>=0.7) {
+    score=18; label='CONTROLLED ENTRY: '+vr.toFixed(1)+'x vol, closed at '+(closePos*100).toFixed(0)+'% of range';
+  }
+  // BLOCK BUYING
+  else if (vr>=3 && changePct>3 && closePos>=0.6) {
+    score=17; label='BLOCK BUYING: Vol '+vr.toFixed(1)+'x, +'+changePct.toFixed(1)+'% — conviction trade';
+  }
+  // DISTRIBUTION (negative)
+  else if (vr>=2.5 && direction<0 && absChange>2) {
+    score=-8; label='DISTRIBUTION: Vol '+vr.toFixed(1)+'x, −'+absChange.toFixed(1)+'% — institutional exit';
+  }
+  // ABSORPTION
+  else if (vr>=2 && Math.abs(closePos-0.5)<0.2 && intradayRange>2.5) {
+    score=14; label='ABSORPTION DAY: Wide '+intradayRange.toFixed(1)+'% range, '+vr.toFixed(1)+'x vol, midpoint close';
+  }
+  // QUIET ACCUMULATION
+  else if (vr>=1.5 && direction>0 && absChange<2.5) {
+    score=10; label='Quiet accumulation: Vol '+vr.toFixed(1)+'x, +'+changePct.toFixed(1)+'%';
+  }
+  // SELL PRESSURE
+  else if (vr>=2 && direction<0) {
+    score=-4; label='Sell pressure: Vol '+vr.toFixed(1)+'x, −'+absChange.toFixed(1)+'%';
+  }
+  // MILD INTEREST
+  else if (vr>=1.3 && direction>0) {
+    score=5; label='Mild flow: Vol '+vr.toFixed(1)+'x, +'+changePct.toFixed(1)+'%';
+  }
+
+  // Historical: consecutive above-avg days = CAMPAIGN
+  if (hist && hist.length>=3 && score<18 && score>=0) {
+    var consec=0;
+    for (var j=hist.length-1;j>=Math.max(0,hist.length-5);j--){
+      if(hist[j].v>0&&avgVol>0&&hist[j].v>avgVol*1.3)consec++;else break;
+    }
+    if(volume>avgVol*1.3)consec++;
+    if(consec>=3){
+      score=Math.max(score,18);
+      label='ACCUMULATION CAMPAIGN: '+consec+' days of elevated volume ('+vr.toFixed(1)+'x today)';
+    }
+  }
+
+  return {score:Math.min(20,Math.max(-10,score)),label:label,detail:detail,volRatio:vr};
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// SIGNAL 4: POSITION & SETUP (0-15 pts)
+// ═══════════════════════════════════════════════════════════════
+// Where is the stock positioned? Near breakout? Deep value zone?
+// Gap-up catalyst? This combines technical setup with context.
+function sigPosition(d, hist) {
+  var price=d.price||0, prevClose=d.prevClose||price;
+  var high52=d.high52||price, low52=d.low52||price;
+  var dayHigh=d.dayHigh||price, dayLow=d.dayLow||price;
+  if(!price||price<=0) return {score:0,label:'',detail:'',pos52:50};
+
+  var changePct = prevClose?((price-prevClose)/prevClose*100):0;
+  var range52 = high52-low52;
+  var pos52 = range52>0?((price-low52)/range52*100):50;
+  var fromHigh52 = high52>0?((high52-price)/high52*100):0;
+  var intradayRange = (dayHigh>dayLow)?((dayHigh-dayLow)/price*100):0;
+  var closePos = (dayHigh>dayLow)?((price-dayLow)/(dayHigh-dayLow)):0.5;
+
+  // Historical: trend structure (higher lows)
+  var hlCount = 0, hhCount = 0;
+  if (hist && hist.length >= 5) {
+    var lows=hist.map(function(h){return h.l||h.p;}); lows.push(dayLow);
+    var highs=hist.map(function(h){return h.h||h.p;}); highs.push(dayHigh);
+    var rL=lows.slice(-8), rH=highs.slice(-8);
+    for(var a=1;a<rL.length;a++){if(rL[a]>=rL[a-1]*0.997)hlCount++;}
+    for(var b=1;b<rH.length;b++){if(rH[b]>=rH[b-1]*0.997)hhCount++;}
+  }
+
+  var score=0, label='';
+
+  if (pos52>=95 && changePct>0) {
+    score=15; label='BREAKOUT ZONE: '+pos52.toFixed(0)+'% of 52W — only '+fromHigh52.toFixed(1)+'% from ATH';
+  } else if (changePct>=5) {
+    score=15; label='GAP-UP CATALYST: +'+changePct.toFixed(1)+'% — strong impulse';
+  } else if (hlCount>=5 && hhCount>=4) {
+    score=14; label='UPTREND: '+hlCount+' higher lows + '+hhCount+' higher highs — trend confirmed';
+  } else if (changePct>=3 && closePos>=0.75) {
+    score=13; label='STRONG CLOSE: +'+changePct.toFixed(1)+'%, held at '+(closePos*100).toFixed(0)+'% of range';
+  } else if (pos52>=85 && changePct>=0) {
+    score=12; label='HIGH BASE: '+pos52.toFixed(0)+'% of 52W range — strength near highs';
+  } else if (pos52<=20 && changePct>1.5) {
+    score=13; label='REVERSAL: Only '+pos52.toFixed(0)+'% of 52W + '+changePct.toFixed(1)+'% bounce — deep value';
+  } else if (hlCount>=4) {
+    score=11; label='HIGHER LOWS: '+hlCount+' consecutive — base forming';
+  } else if (changePct>=2) {
+    score=9; label='MOMENTUM: +'+changePct.toFixed(1)+'%, '+pos52.toFixed(0)+'% of 52W';
+  } else if (intradayRange<1.5 && pos52>=60) {
+    score=6; label='COILING: '+intradayRange.toFixed(1)+'% range at '+pos52.toFixed(0)+'% of 52W';
+  } else if (changePct>=1) {
+    score=4; label='Steady: +'+changePct.toFixed(1)+'%';
+  }
+
+  return {score:Math.min(15,score),label:label,detail:'',pos52:pos52,intradayRange:intradayRange,hlCount:hlCount};
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// SIGNAL 5: SECTOR & PEER ANALYSIS (0-15 pts)
+// ═══════════════════════════════════════════════════════════════
+// How does this stock compare to its sector peers?
+// Is it the cheapest quality play in its sector?
+// Is the sector itself hot (multiple stocks active)?
+// This is institutional-grade peer analysis.
+function sigSectorPeer(muData, sectorStats, changePct, allCandidates) {
+  var pe = muData.pe||0, roce = muData.ro||0;
+  var sector = muData.s||'', ticker = muData.t||'';
+  var ss = sectorStats[sector]||{};
+  if (!sector || !ss.avgPE) return {score:0,label:'',detail:''};
+
+  var score=0, label='', details=[];
+
+  // Peer PE comparison
+  var peRank = 'average';
+  if (pe>0 && ss.pes && ss.pes.length>2) {
+    var belowCount = ss.pes.filter(function(p){return p>pe;}).length;
+    var pctile = (belowCount / ss.pes.length * 100);
+    if (pctile >= 75) peRank = 'cheapest quartile';
+    else if (pctile >= 50) peRank = 'below median';
+    else if (pctile <= 25) peRank = 'most expensive';
+    if (pctile >= 75) { score += 6; details.push('PE in cheapest 25% of sector'); }
+    else if (pctile >= 50) { score += 3; details.push('PE below sector median'); }
+  }
+
+  // Peer ROCE comparison
+  if (roce>0 && ss.ros && ss.ros.length>2) {
+    var roceAbove = ss.ros.filter(function(r){return r<roce;}).length;
+    var rocePctile = (roceAbove / ss.ros.length * 100);
+    if (rocePctile >= 75) { score += 5; details.push('ROCE in top 25% of sector'); }
+    else if (rocePctile >= 50) { score += 3; details.push('ROCE above sector median'); }
+  }
+
+  // Sector rotation detection: how many stocks from this sector are candidates?
+  var sectorActive = 0;
+  if (allCandidates) {
+    for (var i=0;i<allCandidates.length;i++) {
+      if (allCandidates[i].sector === sector && allCandidates[i].primaryScore >= 15) sectorActive++;
+    }
+  }
+  if (sectorActive >= 5) { score += 4; details.push('SECTOR ROTATION: '+sectorActive+' '+sector+' stocks active'); }
+  else if (sectorActive >= 3) { score += 2; details.push('Sector heat: '+sectorActive+' stocks active'); }
+
   score = Math.min(15, score);
-  if (catalysts.length >= 3) label = '📰 ' + catalysts.slice(0,3).join(' + ');
-  else if (catalysts.length >= 1) label = '📰 ' + catalysts.join(' + ');
-  return { score: score, label: label, detail: detail, catalysts: catalysts };
+  if (details.length >= 2) label = 'PEER EDGE: ' + details.slice(0,2).join(' + ');
+  else if (details.length === 1) label = details[0];
+
+  return {score:score,label:label,detail:details.join('; '),sectorActive:sectorActive};
 }
 
-// ─── Signal 5: Convergence Bonus (0-15 pts) ───
-function sigConvergence(volScore, priceScore, buzzScore, catalystScore) {
-  var score = 0;
-  var label = '';
+
+// ═══════════════════════════════════════════════════════════════
+// CONVERGENCE BONUS (0-10 pts)
+// ═══════════════════════════════════════════════════════════════
+// When fundamentals + business intel + flow + position align,
+// that's extremely high conviction — like all institutional
+// checklist items being ticked.
+function sigConvergenceV3(fund, biz, flow, pos, peer) {
   var fired = [];
-  if (volScore >= 10) fired.push('Volume');
-  if (priceScore >= 10) fired.push('Price');
-  if (buzzScore >= 14) fired.push('Buzz');
-  if (catalystScore >= 6) fired.push('Catalyst');
+  if (fund.score >= 10) fired.push('Fundamentals');
+  if (biz.score >= 8) fired.push('Business');
+  if (flow.score >= 10) fired.push('SmartMoney');
+  if (pos.score >= 8) fired.push('Position');
+  if (peer.score >= 6) fired.push('Sector');
 
-  if (fired.length >= 4) { score = 15; label = '🔥 FULL CONVERGENCE — ' + fired.join(' + '); }
-  else if (fired.length >= 3) { score = 12; label = '⚡ Triple signal — ' + fired.join(' + '); }
-  else if (fired.length >= 2) { score = 8; label = '🔗 ' + fired.join(' + ') + ' convergence'; }
-  else if (fired.length === 1) { score = 3; label = fired[0] + ' standalone'; }
-  return { score: score, label: label, firedCount: fired.length };
+  var score=0, label='';
+  if (fired.length>=5) { score=10; label='FULL CONVERGENCE: All 5 checkpoints — institutional buy signal'; }
+  else if (fired.length>=4) { score=8; label='QUAD CONVERGENCE: '+fired.join(' + '); }
+  else if (fired.length>=3) { score=6; label='TRIPLE: '+fired.join(' + '); }
+  else if (fired.length>=2) { score=3; label=fired.join(' + ')+' alignment'; }
+  return {score:Math.min(10,score),label:label,firedCount:fired.length};
 }
 
-// Sync composite scorer (backward compat — uses cached buzz if available)
-function computeSmartSignal(ticker, data) {
-  var price = data.price || 0;
-  var prevClose = data.prevClose || price;
-  var volume = data.volume || 0;
-  var high52 = data.high52 || price;
-  var low52 = data.low52 || price;
-  var dayHigh = data.dayHigh || price;
-  var dayLow = data.dayLow || price;
 
-  var sig1 = sigVolume(volume, price, prevClose, dayHigh, dayLow);
-  var sig2 = sigPriceAction(price, prevClose, high52, low52, dayHigh, dayLow);
+// ═══════════════════════════════════════════════════════════════
+// GLOBAL MACRO TREND INTELLIGENCE
+// ═══════════════════════════════════════════════════════════════
+// Scans for global megatrends and maps them to Indian sectors.
+// Big investors always think globally — "What global wave is this
+// Indian company riding?" AI boom → Indian IT. EV revolution →
+// Indian auto & battery. This is macro overlay intelligence.
+var GLOBAL_THEMES = [
+  {query:'AI artificial intelligence India stocks 2026',sectors:['IT/Enterprise','IT','Technology'],theme:'AI & Machine Learning',emoji:'🤖'},
+  {query:'electric vehicle EV India',sectors:['Automobile','Auto CV','EV','Battery','Auto Ancillary'],theme:'EV Revolution',emoji:'⚡'},
+  {query:'solar renewable energy India stocks',sectors:['Energy','Power','Solar','Renewable'],theme:'Green Energy',emoji:'☀️'},
+  {query:'semiconductor chip manufacturing India',sectors:['Electronics','Semiconductor','IT/Enterprise'],theme:'Semiconductor',emoji:'💎'},
+  {query:'digital payments UPI India fintech',sectors:['Fintech','Banking','PSU Banking','Pvt Banking'],theme:'Digital Payments',emoji:'📱'},
+  {query:'India infrastructure stocks invest',sectors:['Infrastructure','Cement','Steel','Steel Pipes','Construction','Capital Goods'],theme:'Infrastructure Boom',emoji:'🏗️'},
+  {query:'India PLI manufacturing export',sectors:['Capital Goods','Electronics','Chemicals','Specialty Chem'],theme:'Make in India / PLI',emoji:'🏭'},
+  {query:'India real estate housing boom',sectors:['Real Estate'],theme:'Real Estate Cycle',emoji:'🏠'},
+  {query:'India defence indigenous stocks',sectors:['Aerospace','Engineering'],theme:'Defence Indigenisation',emoji:'🛡️'},
+  {query:'cloud computing SaaS India',sectors:['IT/Enterprise','IT','Technology'],theme:'Cloud & SaaS',emoji:'☁️'}
+];
+var _globalTrendCache = null;
+var _globalTrendCacheTs = 0;
+
+async function scanGlobalTrends() {
+  if (_globalTrendCache && (Date.now()-_globalTrendCacheTs)<SMART_SIGNAL_CACHE_TTL) return _globalTrendCache;
+  var results = [];
+  var proxyBase = 'https://corsproxy.io/?';
+  var hotTerms = ['2026','2025','invest','buy','best','today','top','growth','boom','rally','surge'];
+  for (var i=0; i<GLOBAL_THEMES.length; i++) {
+    try {
+      var surl = 'https://suggestqueries.google.com/complete/search?client=firefox&q='+encodeURIComponent(GLOBAL_THEMES[i].query);
+      var resp = await fetch(proxyBase+encodeURIComponent(surl),{signal:AbortSignal.timeout(3000)});
+      var data = await resp.json();
+      var suggs = (data&&data[1])?data[1]:[];
+      var hotCount = 0;
+      for (var j=0;j<suggs.length;j++) {
+        var sl = suggs[j].toLowerCase();
+        for (var k=0;k<hotTerms.length;k++) {
+          if (sl.indexOf(hotTerms[k])!==-1) {hotCount++;break;}
+        }
+      }
+      var strength = suggs.length>=8&&hotCount>=3?'strong':suggs.length>=5&&hotCount>=2?'moderate':'weak';
+      if (strength!=='weak') {
+        results.push({
+          theme:GLOBAL_THEMES[i].theme, emoji:GLOBAL_THEMES[i].emoji,
+          sectors:GLOBAL_THEMES[i].sectors, strength:strength,
+          suggCount:suggs.length, hotCount:hotCount
+        });
+      }
+    } catch(e) {}
+    if (i<GLOBAL_THEMES.length-1) await new Promise(function(r){setTimeout(r,200);});
+  }
+  _globalTrendCache = results;
+  _globalTrendCacheTs = Date.now();
+  return results;
+}
+
+function getGlobalTailwind(sector, globalTrends) {
+  if (!globalTrends||!sector) return null;
+  for (var i=0;i<globalTrends.length;i++) {
+    for (var j=0;j<globalTrends[i].sectors.length;j++) {
+      if (sector.toLowerCase().indexOf(globalTrends[i].sectors[j].toLowerCase())!==-1 ||
+          globalTrends[i].sectors[j].toLowerCase().indexOf(sector.toLowerCase())!==-1) {
+        return globalTrends[i];
+      }
+    }
+  }
+  return null;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// COSMIC SENTIMENT — ASTROLOGICAL INTELLIGENCE
+// ═══════════════════════════════════════════════════════════════
+// Many Indian HNIs and institutional investors consider planetary
+// positions. This adds moon phase analysis (backed by Dichev &
+// Janes 2003 research showing correlation with market returns),
+// Mercury retrograde status, and Hindu calendar sentiment.
+// Presented as market sentiment context — one factor among many.
+
+function getMoonPhase(date) {
+  if (!date) date = new Date();
+  var year = date.getFullYear(), month = date.getMonth()+1, day = date.getDate();
+  if (month<3) {year--;month+=12;}
+  var a=Math.floor(year/100), b=Math.floor(a/4), c=2-a+b;
+  var e=Math.floor(365.25*(year+4716)), f=Math.floor(30.6001*(month+1));
+  var jd = c+day+e+f-1524.5;
+  var daysInCycle = ((jd-2451550.1)%29.530589+29.530589)%29.530589;
+  var phase = daysInCycle/29.530589;
+
+  var name,emoji,sentiment,marketBias;
+  if (daysInCycle<1.85) {name='New Moon';emoji='🌑';sentiment='Fresh cycle begins';marketBias='accumulate';}
+  else if (daysInCycle<7.38) {name='Waxing Crescent';emoji='🌒';sentiment='Building energy';marketBias='bullish_building';}
+  else if (daysInCycle<9.23) {name='First Quarter';emoji='🌓';sentiment='Momentum phase';marketBias='momentum';}
+  else if (daysInCycle<14.77) {name='Waxing Gibbous';emoji='🌔';sentiment='Peak optimism approaching';marketBias='bullish_peak';}
+  else if (daysInCycle<16.61) {name='Full Moon';emoji='🌕';sentiment='Heightened emotions — caution';marketBias='volatile';}
+  else if (daysInCycle<22.15) {name='Waning Gibbous';emoji='🌖';sentiment='Distribution phase';marketBias='distribute';}
+  else if (daysInCycle<23.99) {name='Last Quarter';emoji='🌗';sentiment='Reassessment';marketBias='cautious';}
+  else {name='Waning Crescent';emoji='🌘';sentiment='Rest before renewal';marketBias='wait';}
+
+  return {name:name,emoji:emoji,sentiment:sentiment,marketBias:marketBias,phase:phase,daysIntoCycle:daysInCycle};
+}
+
+function getMercuryRetrograde(date) {
+  if (!date) date = new Date();
+  var ts = date.getTime();
+  // Mercury retrograde periods 2025-2027 (astronomically calculated)
+  var retrogrades = [
+    // 2025
+    {start:new Date('2025-03-15'),end:new Date('2025-04-07'),sign:'Aries-Pisces'},
+    {start:new Date('2025-07-18'),end:new Date('2025-08-11'),sign:'Leo'},
+    {start:new Date('2025-11-09'),end:new Date('2025-11-29'),sign:'Sagittarius'},
+    // 2026
+    {start:new Date('2026-01-26'),end:new Date('2026-02-15'),sign:'Aquarius-Capricorn'},
+    {start:new Date('2026-05-22'),end:new Date('2026-06-14'),sign:'Gemini-Taurus'},
+    {start:new Date('2026-09-17'),end:new Date('2026-10-09'),sign:'Libra-Virgo'},
+    // 2027
+    {start:new Date('2027-01-10'),end:new Date('2027-01-30'),sign:'Aquarius-Capricorn'},
+    {start:new Date('2027-05-05'),end:new Date('2027-05-29'),sign:'Gemini-Taurus'},
+    {start:new Date('2027-08-31'),end:new Date('2027-09-22'),sign:'Libra-Virgo'}
+  ];
+  for (var i=0;i<retrogrades.length;i++) {
+    if (ts>=retrogrades[i].start.getTime()&&ts<=retrogrades[i].end.getTime()) {
+      return {active:true,sign:retrogrades[i].sign,
+        label:'Mercury Retrograde in '+retrogrades[i].sign+' — volatility expected',
+        daysLeft:Math.ceil((retrogrades[i].end.getTime()-ts)/(1000*60*60*24))};
+    }
+    // Pre-shadow (7 days before)
+    var preShadow = retrogrades[i].start.getTime()-(7*24*60*60*1000);
+    if (ts>=preShadow&&ts<retrogrades[i].start.getTime()) {
+      return {active:false,approaching:true,sign:retrogrades[i].sign,
+        label:'Mercury Retrograde approaching ('+Math.ceil((retrogrades[i].start.getTime()-ts)/(1000*60*60*24))+' days)',
+        daysUntil:Math.ceil((retrogrades[i].start.getTime()-ts)/(1000*60*60*24))};
+    }
+  }
+  return {active:false,approaching:false,label:'Mercury Direct — communication clear'};
+}
+
+function getPanchangInsight(date) {
+  if (!date) date = new Date();
+  // Simplified Tithi calculation based on moon phase
+  var moon = getMoonPhase(date);
+  var tithiNum = Math.floor(moon.daysIntoCycle / (29.530589/30)) + 1;
+  if (tithiNum > 30) tithiNum = 30;
+  // Auspicious tithis for financial activities (per Hindu financial astrology)
+  var auspicious = [2,3,5,7,10,11,13]; // Dwitiya, Tritiya, Panchami, Saptami, Dashami, Ekadashi, Trayodashi
+  var inauspicious = [4,8,9,14,15,30]; // Chaturthi, Ashtami, Navami, Chaturdashi, Purnima, Amavasya
+  var tithiNames = ['','Pratipada','Dwitiya','Tritiya','Chaturthi','Panchami','Shashthi','Saptami',
+    'Ashtami','Navami','Dashami','Ekadashi','Dwadashi','Trayodashi','Chaturdashi','Purnima/Amavasya',
+    'Pratipada','Dwitiya','Tritiya','Chaturthi','Panchami','Shashthi','Saptami',
+    'Ashtami','Navami','Dashami','Ekadashi','Dwadashi','Trayodashi','Chaturdashi','Purnima/Amavasya'];
+  var tithiName = tithiNames[tithiNum] || 'Unknown';
+  var paksha = tithiNum <= 15 ? 'Shukla (Bright)' : 'Krishna (Dark)';
+  var adjustedTithi = tithiNum > 15 ? tithiNum - 15 : tithiNum;
+  var isAuspicious = auspicious.indexOf(adjustedTithi) !== -1;
+  var isInauspicious = inauspicious.indexOf(adjustedTithi) !== -1;
+
+  // Day of week significance
+  var dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var daySignificance = {
+    0:'Sun — government/power sectors',1:'Moon — liquids/pharma',
+    2:'Mars — metals/energy',3:'Mercury — trade/communication',
+    4:'Jupiter — banking/finance',5:'Venus — luxury/FMCG',
+    6:'Saturn — infra/mining'
+  };
+  var dow = date.getDay();
+
+  return {
+    tithi:tithiName, tithiNum:tithiNum, paksha:paksha,
+    isAuspicious:isAuspicious, isInauspicious:isInauspicious,
+    dayPlanet:daySignificance[dow],
+    label: isAuspicious ? tithiName+' ('+paksha+') — auspicious for investment' :
+           isInauspicious ? tithiName+' ('+paksha+') — exercise caution' :
+           tithiName+' ('+paksha+') — neutral'
+  };
+}
+
+function getCosmicSentiment() {
+  var now = new Date();
+  var moon = getMoonPhase(now);
+  var mercury = getMercuryRetrograde(now);
+  var panchang = getPanchangInsight(now);
+
+  // Overall cosmic score: -5 to +5
+  var cosmicScore = 0;
+  // Moon phase impact
+  if (['accumulate','bullish_building','momentum'].indexOf(moon.marketBias)!==-1) cosmicScore += 2;
+  else if (moon.marketBias==='bullish_peak') cosmicScore += 1;
+  else if (moon.marketBias==='volatile') cosmicScore -= 1;
+  else if (['distribute','cautious'].indexOf(moon.marketBias)!==-1) cosmicScore -= 1;
+  // Mercury impact
+  if (mercury.active) cosmicScore -= 2;
+  else if (mercury.approaching) cosmicScore -= 1;
+  else cosmicScore += 1;
+  // Panchang impact
+  if (panchang.isAuspicious) cosmicScore += 2;
+  else if (panchang.isInauspicious) cosmicScore -= 1;
+
+  var overall = cosmicScore >= 3 ? 'Very Favorable' : cosmicScore >= 1 ? 'Favorable' :
+                cosmicScore >= -1 ? 'Neutral' : cosmicScore >= -3 ? 'Cautious' : 'Unfavorable';
+  var overallColor = cosmicScore>=3?'#22c55e':cosmicScore>=1?'#86efac':
+                     cosmicScore>=-1?'#f59e0b':cosmicScore>=-3?'#fb923c':'#ef4444';
+
+  return {
+    moon:moon, mercury:mercury, panchang:panchang,
+    cosmicScore:cosmicScore, overall:overall, overallColor:overallColor
+  };
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// SYNC COMPOSITE SCORER (backward compatibility)
+// ═══════════════════════════════════════════════════════════════
+function computeSmartSignal(ticker, data) {
+  var d = {
+    price:data.price||0, prevClose:data.prevClose||data.price||0,
+    volume:data.volume||0, high52:data.high52||data.price||0,
+    low52:data.low52||data.price||0, dayHigh:data.dayHigh||data.price||0,
+    dayLow:data.dayLow||data.price||0
+  };
+  var hist = loadShadowHistory()[ticker]||[];
+  var ss = computeSectorStats();
+  var mu = null;
+  for(var i=0;i<MOVER_UNIVERSE.length;i++){if(MOVER_UNIVERSE[i].t===ticker){mu=MOVER_UNIVERSE[i];break;}}
+  if(!mu) mu = {t:ticker,n:ticker,s:'',c:'',pe:0,ro:0,mc:0};
+
+  var s1 = sigFundamental(mu, ss);
+  var s3 = sigInstitutionalFlow(d, hist);
+  var s4 = sigPosition(d, hist);
+  var s5 = sigSectorPeer(mu, ss, d.price&&d.prevClose?((d.price-d.prevClose)/d.prevClose*100):0, null);
+  // Use cached buzz if available
   var cachedFull = getSmartSignal(ticker);
-  var sig3 = (cachedFull && cachedFull.signals && cachedFull.signals.googleBuzz) ? cachedFull.signals.googleBuzz : { score: 0, label: '', detail: '', hotWords: [], categories: [] };
-  var sig4 = sigCatalyst(ticker);
-  var sig5 = sigConvergence(sig1.score, sig2.score, sig3.score, sig4.score);
+  var s2 = (cachedFull&&cachedFull.signals&&cachedFull.signals.businessIntel)
+    ? cachedFull.signals.businessIntel : {score:0,label:'',detail:'',events:[],hotWords:[],categories:[]};
+  var s6 = sigConvergenceV3(s1, s2, s3, s4, s5);
 
   var total = Math.max(0, Math.min(100,
-    Math.max(0, sig1.score) + Math.max(0, sig2.score) + Math.max(0, sig3.score) +
-    Math.max(0, sig4.score) + Math.max(0, sig5.score)
+    Math.max(0,s1.score)+Math.max(0,s2.score)+Math.max(0,s3.score)+
+    Math.max(0,s4.score)+Math.max(0,s5.score)+Math.max(0,s6.score)
   ));
 
   var signals = [
-    { name: 'Google Buzz', score: sig3.score, label: sig3.label },
-    { name: 'Volume', score: sig1.score, label: sig1.label },
-    { name: 'Price Action', score: sig2.score, label: sig2.label },
-    { name: 'Catalyst', score: sig4.score, label: sig4.label },
-    { name: 'Convergence', score: sig5.score, label: sig5.label }
-  ].filter(function(s){ return s.score > 0 && s.label; }).sort(function(a,b){ return b.score - a.score; });
-
-  var topSignal = signals.length > 0 ? signals[0].label : 'No active signal';
-
-  var category = 'QUIET';
-  if (total >= 70) category = 'SHADOW ALERT';
-  else if (total >= 50) category = 'EARLY SIGNAL';
-  else if (total >= 35) category = 'BUILDING';
+    {name:'Fundamentals',score:s1.score,label:s1.label},
+    {name:'Business Intel',score:s2.score,label:s2.label},
+    {name:'Smart Money',score:s3.score,label:s3.label},
+    {name:'Position',score:s4.score,label:s4.label},
+    {name:'Sector Edge',score:s5.score,label:s5.label},
+    {name:'Convergence',score:s6.score,label:s6.label}
+  ].filter(function(x){return x.score>0&&x.label;}).sort(function(a,b){return b.score-a.score;});
+  var topSignal = signals.length>0?signals[0].label:'No active signal';
+  var cat = total>=60?'SHADOW ALERT':total>=40?'EARLY SIGNAL':total>=25?'BUILDING':'QUIET';
 
   var result = {
-    total: total, category: category, topSignal: topSignal,
-    firedCount: signals.length,
-    signals: { volume: sig1, priceAction: sig2, googleBuzz: sig3, catalyst: sig4, convergence: sig5 },
+    total:total, category:cat, topSignal:topSignal, firedCount:signals.length,
+    signals: {fundamental:s1, businessIntel:s2, institutionalFlow:s3, position:s4, sectorPeer:s5, convergence:s6,
+      googleBuzz:s2}, // backward compat alias
     firedSignals: signals,
-    expectedMove: total >= 70 ? '15-20%' : total >= 50 ? '8-12%' : total >= 35 ? '5-8%' : '<5%'
+    expectedMove: total>=60?'15-20%':total>=40?'8-12%':total>=25?'5-8%':'<5%'
   };
   setSmartSignalCache(ticker, result);
   return result;
 }
 
-// ═══ TWO-PHASE SMART SCAN ═══
+
+// ═══════════════════════════════════════════════════════════════
+// THREE-PHASE INSTITUTIONAL SCAN
+// ═══════════════════════════════════════════════════════════════
 async function runSmartSignalScan() {
   var container = document.getElementById('aiSmartSignals');
   if (!container) return;
 
-  if (window._smartSignalScanResult && (Date.now() - window._smartSignalScanResult.ts) < SMART_SIGNAL_CACHE_TTL) {
+  if (window._smartSignalScanResult && (Date.now()-window._smartSignalScanResult.ts)<SMART_SIGNAL_CACHE_TTL) {
     renderSmartSignalResults(window._smartSignalScanResult.results);
     return;
   }
 
+  var history = loadShadowHistory();
+  var iq = getIntelQuality(history);
+  _sectorStats = null; // Reset for fresh computation
+  var ss = computeSectorStats();
+
+  var cosmic = getCosmicSentiment();
+
   container.innerHTML =
-    '<div style="background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:12px;padding:24px;text-align:center">' +
-    '<div style="font-size:20px;font-weight:700;color:#a78bfa;margin-bottom:8px">🔮 Shadow Intelligence Scan v2</div>' +
-    '<div style="color:#c4b5fd;font-size:13px;margin-bottom:16px">Phase 1: Scanning ' + MOVER_UNIVERSE.length + ' stocks for volume & price signals…</div>' +
-    '<div id="ssProgress" style="background:#374151;border-radius:8px;height:6px;overflow:hidden;margin-bottom:8px">' +
-    '<div id="ssBar" style="background:linear-gradient(90deg,#a855f7,#7c3aed);height:100%;width:0%;transition:width 0.3s"></div></div>' +
-    '<div id="ssStatus" style="color:#94a3b8;font-size:12px">Initialising Phase 1…</div></div>';
+    '<div style="background:linear-gradient(135deg,#0f172a,#1e1b4b);border-radius:12px;padding:24px;text-align:center">'+
+    '<div style="font-size:20px;font-weight:700;color:#a78bfa;margin-bottom:4px">🧠 Shadow Intelligence v3 — Institutional Research</div>'+
+    '<div style="color:#94a3b8;font-size:11px;margin-bottom:8px">Deep Study: Fundamentals + Business Intel + Smart Money + Global Macro + Cosmic</div>'+
+    '<div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">'+
+    '<span style="font-size:10px;color:'+iq.color+'">📡 Intel: '+iq.label+' (Day '+iq.days+')</span>'+
+    '<span style="font-size:10px;color:'+cosmic.overallColor+'">'+cosmic.moon.emoji+' Cosmic: '+cosmic.overall+'</span>'+
+    '</div>'+
+    '<div id="ssProgress" style="background:#374151;border-radius:8px;height:6px;overflow:hidden;margin-bottom:8px">'+
+    '<div id="ssBar" style="background:linear-gradient(90deg,#8b5cf6,#6366f1);height:100%;width:0%;transition:width 0.3s"></div></div>'+
+    '<div id="ssStatus" style="color:#94a3b8;font-size:12px">Phase 0: Scanning global macro trends…</div></div>';
 
-  var batchSize = 25;
-  var phase1Candidates = [];
-  var totalStocks = MOVER_UNIVERSE.length;
-  var processed = 0;
+  // ═══ PHASE 0: Global Macro Trend Scan (parallel-ready) ═══
+  var globalTrends = await scanGlobalTrends();
+  var statusEl0 = document.getElementById('ssStatus');
+  if(statusEl0) statusEl0.textContent = 'Phase 1: Fundamental + flow analysis on '+MOVER_UNIVERSE.length+' stocks…';
 
-  for (var bi = 0; bi < totalStocks; bi += batchSize) {
-    var batch = MOVER_UNIVERSE.slice(bi, bi + batchSize);
-    var symbols = batch.map(function(m){ return m.t + '.NS'; }).join(',');
+  var batchSize = 25, phase1Candidates = [], totalStocks = MOVER_UNIVERSE.length, processed = 0;
+
+  // ═══ PHASE 1: Fundamental + Flow on ALL stocks ═══
+  for (var bi=0; bi<totalStocks; bi+=batchSize) {
+    var batch = MOVER_UNIVERSE.slice(bi, bi+batchSize);
+    var symbols = batch.map(function(m){return m.t+'.NS';}).join(',');
     try {
-      var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbols) + '&mode=all', { signal: AbortSignal.timeout(20000) });
+      var resp = await fetch(appsScriptUrl+'?symbols='+encodeURIComponent(symbols)+'&mode=all',{signal:AbortSignal.timeout(20000)});
       var json = await resp.json();
       if (json.success && json.data && json.data.stocks) {
         batch.forEach(function(m) {
           if (isEthicallyExcluded(m.s)) return;
-          var yfKey = m.t + '.NS';
-          var d = json.data.stocks[yfKey];
-          if (!d || !d.price) return;
-          var price = d.price;
-          var prevClose = d.prevClose || price;
-          var volume = d.volume || 0;
-          var changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
-          var vs = sigVolume(volume, price, prevClose, d.dayHigh || price, d.dayLow || price);
-          var ps = sigPriceAction(price, prevClose, d.high52 || price, d.low52 || price, d.dayHigh || price, d.dayLow || price);
-          var cs = sigCatalyst(m.t);
-          var quickScore = Math.max(0, vs.score) + Math.max(0, ps.score) + cs.score;
-          if (quickScore >= 8 || changePct > 2 || changePct < -3) {
+          var raw = json.data.stocks[m.t+'.NS'];
+          if (!raw||!raw.price) return;
+          var dd = {price:raw.price,prevClose:raw.prevClose||raw.price,volume:raw.volume||0,
+            high52:raw.high52||raw.price,low52:raw.low52||raw.price,
+            dayHigh:raw.dayHigh||raw.price,dayLow:raw.dayLow||raw.price};
+          var changePct = dd.prevClose?((dd.price-dd.prevClose)/dd.prevClose*100):0;
+          addSnapshot(history, m.t, dd);
+          var tickHist = history[m.t]||[];
+
+          var fund = sigFundamental(m, ss);
+          var flow = sigInstitutionalFlow(dd, tickHist);
+          var pos = sigPosition(dd, tickHist);
+
+          var quickScore = Math.max(0,fund.score)+Math.max(0,flow.score)+Math.max(0,pos.score);
+          if (quickScore>=10 || changePct>2 || changePct<-3 || fund.score>=12) {
             phase1Candidates.push({
-              ticker: m.t, name: m.n, sector: m.s, cap: m.c,
-              data: { price: price, prevClose: prevClose, volume: volume, high52: d.high52 || price, low52: d.low52 || price, dayHigh: d.dayHigh || price, dayLow: d.dayLow || price },
-              changePct: changePct, quickScore: quickScore, vs: vs, ps: ps, cs: cs
+              ticker:m.t, name:m.n, sector:m.s, cap:m.c, muData:m,
+              data:dd, changePct:changePct, primaryScore:quickScore,
+              fund:fund, flow:flow, pos:pos
             });
           }
         });
       }
-    } catch(e) { console.warn('[SMART-SIGNAL] Phase 1 batch error:', e.message); }
+    } catch(e) { console.warn('[SHADOW-v3] Phase 1 error:',e.message); }
 
     processed += batch.length;
-    var pct = Math.min(50, (processed / totalStocks * 50)).toFixed(0);
+    var pct = Math.min(45,(processed/totalStocks*45)).toFixed(0);
     var bar = document.getElementById('ssBar');
     var status = document.getElementById('ssStatus');
-    if (bar) bar.style.width = pct + '%';
-    if (status) status.textContent = 'Phase 1: Scanned ' + processed + '/' + totalStocks + ' stocks…';
+    if(bar) bar.style.width=pct+'%';
+    if(status) status.textContent='Phase 1: Deep analysis '+processed+'/'+totalStocks+' stocks…';
   }
 
-  phase1Candidates.sort(function(a,b){ return b.quickScore - a.quickScore; });
-  var buzzCandidates = phase1Candidates.slice(0, 50);
+  saveShadowHistory(history);
+  phase1Candidates.sort(function(a,b){return b.primaryScore-a.primaryScore;});
+  var deepCandidates = phase1Candidates.slice(0, 50);
 
-  // ═══ PHASE 2: Google Buzz on top candidates ═══
+  // ═══ PHASE 2: Business Intel (Google Suggest as biz event detector) + Sector Peer on top 50 ═══
   var statusEl = document.getElementById('ssStatus');
-  if (statusEl) statusEl.textContent = 'Phase 2: Analysing Google search buzz for top ' + buzzCandidates.length + ' candidates…';
+  if(statusEl) statusEl.textContent='Phase 2: Business intelligence scan on top '+deepCandidates.length+' candidates…';
 
   var allResults = [];
-  var buzzProcessed = 0;
+  var p2done = 0;
 
-  for (var gi = 0; gi < buzzCandidates.length; gi += 5) {
-    var buzzBatch = buzzCandidates.slice(gi, gi + 5);
-    var buzzResults = await Promise.all(buzzBatch.map(async function(c) {
-      var buzz = await sigGoogleBuzz(c.name, c.ticker);
-      var conv = sigConvergence(c.vs.score, c.ps.score, buzz.score, c.cs.score);
+  for (var gi=0; gi<deepCandidates.length; gi+=5) {
+    var deepBatch = deepCandidates.slice(gi, gi+5);
+    var deepResults = await Promise.all(deepBatch.map(async function(c) {
+      var biz = await sigBusinessIntel(c.name, c.ticker, c.muData);
+      var peer = sigSectorPeer(c.muData, ss, c.changePct, phase1Candidates);
+      var conv = sigConvergenceV3(c.fund, biz, c.flow, c.pos, peer);
+
       var total = Math.max(0, Math.min(100,
-        Math.max(0, c.vs.score) + Math.max(0, c.ps.score) + Math.max(0, buzz.score) +
-        Math.max(0, c.cs.score) + Math.max(0, conv.score)
+        Math.max(0,c.fund.score)+Math.max(0,biz.score)+Math.max(0,c.flow.score)+
+        Math.max(0,c.pos.score)+Math.max(0,peer.score)+Math.max(0,conv.score)
       ));
+
       var signals = [
-        { name: 'Google Buzz', score: buzz.score, label: buzz.label },
-        { name: 'Volume', score: c.vs.score, label: c.vs.label },
-        { name: 'Price Action', score: c.ps.score, label: c.ps.label },
-        { name: 'Catalyst', score: c.cs.score, label: c.cs.label },
-        { name: 'Convergence', score: conv.score, label: conv.label }
-      ].filter(function(s){ return s.score > 0 && s.label; }).sort(function(a,b){ return b.score - a.score; });
-      var topSignal = signals.length > 0 ? signals[0].label : 'No active signal';
-      var category = 'QUIET';
-      if (total >= 70) category = 'SHADOW ALERT';
-      else if (total >= 50) category = 'EARLY SIGNAL';
-      else if (total >= 35) category = 'BUILDING';
+        {name:'Fundamentals',score:c.fund.score,label:c.fund.label},
+        {name:'Business Intel',score:biz.score,label:biz.label},
+        {name:'Smart Money',score:c.flow.score,label:c.flow.label},
+        {name:'Position',score:c.pos.score,label:c.pos.label},
+        {name:'Sector Edge',score:peer.score,label:peer.label},
+        {name:'Convergence',score:conv.score,label:conv.label}
+      ].filter(function(s){return s.score>0&&s.label;}).sort(function(a,b){return b.score-a.score;});
+      var topSig = signals.length>0?signals[0].label:'No active signal';
+      var cat = total>=60?'SHADOW ALERT':total>=40?'EARLY SIGNAL':total>=25?'BUILDING':'QUIET';
+
       var result = {
-        total: total, category: category, topSignal: topSignal, firedCount: signals.length,
-        signals: { volume: c.vs, priceAction: c.ps, googleBuzz: buzz, catalyst: c.cs, convergence: conv },
-        firedSignals: signals,
-        expectedMove: total >= 70 ? '15-20%' : total >= 50 ? '8-12%' : total >= 35 ? '5-8%' : '<5%'
+        total:total, category:cat, topSignal:topSig, firedCount:signals.length,
+        signals:{fundamental:c.fund, businessIntel:biz, institutionalFlow:c.flow,
+          position:c.pos, sectorPeer:peer, convergence:conv, googleBuzz:biz},
+        firedSignals:signals,
+        expectedMove:total>=60?'15-20%':total>=40?'8-12%':total>=25?'5-8%':'<5%'
       };
       setSmartSignalCache(c.ticker, result);
-      return { ticker: c.ticker, name: c.name, sector: c.sector, cap: c.cap, cmp: c.data.price, changePct: c.changePct, signal: result };
+      return {ticker:c.ticker,name:c.name,sector:c.sector,cap:c.cap,cmp:c.data.price,changePct:c.changePct,signal:result};
     }));
 
-    buzzResults.forEach(function(r) { if (r.signal.total >= 30) allResults.push(r); });
-    buzzProcessed += buzzBatch.length;
-    var pct2 = (50 + (buzzProcessed / Math.max(1, buzzCandidates.length) * 50)).toFixed(0);
+    deepResults.forEach(function(r){if(r.signal.total>=20) allResults.push(r);});
+    p2done += deepBatch.length;
+    var pct2 = (45+(p2done/Math.max(1,deepCandidates.length)*45)).toFixed(0);
     var bar2 = document.getElementById('ssBar');
-    if (bar2) bar2.style.width = pct2 + '%';
-    if (statusEl) statusEl.textContent = 'Phase 2: Google Buzz ' + buzzProcessed + '/' + buzzCandidates.length + '…';
-    if (gi + 5 < buzzCandidates.length) await new Promise(function(r){ setTimeout(r, 300); });
+    if(bar2) bar2.style.width=pct2+'%';
+    if(statusEl) statusEl.textContent='Phase 2: Business intel '+p2done+'/'+deepCandidates.length+'…';
+    if(gi+5<deepCandidates.length) await new Promise(function(r){setTimeout(r,300);});
   }
 
-  // Add remaining phase-1 candidates that scored well but were not buzz-analysed
-  for (var ri = 50; ri < phase1Candidates.length; ri++) {
+  // Add remaining phase-1 stocks that had good fundamentals
+  for (var ri=50; ri<phase1Candidates.length; ri++) {
     var rc = phase1Candidates[ri];
-    var rconv = sigConvergence(rc.vs.score, rc.ps.score, 0, rc.cs.score);
-    var rtotal = Math.max(0, Math.min(100, Math.max(0, rc.vs.score) + Math.max(0, rc.ps.score) + Math.max(0, rc.cs.score) + Math.max(0, rconv.score)));
-    if (rtotal >= 35) {
-      var rsignals = [
-        { name: 'Volume', score: rc.vs.score, label: rc.vs.label },
-        { name: 'Price Action', score: rc.ps.score, label: rc.ps.label },
-        { name: 'Catalyst', score: rc.cs.score, label: rc.cs.label },
-        { name: 'Convergence', score: rconv.score, label: rconv.label }
-      ].filter(function(s){ return s.score > 0 && s.label; }).sort(function(a,b){ return b.score - a.score; });
-      var rtopSig = rsignals.length > 0 ? rsignals[0].label : 'No active signal';
-      var rcat = 'QUIET';
-      if (rtotal >= 70) rcat = 'SHADOW ALERT';
-      else if (rtotal >= 50) rcat = 'EARLY SIGNAL';
-      else if (rtotal >= 35) rcat = 'BUILDING';
-      var rresult = {
-        total: rtotal, category: rcat, topSignal: rtopSig, firedCount: rsignals.length,
-        signals: { volume: rc.vs, priceAction: rc.ps, googleBuzz: { score: 0, label: 'Not scanned', detail: '', hotWords: [], categories: [] }, catalyst: rc.cs, convergence: rconv },
-        firedSignals: rsignals,
-        expectedMove: rtotal >= 70 ? '15-20%' : rtotal >= 50 ? '8-12%' : rtotal >= 35 ? '5-8%' : '<5%'
+    var rPeer = sigSectorPeer(rc.muData, ss, rc.changePct, phase1Candidates);
+    var rConv = sigConvergenceV3(rc.fund, {score:0}, rc.flow, rc.pos, rPeer);
+    var rTotal = Math.max(0,Math.min(100,
+      Math.max(0,rc.fund.score)+Math.max(0,rc.flow.score)+Math.max(0,rc.pos.score)+
+      Math.max(0,rPeer.score)+Math.max(0,rConv.score)
+    ));
+    if (rTotal>=25) {
+      var rSigs = [
+        {name:'Fundamentals',score:rc.fund.score,label:rc.fund.label},
+        {name:'Smart Money',score:rc.flow.score,label:rc.flow.label},
+        {name:'Position',score:rc.pos.score,label:rc.pos.label},
+        {name:'Sector Edge',score:rPeer.score,label:rPeer.label},
+        {name:'Convergence',score:rConv.score,label:rConv.label}
+      ].filter(function(s){return s.score>0&&s.label;}).sort(function(a,b){return b.score-a.score;});
+      var rCat = rTotal>=60?'SHADOW ALERT':rTotal>=40?'EARLY SIGNAL':'BUILDING';
+      var rRes = {
+        total:rTotal,category:rCat,topSignal:rSigs.length>0?rSigs[0].label:'No signal',firedCount:rSigs.length,
+        signals:{fundamental:rc.fund,businessIntel:{score:0,label:'Not deep-scanned',events:[],hotWords:[],categories:[]},
+          institutionalFlow:rc.flow,position:rc.pos,sectorPeer:rPeer,convergence:rConv,
+          googleBuzz:{score:0,label:'',hotWords:[],categories:[]}},
+        firedSignals:rSigs,
+        expectedMove:rTotal>=60?'15-20%':rTotal>=40?'8-12%':rTotal>=25?'5-8%':'<5%'
       };
-      setSmartSignalCache(rc.ticker, rresult);
-      allResults.push({ ticker: rc.ticker, name: rc.name, sector: rc.sector, cap: rc.cap, cmp: rc.data.price, changePct: rc.changePct, signal: rresult });
+      setSmartSignalCache(rc.ticker, rRes);
+      allResults.push({ticker:rc.ticker,name:rc.name,sector:rc.sector,cap:rc.cap,cmp:rc.data.price,changePct:rc.changePct,signal:rRes});
     }
   }
 
-  allResults.sort(function(a,b){ return b.signal.total - a.signal.total; });
-  window._smartSignalScanResult = { ts: Date.now(), results: allResults };
+  // ═══ PHASE 3: Sector flow analysis ═══
+  var sectorMap = {};
+  for (var si=0; si<allResults.length; si++) {
+    var sr = allResults[si];
+    if(!sr.sector) continue;
+    if(!sectorMap[sr.sector]) sectorMap[sr.sector]=[];
+    sectorMap[sr.sector].push(sr);
+  }
+  var hotSectors = [];
+  for (var sec in sectorMap) {
+    var active = sectorMap[sec].filter(function(r){return r.signal.total>=40;}).length;
+    if (active>=3) {
+      hotSectors.push({sector:sec,count:active});
+      sectorMap[sec].forEach(function(r){
+        r.signal.sectorFlow = {active:true,sector:sec,count:active,
+          label:'SECTOR ROTATION: '+active+' '+sec+' stocks active — money flowing in'};
+        r.signal.total = Math.min(100, r.signal.total+3);
+      });
+    }
+  }
+
+  // Add global tailwind bonus
+  for (var gti=0;gti<allResults.length;gti++) {
+    var gt = getGlobalTailwind(allResults[gti].sector, globalTrends);
+    if (gt) {
+      allResults[gti].signal.globalTrend = {
+        theme:gt.theme, emoji:gt.emoji, strength:gt.strength,
+        label:'GLOBAL TAILWIND: '+gt.emoji+' '+gt.theme+' wave — '+gt.strength+' trend'
+      };
+      allResults[gti].signal.total = Math.min(100, allResults[gti].signal.total + (gt.strength==='strong'?4:2));
+    }
+  }
+
+  allResults.sort(function(a,b){return b.signal.total-a.signal.total;});
+  window._smartSignalScanResult = {ts:Date.now(), results:allResults, hotSectors:hotSectors, globalTrends:globalTrends, cosmic:cosmic};
   renderSmartSignalResults(allResults);
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERER — INSTITUTIONAL RESEARCH UI
+// ═══════════════════════════════════════════════════════════════
 function renderSmartSignalResults(results) {
   var container = document.getElementById('aiSmartSignals');
   if (!container) return;
-  var top20 = results.slice(0, 20);
-  var shadowAlerts = results.filter(function(r){ return r.signal.category === 'SHADOW ALERT'; }).length;
-  var earlySignals = results.filter(function(r){ return r.signal.category === 'EARLY SIGNAL'; }).length;
-  var building = results.filter(function(r){ return r.signal.category === 'BUILDING'; }).length;
+  var top25 = results.slice(0, 25);
+  var shadowAlerts = results.filter(function(r){return r.signal.category==='SHADOW ALERT';}).length;
+  var earlySignals = results.filter(function(r){return r.signal.category==='EARLY SIGNAL';}).length;
+  var building = results.filter(function(r){return r.signal.category==='BUILDING';}).length;
+  var iq = getIntelQuality(loadShadowHistory());
+  var hotSectors = (window._smartSignalScanResult&&window._smartSignalScanResult.hotSectors)||[];
+  var globalTrends = (window._smartSignalScanResult&&window._smartSignalScanResult.globalTrends)||[];
+  var cosmic = (window._smartSignalScanResult&&window._smartSignalScanResult.cosmic)||getCosmicSentiment();
 
-  var html = '<div style="background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:12px;padding:20px;margin-bottom:16px">';
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">';
-  html += '<div style="font-size:18px;font-weight:700;color:#a78bfa">🔮 Shadow Intelligence Report v2</div>';
+  var html = '<div style="background:linear-gradient(135deg,#0f172a,#1e1b4b);border-radius:12px;padding:20px;margin-bottom:16px">';
+
+  // Header
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">';
+  html += '<div><div style="font-size:18px;font-weight:700;color:#a78bfa">🧠 Shadow Intelligence Report v3</div>';
+  html += '<div style="font-size:11px;color:#94a3b8;margin-top:2px">Institutional Research · Fundamentals + Business + Smart Money + Global + Cosmic</div></div>';
   html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
-  if (shadowAlerts > 0) html += '<span style="background:#dc2626;color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">' + shadowAlerts + ' SHADOW ALERTS</span>';
-  if (earlySignals > 0) html += '<span style="background:#f59e0b;color:#000;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">' + earlySignals + ' EARLY SIGNALS</span>';
-  if (building > 0) html += '<span style="background:#6366f1;color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">' + building + ' BUILDING</span>';
+  if(shadowAlerts>0) html+='<span style="background:#dc2626;color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">'+shadowAlerts+' SHADOW ALERTS</span>';
+  if(earlySignals>0) html+='<span style="background:#f59e0b;color:#000;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">'+earlySignals+' EARLY SIGNALS</span>';
+  if(building>0) html+='<span style="background:#6366f1;color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">'+building+' BUILDING</span>';
   html += '</div></div>';
 
-  if (top20.length === 0) {
-    html += '<div style="text-align:center;color:#94a3b8;padding:20px">No significant smart signals detected in the universe right now.</div>';
+  // ── Cosmic Sentiment Bar ──
+  html += '<div style="background:#1e293b;border-radius:8px;padding:10px 14px;margin-bottom:10px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+  // Moon
+  html += '<div style="display:flex;align-items:center;gap:6px">';
+  html += '<span style="font-size:18px">'+cosmic.moon.emoji+'</span>';
+  html += '<div><div style="font-size:10px;color:#e2e8f0;font-weight:600">'+cosmic.moon.name+'</div>';
+  html += '<div style="font-size:9px;color:#94a3b8">'+cosmic.moon.sentiment+'</div></div>';
+  html += '</div>';
+  // Mercury
+  html += '<div style="display:flex;align-items:center;gap:6px">';
+  html += '<span style="font-size:14px">'+(cosmic.mercury.active?'☿️⟲':'☿️')+'</span>';
+  html += '<div><div style="font-size:10px;color:'+(cosmic.mercury.active?'#ef4444':'#22c55e')+';font-weight:600">'+(cosmic.mercury.active?'RETROGRADE':'Direct')+'</div>';
+  html += '<div style="font-size:9px;color:#94a3b8">'+(cosmic.mercury.active?cosmic.mercury.daysLeft+'d left':cosmic.mercury.approaching?'Approaching in '+cosmic.mercury.daysUntil+'d':'Clear')+'</div></div>';
+  html += '</div>';
+  // Panchang
+  html += '<div style="display:flex;align-items:center;gap:6px">';
+  html += '<span style="font-size:14px">'+(cosmic.panchang.isAuspicious?'🕉️✨':cosmic.panchang.isInauspicious?'🕉️⚠️':'🕉️')+'</span>';
+  html += '<div><div style="font-size:10px;color:#e2e8f0;font-weight:600">'+cosmic.panchang.tithi+'</div>';
+  html += '<div style="font-size:9px;color:#94a3b8">'+cosmic.panchang.paksha+(cosmic.panchang.isAuspicious?' — Shubh':'')+'</div></div>';
+  html += '</div>';
+  // Overall
+  html += '<div style="text-align:center;padding:4px 12px;background:rgba(15,23,42,0.8);border-radius:6px;border:1px solid '+cosmic.overallColor+'">';
+  html += '<div style="font-size:12px;font-weight:700;color:'+cosmic.overallColor+'">'+cosmic.overall+'</div>';
+  html += '<div style="font-size:8px;color:#94a3b8">Cosmic Sentiment</div>';
+  html += '</div>';
+  html += '</div></div>';
+
+  // ── Intel Quality + Global Trends ──
+  html += '<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">';
+  // Intel Quality
+  html += '<div style="flex:1;min-width:200px;background:#1e293b;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:10px">';
+  html += '<div style="font-size:10px;color:#94a3b8;white-space:nowrap">📡 Intel:</div>';
+  html += '<div style="flex:1;background:#374151;border-radius:4px;height:5px;overflow:hidden"><div style="background:'+iq.color+';height:100%;width:'+Math.min(100,iq.days/30*100)+'%;border-radius:4px"></div></div>';
+  html += '<div style="font-size:10px;color:'+iq.color+';font-weight:600;white-space:nowrap">Day '+iq.days+'/30</div>';
+  html += '</div>';
+  // Global Trends
+  if (globalTrends.length>0) {
+    html += '<div style="flex:1;min-width:200px;background:#1e293b;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
+    html += '<span style="font-size:10px;color:#94a3b8;white-space:nowrap">🌍 Global:</span>';
+    globalTrends.forEach(function(gt){
+      var gtCol = gt.strength==='strong'?'#22c55e':'#f59e0b';
+      html += '<span style="background:rgba(34,197,94,0.1);color:'+gtCol+';padding:1px 6px;border-radius:3px;font-size:9px">'+gt.emoji+' '+gt.theme+'</span>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // Hot Sectors
+  if (hotSectors.length>0) {
+    html += '<div style="background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);border-radius:8px;padding:8px 14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+    html += '<span style="font-size:11px;color:#fbbf24;font-weight:700">🔥 SECTOR ROTATION:</span>';
+    hotSectors.forEach(function(hs){
+      html += '<span style="background:rgba(234,179,8,0.15);color:#fbbf24;padding:2px 8px;border-radius:4px;font-size:10px">'+hs.sector+' ('+hs.count+')</span>';
+    });
+    html += '</div>';
+  }
+
+  // Stock Cards
+  if (top25.length===0) {
+    html += '<div style="text-align:center;color:#94a3b8;padding:20px">No significant signals. Run during market hours for best results.</div>';
   } else {
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">';
-    top20.forEach(function(r) {
-      var catColor = r.signal.category === 'SHADOW ALERT' ? '#dc2626' : r.signal.category === 'EARLY SIGNAL' ? '#f59e0b' : r.signal.category === 'BUILDING' ? '#6366f1' : '#64748b';
-      var catBg = r.signal.category === 'SHADOW ALERT' ? 'rgba(220,38,38,0.15)' : r.signal.category === 'EARLY SIGNAL' ? 'rgba(245,158,11,0.15)' : r.signal.category === 'BUILDING' ? 'rgba(99,102,241,0.15)' : 'rgba(100,116,139,0.1)';
-      var changeColor = r.changePct >= 0 ? '#22c55e' : '#ef4444';
-      var changeSign = r.changePct >= 0 ? '+' : '';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px">';
+    top25.forEach(function(r) {
+      var catColor = r.signal.category==='SHADOW ALERT'?'#dc2626':r.signal.category==='EARLY SIGNAL'?'#f59e0b':'#6366f1';
+      var catBg = r.signal.category==='SHADOW ALERT'?'rgba(220,38,38,0.15)':r.signal.category==='EARLY SIGNAL'?'rgba(245,158,11,0.15)':'rgba(99,102,241,0.15)';
+      var chCol = r.changePct>=0?'#22c55e':'#ef4444';
+      var chSgn = r.changePct>=0?'+':'';
 
-      html += '<div style="background:#1e293b;border-radius:10px;padding:14px;border-left:3px solid ' + catColor + '">';
+      html += '<div style="background:#1e293b;border-radius:10px;padding:14px;border-left:3px solid '+catColor+'">';
+
+      // Name + badge
       html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
-      html += '<div><div style="font-size:14px;font-weight:700;color:#e2e8f0">' + r.name + '</div>';
-      html += '<div style="font-size:11px;color:#94a3b8">' + r.ticker + ' · ' + (r.sector || '') + '</div></div>';
-      html += '<span style="background:' + catBg + ';color:' + catColor + ';padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap">' + r.signal.category + '</span>';
+      html += '<div><div style="font-size:14px;font-weight:700;color:#e2e8f0">'+r.name+'</div>';
+      html += '<div style="font-size:11px;color:#94a3b8">'+r.ticker+' · '+r.sector+' · '+r.cap+'</div></div>';
+      html += '<span style="background:'+catBg+';color:'+catColor+';padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">'+r.signal.category+'</span>';
       html += '</div>';
 
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
-      html += '<div style="font-size:16px;font-weight:700;color:#f8fafc">₹' + r.cmp.toFixed(2) + ' <span style="font-size:12px;color:' + changeColor + '">' + changeSign + r.changePct.toFixed(1) + '%</span></div>';
-      html += '<div style="text-align:right"><div style="font-size:22px;font-weight:800;color:' + catColor + '">' + r.signal.total + '</div><div style="font-size:9px;color:#94a3b8">SIGNAL SCORE</div></div>';
+      // Price + score
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+      html += '<div style="font-size:16px;font-weight:700;color:#f8fafc">₹'+r.cmp.toFixed(2)+' <span style="font-size:12px;color:'+chCol+'">'+chSgn+r.changePct.toFixed(1)+'%</span></div>';
+      html += '<div style="text-align:right"><div style="font-size:22px;font-weight:800;color:'+catColor+'">'+r.signal.total+'</div><div style="font-size:9px;color:#94a3b8">SIGNAL SCORE</div></div>';
       html += '</div>';
 
+      // Signal bars
       html += '<div style="margin-bottom:8px">';
-      var buzzSc = (r.signal.signals.googleBuzz) ? r.signal.signals.googleBuzz.score : 0;
-      var catSc = (r.signal.signals.catalyst) ? r.signal.signals.catalyst.score : 0;
-      var convSc = (r.signal.signals.convergence) ? r.signal.signals.convergence.score : 0;
-      var sigItems = [
-        { name: '🔍 Buzz', score: buzzSc, max: 30, color: '#f59e0b' },
-        { name: '📊 Vol', score: r.signal.signals.volume.score, max: 20, color: '#3b82f6' },
-        { name: '📈 Price', score: r.signal.signals.priceAction.score, max: 20, color: '#22c55e' },
-        { name: '📰 Cat', score: catSc, max: 15, color: '#a855f7' },
-        { name: '🔗 Conv', score: convSc, max: 15, color: '#ec4899' }
+      var bars = [
+        {name:'📊 Fund',sc:r.signal.signals.fundamental?r.signal.signals.fundamental.score:0,mx:20,col:'#22c55e'},
+        {name:'📰 Biz',sc:r.signal.signals.businessIntel?r.signal.signals.businessIntel.score:0,mx:20,col:'#f59e0b'},
+        {name:'🏦 Flow',sc:r.signal.signals.institutionalFlow?r.signal.signals.institutionalFlow.score:0,mx:20,col:'#a78bfa'},
+        {name:'📍 Posn',sc:r.signal.signals.position?r.signal.signals.position.score:0,mx:15,col:'#38bdf8'},
+        {name:'🔄 Sector',sc:r.signal.signals.sectorPeer?r.signal.signals.sectorPeer.score:0,mx:15,col:'#ec4899'},
+        {name:'🔗 Conv',sc:r.signal.signals.convergence?r.signal.signals.convergence.score:0,mx:10,col:'#64748b'}
       ];
-      sigItems.forEach(function(si) {
-        var pctBar = si.max > 0 ? Math.max(0, (Math.max(0,si.score) / si.max * 100)) : 0;
-        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">';
-        html += '<div style="width:56px;font-size:10px;color:#94a3b8;text-align:right">' + si.name + '</div>';
-        html += '<div style="flex:1;background:#374151;border-radius:3px;height:4px;overflow:hidden"><div style="background:' + si.color + ';height:100%;width:' + pctBar + '%;border-radius:3px"></div></div>';
-        html += '<div style="width:24px;font-size:10px;color:' + si.color + ';font-weight:600">' + Math.max(0, si.score) + '</div>';
+      bars.forEach(function(bi){
+        var pctB = bi.mx>0?Math.max(0,(Math.max(0,bi.sc)/bi.mx*100)):0;
+        html += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">';
+        html += '<div style="width:58px;font-size:9px;color:#94a3b8;text-align:right">'+bi.name+'</div>';
+        html += '<div style="flex:1;background:#374151;border-radius:2px;height:3px;overflow:hidden"><div style="background:'+bi.col+';height:100%;width:'+pctB+'%;border-radius:2px"></div></div>';
+        html += '<div style="width:30px;font-size:9px;color:'+bi.col+';font-weight:600">'+Math.max(0,bi.sc)+'/'+bi.mx+'</div>';
         html += '</div>';
       });
       html += '</div>';
 
-      if (r.signal.signals.googleBuzz && r.signal.signals.googleBuzz.hotWords && r.signal.signals.googleBuzz.hotWords.length > 0) {
-        html += '<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:3px">';
-        r.signal.signals.googleBuzz.hotWords.slice(0, 5).forEach(function(hw) {
-          html += '<span style="background:rgba(245,158,11,0.15);color:#fbbf24;padding:1px 6px;border-radius:4px;font-size:9px">' + hw + '</span>';
+      // Top 3 signal insights (the DEEP RESEARCH)
+      var topSigs = r.signal.firedSignals.slice(0,3);
+      if (topSigs.length>0) {
+        html += '<div style="margin-bottom:6px">';
+        topSigs.forEach(function(ts){
+          var tagCol = ts.name==='Fundamentals'?'#22c55e':ts.name==='Business Intel'?'#f59e0b':ts.name==='Smart Money'?'#a78bfa':ts.name==='Sector Edge'?'#ec4899':'#38bdf8';
+          html += '<div style="font-size:10px;color:#e2e8f0;padding:2px 0;border-left:2px solid '+tagCol+';padding-left:6px;margin-bottom:3px;background:rgba(30,41,59,0.5);border-radius:0 4px 4px 0">';
+          html += '<span style="color:'+tagCol+';font-weight:600;font-size:8px;text-transform:uppercase">'+ts.name+':</span> '+ts.label;
+          html += '</div>';
         });
         html += '</div>';
       }
 
+      // Business event tags (from web intelligence)
+      var bizSig = r.signal.signals.businessIntel;
+      if (bizSig && bizSig.hotWords && bizSig.hotWords.length>0) {
+        html += '<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:3px">';
+        bizSig.hotWords.slice(0,4).forEach(function(hw){
+          html += '<span style="background:rgba(245,158,11,0.12);color:#fbbf24;padding:1px 5px;border-radius:3px;font-size:8px">'+hw+'</span>';
+        });
+        html += '</div>';
+      }
+
+      // Sector flow + Global tailwind
+      var badges = '';
+      if (r.signal.sectorFlow && r.signal.sectorFlow.active) {
+        badges += '<span style="font-size:9px;color:#fbbf24;background:rgba(234,179,8,0.08);padding:2px 6px;border-radius:4px;margin-right:4px">🔥 Sector rotation: '+r.signal.sectorFlow.count+' '+r.sector+' active</span>';
+      }
+      if (r.signal.globalTrend) {
+        badges += '<span style="font-size:9px;color:#22c55e;background:rgba(34,197,94,0.08);padding:2px 6px;border-radius:4px">'+r.signal.globalTrend.emoji+' '+r.signal.globalTrend.theme+'</span>';
+      }
+      if (badges) html += '<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:3px">'+badges+'</div>';
+
+      // Footer
       html += '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #334155;padding-top:6px">';
-      html += '<div style="font-size:11px;color:#c4b5fd;font-style:italic;max-width:70%">' + r.signal.topSignal + '</div>';
-      html += '<div style="font-size:10px;color:#94a3b8">Move: <span style="color:#22c55e;font-weight:700">' + r.signal.expectedMove + '</span></div>';
+      html += '<div style="font-size:10px;color:#64748b;font-style:italic">Institutional research · Not advice</div>';
+      html += '<div style="font-size:10px;color:#94a3b8">Move: <span style="color:#22c55e;font-weight:700">'+r.signal.expectedMove+'</span></div>';
       html += '</div>';
       html += '</div>';
     });
     html += '</div>';
   }
 
-  html += '<div style="text-align:center;color:#64748b;font-size:11px;margin-top:12px">Scanned ' + MOVER_UNIVERSE.length + ' stocks · Phase 1: volume+price · Phase 2: Google Buzz top 50 · Cached 15 min</div>';
+  html += '<div style="text-align:center;color:#64748b;font-size:11px;margin-top:12px">Scanned '+MOVER_UNIVERSE.length+' stocks · Phase 1: Fundamentals+Flow · Phase 2: Business Intel+Sector Peers · Day '+iq.days+'/30 intel</div>';
   html += '</div>';
   container.innerHTML = html;
 }
-// ═══ END SMART SIGNAL INTELLIGENCE ENGINE ═══
+// ═══ END SHADOW INTELLIGENCE ENGINE v3 ═══
 
 function computeScore(data, yfTicker, portfolioStock) {
   const price = data.price || 0;
@@ -8725,9 +9409,9 @@ function computeScore(data, yfTicker, portfolioStock) {
   // === 9. SMART SIGNAL INTELLIGENCE (0-12) ===
   let smartSigScore = 0;
   const smartSig = getSmartSignal(_tk.replace('%26','&'));
-  if (smartSig && smartSig.total >= 70) { smartSigScore = 12; }
-  else if (smartSig && smartSig.total >= 50) { smartSigScore = 8; }
-  else if (smartSig && smartSig.total >= 35) { smartSigScore = 5; }
+  if (smartSig && smartSig.total >= 60) { smartSigScore = 12; }
+  else if (smartSig && smartSig.total >= 40) { smartSigScore = 8; }
+  else if (smartSig && smartSig.total >= 25) { smartSigScore = 5; }
   else { smartSigScore = 0; }
 
   const totalScore = trendScore + momScore + breakoutScore + compressionScore + strengthScore + valScore + volScore + qualScore + intelScore + smartSigScore;
