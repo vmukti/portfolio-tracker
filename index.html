@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Multibagger Portfolio <span>v12 &mdash; Live</span></h1>
+  <h1>Multibagger Portfolio <span>v13 &mdash; Fund Manager</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -437,6 +437,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <span class="subtab" onclick="switchTab('alerts',this)" id="alertsTab">Alerts <span class="tab-badge" id="alertBadge" style="display:none">0</span></span>
   <span class="subtab" onclick="switchTab('portfolioai',this)">Portfolio AI</span>
   <span class="subtab" onclick="switchTab('valuation',this)">Valuation</span>
+  <span class="subtab" onclick="switchTab('fundmgr',this)">&#128176; Fund Manager</span>
 </div>
 <div id="subtabs-intelligence" class="subtab-row" style="display:none;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
   <span class="subtab active" onclick="switchTab('technical',this)">Technical</span>
@@ -450,10 +451,12 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <span class="subtab active" onclick="switchTab('scorer',this)">Stock Scorer</span>
   <span class="subtab" onclick="switchTab('ranking',this)">Rankings</span>
   <span class="subtab" onclick="switchTab('predictor',this)">Price Predictor</span>
+  <span class="subtab" onclick="switchTab('discovery',this)">&#128142; Discovery</span>
 </div>
 <div id="subtabs-tradelab" class="subtab-row" style="display:none;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
   <span class="subtab active" onclick="switchTab('papertrade',this)">Paper Trade</span>
   <span class="subtab" onclick="switchTab('daytrade',this)">Day Trade</span>
+  <span class="subtab" onclick="switchTab('signals',this)">&#128225; Signals</span>
 </div>
 <div id="subtabs-shadowpre" class="subtab-row" style="display:none;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
   <span class="subtab active" onclick="switchTab('energy',this)">Shadow Intel</span>
@@ -471,6 +474,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     <div class="stat-card"><div class="stat-label">Active Alerts</div><div class="stat-val" id="sAlerts" style="color:var(--amber)">0</div><div class="stat-sub" style="color:var(--muted)">Today</div></div>
     <div class="stat-card"><div class="stat-label">Market</div><div class="stat-val" id="sMkt" style="font-size:16px">--</div><div class="stat-sub" id="sMktSub" style="color:var(--muted)">NSE/BSE</div></div>
     <div class="stat-card" style="border-left:3px solid var(--accent)"><div class="stat-label">AI Engine v2</div><div class="stat-val" style="font-size:14px" id="sAIEngine">12D + Regime + Rotation</div><div class="stat-sub" id="sTopSector" style="color:var(--green)">Top sector: --</div></div>
+    <div class="stat-card" style="border-left:3px solid #a855f7"><div class="stat-label">Fund Target</div><div class="stat-val" style="font-size:18px" id="sFundMTD">0.0%</div><div class="stat-sub" style="color:var(--amber)" id="sFundGoal">Goal: 10% / month</div></div>
   </div>
 
   <!-- ==================== PORTFOLIO TAB ==================== -->
@@ -1252,6 +1256,162 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     </div>
   </div>
 
+  <!-- ======== FUND MANAGER v13.0 ======== -->
+  <div id="tab-fundmgr" style="display:none">
+    <div class="section-header">
+      <h2>&#128176; AI Wealth Fund Manager</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:var(--muted)">Mandate: 10% / month</span>
+        <button class="btn btn-outline btn-sm" onclick="loadFundManager()">&#10227; Refresh</button>
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:12px;margin:0 0 16px">AI-driven fund simulation targeting 10% monthly returns via 3 streams: compounders (2-3%), swing trades (4-5%), day trades (3-4%). Research tool only — not investment advice.</p>
+    <!-- Monthly Target Progress -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:16px;font-weight:700">Monthly Target: 10%</span>
+        <span id="fmMonthLabel" style="font-size:13px;color:var(--muted)">July 2026</span>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;height:32px;overflow:hidden;position:relative;margin-bottom:8px">
+        <div id="fmProgressBar" style="height:100%;background:linear-gradient(90deg,#22c55e,#4ade80);border-radius:8px;width:0%;transition:width 0.5s;display:flex;align-items:center;justify-content:flex-end;padding-right:8px">
+          <span id="fmProgressText" style="font-size:11px;font-weight:700;color:#000">0%</span>
+        </div>
+      </div>
+      <div class="grid4" style="grid-template-columns:repeat(5,1fr)">
+        <div class="stat-card" style="padding:12px;border-left:3px solid var(--green)">
+          <div class="stat-label">MTD Return</div>
+          <div class="stat-val" style="font-size:18px" id="fmMTD">0.0%</div>
+        </div>
+        <div class="stat-card" style="padding:12px;border-left:3px solid var(--accent)">
+          <div class="stat-label">Compounders</div>
+          <div class="stat-val" style="font-size:18px" id="fmCompReturn">+0.0%</div>
+        </div>
+        <div class="stat-card" style="padding:12px;border-left:3px solid var(--amber)">
+          <div class="stat-label">Swing Trades</div>
+          <div class="stat-val" style="font-size:18px" id="fmSwingReturn">+0.0%</div>
+        </div>
+        <div class="stat-card" style="padding:12px;border-left:3px solid #a855f7">
+          <div class="stat-label">Day Trades</div>
+          <div class="stat-val" style="font-size:18px" id="fmDayReturn">+0.0%</div>
+        </div>
+        <div class="stat-card" style="padding:12px;border-left:3px solid var(--red)">
+          <div class="stat-label">Days Left</div>
+          <div class="stat-val" style="font-size:18px" id="fmDaysLeft">--</div>
+        </div>
+      </div>
+    </div>
+    <!-- Strategy Allocation -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <h3 style="font-size:14px;margin-bottom:12px">&#127919; Today's High-Conviction Picks</h3>
+        <div id="fmTopPicks" style="font-size:13px;color:var(--muted)">Run scan to generate picks...</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <h3 style="font-size:14px;margin-bottom:12px">&#128200; Return Attribution</h3>
+        <div style="position:relative;height:200px"><canvas id="fmPieChart"></canvas></div>
+      </div>
+    </div>
+    <!-- Swing Trade Candidates -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+      <h3 style="font-size:14px;margin-bottom:12px">&#128640; Swing Trade Candidates (1-4 week holds, 5-15% target)</h3>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>Stock</th><th>Sector</th><th>CMP</th><th>Signal</th><th>Target</th><th>Upside</th><th>Stop Loss</th><th>Conviction</th><th>Catalyst</th></tr></thead>
+        <tbody id="fmSwingTable"><tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted)">Click Refresh to scan for swing candidates...</td></tr></tbody></table>
+      </div>
+    </div>
+    <!-- Performance History -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+      <h3 style="font-size:14px;margin-bottom:12px">&#128202; Monthly Performance History</h3>
+      <div style="position:relative;height:250px"><canvas id="fmHistoryChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ======== DISCOVERY ENGINE v13.0 ======== -->
+  <div id="tab-discovery" style="display:none">
+    <div class="section-header">
+      <h2>&#128142; Multibagger Discovery Engine</h2>
+      <button class="btn btn-outline btn-sm" onclick="runDiscoveryEngine()">&#128269; Run Full Scan</button>
+    </div>
+    <p style="color:var(--muted);font-size:12px;margin:0 0 16px">6 detection engines scanning 570+ stocks for early-stage signals. Catches stocks at the inflection point — before the big move.</p>
+    <!-- Detection Engine Summary -->
+    <div class="grid4" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px">
+      <div class="stat-card" style="padding:12px;border-left:3px solid #22c55e">
+        <div class="stat-label">Earnings Surprise</div>
+        <div class="stat-val" style="font-size:16px" id="discEarnings">0</div>
+        <div class="stat-sub" style="color:var(--muted)">Beat by 15%+</div>
+      </div>
+      <div class="stat-card" style="padding:12px;border-left:3px solid #a855f7">
+        <div class="stat-label">Promoter Buy</div>
+        <div class="stat-val" style="font-size:16px" id="discPromoter">0</div>
+        <div class="stat-sub" style="color:var(--muted)">Insider signal</div>
+      </div>
+      <div class="stat-card" style="padding:12px;border-left:3px solid #06b6d4">
+        <div class="stat-label">Volume Anomaly</div>
+        <div class="stat-val" style="font-size:16px" id="discVolume">0</div>
+        <div class="stat-sub" style="color:var(--muted)">3x+ avg vol</div>
+      </div>
+      <div class="stat-card" style="padding:12px;border-left:3px solid #f59e0b">
+        <div class="stat-label">ROCE Inflection</div>
+        <div class="stat-val" style="font-size:16px" id="discROCE">0</div>
+        <div class="stat-sub" style="color:var(--muted)">Crossing 15-20%</div>
+      </div>
+      <div class="stat-card" style="padding:12px;border-left:3px solid #ec4899">
+        <div class="stat-label">Revenue Accel</div>
+        <div class="stat-val" style="font-size:16px" id="discRevenue">0</div>
+        <div class="stat-sub" style="color:var(--muted)">QoQ rate rising</div>
+      </div>
+      <div class="stat-card" style="padding:12px;border-left:3px solid #4f8cff">
+        <div class="stat-label">Cap Migration</div>
+        <div class="stat-val" style="font-size:16px" id="discCapMig">0</div>
+        <div class="stat-sub" style="color:var(--muted)">Small to Mid</div>
+      </div>
+    </div>
+    <!-- Discovery Results Table -->
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Stock</th><th>Sector</th><th>CMP</th><th>Engine</th><th>Signal Strength</th><th>ROCE</th><th>P/E</th><th>MCap Cr</th><th>Score</th><th>Action</th></tr></thead>
+        <tbody id="discoveryTableBody"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">Click "Run Full Scan" to activate all 6 detection engines across 570+ stocks...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======== TRADE SIGNALS v13.0 ======== -->
+  <div id="tab-signals" style="display:none">
+    <div class="section-header">
+      <h2>&#128225; Trade Signal Intelligence</h2>
+      <button class="btn btn-outline btn-sm" onclick="runSignalEngine()">&#9889; Scan Signals</button>
+    </div>
+    <p style="color:var(--muted);font-size:12px;margin:0 0 16px">4 real-time trade strategies: ORB (Opening Range Breakout), VWAP, Gap &amp; Go, and Relative Strength ranking.</p>
+    <div class="grid4" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+      <div class="stat-card" style="padding:12px;border-left:3px solid #22c55e">
+        <div class="stat-label">ORB Breakouts</div>
+        <div class="stat-val" style="font-size:16px" id="sigORB">0</div>
+        <div class="stat-sub">15-min range break</div>
+      </div>
+      <div class="stat-card" style="padding:12px;border-left:3px solid #4f8cff">
+        <div class="stat-label">VWAP Signals</div>
+        <div class="stat-val" style="font-size:16px" id="sigVWAP">0</div>
+        <div class="stat-sub">Below VWAP buys</div>
+      </div>
+      <div class="stat-card" style="padding:12px;border-left:3px solid #f59e0b">
+        <div class="stat-label">Gap &amp; Go</div>
+        <div class="stat-val" style="font-size:16px" id="sigGap">0</div>
+        <div class="stat-sub">Gap-up + volume</div>
+      </div>
+      <div class="stat-card" style="padding:12px;border-left:3px solid #a855f7">
+        <div class="stat-label">RS Leaders</div>
+        <div class="stat-val" style="font-size:16px" id="sigRS">0</div>
+        <div class="stat-sub">Top RS vs Nifty</div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Stock</th><th>Strategy</th><th>Entry</th><th>Target</th><th>Stop Loss</th><th>R:R</th><th>Volume</th><th>Strength</th><th>Time</th></tr></thead>
+        <tbody id="signalTableBody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">Click "Scan Signals" to run all 4 trade signal engines...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
   <div id="tab-config" style="display:none">
     <div class="config-panel">
       <h3>&#128276; Alert configuration</h3>
@@ -1355,7 +1515,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v12.0 &mdash; AI Engine v2 + 12D Intelligence + Regime Detection + Sector Rotation (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v13.0 &mdash; AI Wealth Fund Manager + Discovery Engine + Trade Signals + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -1890,10 +2050,10 @@ document.getElementById('detailModal').addEventListener('click', e => { if(e.tar
 //  v12 TAB SYSTEM — Major Groups + Sub-tabs
 // ============================================================
 var TAB_GROUPS = {
-  dashboard:     ['portfolio','alerts','portfolioai','valuation'],
+  dashboard:     ['portfolio','alerts','portfolioai','valuation','fundmgr'],
   intelligence:  ['technical','fundamental','earnings','newsint','sentiment','news'],
-  scanner:       ['scorer','ranking','predictor'],
-  tradelab:      ['papertrade','daytrade'],
+  scanner:       ['scorer','ranking','predictor','discovery'],
+  tradelab:      ['papertrade','daytrade','signals'],
   shadowpre:     ['energy'],
   settings:      ['config']
 };
@@ -1935,8 +2095,11 @@ function switchTab(tab, el) {
   if (tab === 'papertrade') loadPaperTrade();
   if (tab === 'daytrade') loadDayTrade();
   if (tab === 'predictor') loadPredictorTab();
+  if (tab === 'discovery') runDiscoveryEngine();
+  if (tab === 'signals') runSignalEngine();
+  if (tab === 'fundmgr') loadFundManager();
   // hide all tab content divs, show only selected
-  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','daytrade','predictor','config'].forEach(t => {
+  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','daytrade','predictor','config','fundmgr','discovery','signals'].forEach(t => {
     var d = document.getElementById('tab-'+t);
     if(d) d.style.display = t===tab ? 'block' : 'none';
   });
@@ -12943,6 +13106,784 @@ async function squareOffOne(ticker) {
 // ============================================================
 //  END DAY TRADE SIMULATOR
 // ============================================================
+
+// ╔═══════════════════════════════════════════════════════════╗
+//  v13.0 — AI WEALTH FUND MANAGER + DISCOVERY + SIGNALS
+//  Mandate: 10% monthly returns via 3 streams
+// ╚═══════════════════════════════════════════════════════════╝
+
+// ── FUND MANAGER STATE ──────────────────────────────────────
+var FM_TARGET_PCT = 10; // monthly target
+var _fmState = JSON.parse(localStorage.getItem('fmState') || 'null') || {
+  monthStart: new Date().toISOString().slice(0,7),
+  startNAV: 1000000,
+  currentNAV: 1000000,
+  compReturn: 0,
+  swingReturn: 0,
+  dayReturn: 0,
+  swingTrades: [],
+  monthlyHistory: [],
+  lastUpdate: null
+};
+
+function saveFMState() { try { localStorage.setItem('fmState', JSON.stringify(_fmState)); } catch(e) {} }
+
+function loadFundManager() {
+  // Check if month rolled over
+  var curMonth = new Date().toISOString().slice(0,7);
+  if (_fmState.monthStart !== curMonth) {
+    // Archive previous month
+    _fmState.monthlyHistory.push({
+      month: _fmState.monthStart,
+      returnPct: ((_fmState.currentNAV - _fmState.startNAV) / _fmState.startNAV * 100),
+      compReturn: _fmState.compReturn,
+      swingReturn: _fmState.swingReturn,
+      dayReturn: _fmState.dayReturn
+    });
+    _fmState.monthStart = curMonth;
+    _fmState.startNAV = _fmState.currentNAV;
+    _fmState.compReturn = 0;
+    _fmState.swingReturn = 0;
+    _fmState.dayReturn = 0;
+    _fmState.swingTrades = [];
+    saveFMState();
+  }
+
+  // Calculate MTD from portfolio + trades
+  var portfolioReturn = 0;
+  if (stocks.length > 0) {
+    var totalInvested = 0, totalCurrent = 0;
+    stocks.forEach(function(s) {
+      if (s.buyPrice && s.cmp) {
+        totalInvested += s.buyPrice * (s.qty || 1);
+        totalCurrent += s.cmp * (s.qty || 1);
+      }
+    });
+    if (totalInvested > 0) portfolioReturn = (totalCurrent - totalInvested) / totalInvested * 100;
+  }
+
+  // Day trade contribution
+  var dtW = getDT();
+  var dtTotalPnl = 0;
+  dtW.dailyHistory.forEach(function(d) { dtTotalPnl += (d.netPnl || 0); });
+  var dtReturnPct = DT_START > 0 ? (dtTotalPnl / DT_START * 100) : 0;
+
+  // Paper trade contribution
+  var ptW = getWallet();
+  var ptNAV = ptW.cash;
+  ptW.positions.forEach(function(p) {
+    var s = stocks.find(function(st) { return st.ticker === p.ticker; });
+    ptNAV += (s && s.cmp > 0 ? s.cmp : p.buyPrice) * p.qty;
+  });
+  var ptReturn = PT_START > 0 ? ((ptNAV - PT_START) / PT_START * 100) : 0;
+
+  _fmState.compReturn = portfolioReturn;
+  _fmState.dayReturn = dtReturnPct;
+  _fmState.swingReturn = ptReturn;
+
+  var mtdReturn = (_fmState.compReturn * 0.3 + _fmState.swingReturn * 0.4 + _fmState.dayReturn * 0.3);
+  _fmState.lastUpdate = Date.now();
+  saveFMState();
+
+  // Update UI
+  var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var now = new Date();
+  var el;
+  el = document.getElementById('fmMonthLabel');
+  if (el) el.textContent = monthNames[now.getMonth()] + ' ' + now.getFullYear();
+
+  el = document.getElementById('fmMTD');
+  if (el) {
+    el.textContent = (mtdReturn >= 0 ? '+' : '') + mtdReturn.toFixed(1) + '%';
+    el.style.color = mtdReturn >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  el = document.getElementById('fmCompReturn');
+  if (el) {
+    el.textContent = (_fmState.compReturn >= 0 ? '+' : '') + _fmState.compReturn.toFixed(1) + '%';
+    el.style.color = _fmState.compReturn >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+  el = document.getElementById('fmSwingReturn');
+  if (el) {
+    el.textContent = (_fmState.swingReturn >= 0 ? '+' : '') + _fmState.swingReturn.toFixed(1) + '%';
+    el.style.color = _fmState.swingReturn >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+  el = document.getElementById('fmDayReturn');
+  if (el) {
+    el.textContent = (_fmState.dayReturn >= 0 ? '+' : '') + _fmState.dayReturn.toFixed(1) + '%';
+    el.style.color = _fmState.dayReturn >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  // Days left in month
+  var daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  var daysLeft = daysInMonth - now.getDate();
+  el = document.getElementById('fmDaysLeft');
+  if (el) el.textContent = daysLeft;
+
+  // Progress bar
+  var progress = Math.max(0, Math.min(100, (mtdReturn / FM_TARGET_PCT) * 100));
+  el = document.getElementById('fmProgressBar');
+  if (el) {
+    el.style.width = progress + '%';
+    if (mtdReturn >= FM_TARGET_PCT) {
+      el.style.background = 'linear-gradient(90deg,#22c55e,#4ade80)';
+    } else if (mtdReturn >= FM_TARGET_PCT * 0.5) {
+      el.style.background = 'linear-gradient(90deg,#f59e0b,#fbbf24)';
+    } else if (mtdReturn < 0) {
+      el.style.background = 'linear-gradient(90deg,#ef4444,#f87171)';
+    }
+  }
+  el = document.getElementById('fmProgressText');
+  if (el) el.textContent = mtdReturn.toFixed(1) + '% / ' + FM_TARGET_PCT + '%';
+
+  // Update header card
+  el = document.getElementById('sFundMTD');
+  if (el) {
+    el.textContent = (mtdReturn >= 0 ? '+' : '') + mtdReturn.toFixed(1) + '%';
+    el.style.color = mtdReturn >= FM_TARGET_PCT ? 'var(--green)' : mtdReturn >= 0 ? 'var(--amber)' : 'var(--red)';
+  }
+  el = document.getElementById('sFundGoal');
+  if (el) {
+    var remaining = FM_TARGET_PCT - mtdReturn;
+    el.textContent = remaining > 0 ? 'Need ' + remaining.toFixed(1) + '% more' : 'TARGET HIT!';
+    el.style.color = remaining <= 0 ? 'var(--green)' : 'var(--amber)';
+  }
+
+  // Generate high-conviction picks
+  generateFMPicks();
+
+  // Swing trade candidates
+  generateSwingCandidates();
+
+  // Render pie chart
+  renderFMPieChart();
+
+  // Render history chart
+  renderFMHistoryChart();
+}
+
+function generateFMPicks() {
+  var el = document.getElementById('fmTopPicks');
+  if (!el) return;
+
+  // Score all stocks for fund manager mode
+  var candidates = [];
+  var allStocks = stocks.concat([]);
+  // Add mover scan results if available
+  if (typeof _moverScan !== 'undefined' && _moverScan.length > 0) {
+    _moverScan.forEach(function(m) {
+      if (!allStocks.find(function(s) { return s.ticker === m.ticker; })) {
+        allStocks.push(m);
+      }
+    });
+  }
+
+  allStocks.forEach(function(s) {
+    if (!s || !s.cmp || s.cmp <= 0) return;
+    var score = aiScore(s);
+    if (score.total < 55) return;
+
+    // Fund manager boost: prioritize momentum + catalyst + sector rotation
+    var fmBoost = 0;
+    var regime = detectMarketRegime();
+    var sectorScore = getSectorRotationScore(s.sector);
+    if (sectorScore >= 2) fmBoost += 10;
+    if (s.changePct > 2) fmBoost += 8;
+    if (score.momentum > 15) fmBoost += 5;
+    if (regime.regime === 'STRONG_BULL' || regime.regime === 'BULL') fmBoost += 5;
+
+    candidates.push({
+      ticker: s.ticker,
+      name: s.name || s.ticker,
+      sector: s.sector || '--',
+      cmp: s.cmp,
+      score: score.total + fmBoost,
+      changePct: s.changePct || 0,
+      signals: score.factors.slice(0, 3),
+      conviction: score.total >= 75 ? 'HIGH' : score.total >= 60 ? 'MEDIUM' : 'LOW'
+    });
+  });
+
+  candidates.sort(function(a, b) { return b.score - a.score; });
+  candidates = filterCorrelatedPicks(candidates, 2);
+  var top = candidates.slice(0, 8);
+
+  if (top.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted)">No high-conviction picks found. Run mover scan first.</div>';
+    return;
+  }
+
+  var html = '';
+  top.forEach(function(c, i) {
+    var convColor = c.conviction === 'HIGH' ? '#22c55e' : c.conviction === 'MEDIUM' ? '#f59e0b' : '#94a3b8';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">';
+    html += '<div><span style="font-weight:600;color:var(--accent)">' + (i+1) + '. ' + c.ticker + '</span>';
+    html += '<span style="font-size:11px;color:var(--muted);margin-left:8px">' + c.sector + '</span></div>';
+    html += '<div style="display:flex;gap:8px;align-items:center">';
+    html += '<span class="' + (c.changePct >= 0 ? 'up' : 'down') + '" style="font-size:12px">' + (c.changePct >= 0 ? '+' : '') + c.changePct.toFixed(1) + '%</span>';
+    html += '<span style="font-size:11px;font-weight:700;color:' + convColor + ';padding:2px 8px;border-radius:4px;background:' + convColor + '22">' + c.conviction + '</span>';
+    html += '<span style="font-size:12px;font-weight:600">' + c.score + '</span>';
+    html += '</div></div>';
+  });
+  el.innerHTML = html;
+}
+
+function generateSwingCandidates() {
+  var tbody = document.getElementById('fmSwingTable');
+  if (!tbody) return;
+
+  var candidates = [];
+  var allStocks = stocks.concat([]);
+  if (typeof _moverScan !== 'undefined') {
+    _moverScan.forEach(function(m) {
+      if (!allStocks.find(function(s) { return s.ticker === m.ticker; })) allStocks.push(m);
+    });
+  }
+
+  allStocks.forEach(function(s) {
+    if (!s || !s.cmp || s.cmp <= 0) return;
+    var score = aiScore(s);
+    if (score.total < 50) return;
+
+    // Swing trade scoring: momentum + breakout potential
+    var swingScore = 0;
+    var signal = '';
+    var target = s.cmp;
+    var stopLoss = s.cmp;
+    var catalyst = '';
+
+    // Near breakout zone (80-95% of 52W high)
+    if (s.high52 && s.low52 && s.high52 > s.low52) {
+      var pos52 = (s.cmp - s.low52) / (s.high52 - s.low52);
+      if (pos52 >= 0.8 && pos52 <= 0.95) {
+        swingScore += 15;
+        signal = 'BREAKOUT ZONE';
+        target = s.high52 * 1.05;
+        stopLoss = s.cmp * 0.95;
+        catalyst = '52W high breakout pending';
+      } else if (pos52 >= 0.5 && pos52 < 0.8) {
+        swingScore += 10;
+        signal = 'BUILDING';
+        target = s.high52 * 0.95;
+        stopLoss = s.cmp * 0.93;
+        catalyst = 'Momentum building';
+      }
+    }
+
+    // Strong recent momentum
+    if (s.changePct > 2) { swingScore += 10; signal = signal || 'MOMENTUM'; }
+    if (score.momentum > 15) swingScore += 8;
+
+    // Volume confirmation
+    if (s.vol && s.avgVol && s.vol > s.avgVol * 1.5) {
+      swingScore += 8;
+      catalyst += (catalyst ? ' + ' : '') + 'Vol ' + (s.vol / s.avgVol).toFixed(1) + 'x';
+    }
+
+    // Sector tailwind
+    var sRot = getSectorRotationScore(s.sector);
+    if (sRot >= 2) { swingScore += 6; catalyst += (catalyst ? ' + ' : '') + 'Sector IN FAVOR'; }
+
+    // Quality backing
+    if (s.roce && s.roce > 15) swingScore += 5;
+
+    if (swingScore >= 20) {
+      var upside = target > s.cmp ? ((target - s.cmp) / s.cmp * 100) : 5;
+      var risk = s.cmp > stopLoss ? ((s.cmp - stopLoss) / s.cmp * 100) : 5;
+      candidates.push({
+        ticker: s.ticker,
+        name: s.name || s.ticker,
+        sector: s.sector || '--',
+        cmp: s.cmp,
+        signal: signal,
+        target: target,
+        upside: upside,
+        stopLoss: stopLoss,
+        riskPct: risk,
+        swingScore: swingScore + score.total,
+        conviction: swingScore >= 30 ? 'HIGH' : swingScore >= 22 ? 'MEDIUM' : 'LOW',
+        catalyst: catalyst || 'Technical setup'
+      });
+    }
+  });
+
+  candidates.sort(function(a, b) { return b.swingScore - a.swingScore; });
+  candidates = filterCorrelatedPicks(candidates, 2);
+  var top = candidates.slice(0, 10);
+
+  if (top.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted)">No swing candidates found. Run mover scan first for more data.</td></tr>';
+    return;
+  }
+
+  var rows = '';
+  top.forEach(function(c) {
+    var convColor = c.conviction === 'HIGH' ? '#22c55e' : c.conviction === 'MEDIUM' ? '#f59e0b' : '#94a3b8';
+    rows += '<tr>';
+    rows += '<td><span class="ticker">' + c.ticker + '</span><div style="font-size:10px;color:var(--muted)">' + (c.name || '') + '</div></td>';
+    rows += '<td style="font-size:11px">' + c.sector + '</td>';
+    rows += '<td>&#8377;' + c.cmp.toLocaleString('en-IN', {maximumFractionDigits:0}) + '</td>';
+    rows += '<td><span class="scan-badge scan-strong">' + c.signal + '</span></td>';
+    rows += '<td class="up">&#8377;' + c.target.toLocaleString('en-IN', {maximumFractionDigits:0}) + '</td>';
+    rows += '<td class="up">+' + c.upside.toFixed(1) + '%</td>';
+    rows += '<td class="down">&#8377;' + c.stopLoss.toLocaleString('en-IN', {maximumFractionDigits:0}) + ' (-' + c.riskPct.toFixed(1) + '%)</td>';
+    rows += '<td><span style="color:' + convColor + ';font-weight:700;font-size:11px">' + c.conviction + '</span></td>';
+    rows += '<td style="font-size:11px;max-width:150px;white-space:normal">' + c.catalyst + '</td>';
+    rows += '</tr>';
+  });
+  tbody.innerHTML = rows;
+}
+
+function renderFMPieChart() {
+  var ctx = document.getElementById('fmPieChart');
+  if (!ctx) return;
+  if (window._fmPieChartInst) window._fmPieChartInst.destroy();
+  window._fmPieChartInst = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Compounders', 'Swing Trades', 'Day Trades'],
+      datasets: [{
+        data: [Math.abs(_fmState.compReturn || 0.1), Math.abs(_fmState.swingReturn || 0.1), Math.abs(_fmState.dayReturn || 0.1)],
+        backgroundColor: ['#22c55e', '#f59e0b', '#a855f7'],
+        borderColor: 'transparent'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } }
+    }
+  });
+}
+
+function renderFMHistoryChart() {
+  var ctx = document.getElementById('fmHistoryChart');
+  if (!ctx) return;
+  if (window._fmHistChartInst) window._fmHistChartInst.destroy();
+  var history = _fmState.monthlyHistory.slice(-12);
+  // Add current month
+  var curReturn = (_fmState.compReturn * 0.3 + _fmState.swingReturn * 0.4 + _fmState.dayReturn * 0.3);
+  history.push({ month: _fmState.monthStart, returnPct: curReturn });
+
+  window._fmHistChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: history.map(function(h) { return h.month; }),
+      datasets: [{
+        label: 'Monthly Return %',
+        data: history.map(function(h) { return h.returnPct || 0; }),
+        backgroundColor: history.map(function(h) { return (h.returnPct || 0) >= FM_TARGET_PCT ? '#22c55e' : (h.returnPct || 0) >= 0 ? '#f59e0b' : '#ef4444'; }),
+        borderRadius: 6
+      }, {
+        label: 'Target (10%)',
+        data: history.map(function() { return FM_TARGET_PCT; }),
+        type: 'line',
+        borderColor: '#4f8cff',
+        borderDash: [5, 5],
+        pointRadius: 0,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { ticks: { color: '#94a3b8' }, grid: { color: '#2d314822' } },
+        x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+      },
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DISCOVERY ENGINE — 6 Multibagger Detection Engines
+// ══════════════════════════════════════════════════════════════
+var _discoveryCache = { results: [], updated: 0 };
+
+function runDiscoveryEngine() {
+  if (Date.now() - _discoveryCache.updated < 300000 && _discoveryCache.results.length > 0) {
+    renderDiscoveryResults(_discoveryCache.results);
+    return;
+  }
+
+  var results = [];
+  var allStocks = [];
+
+  // Gather all available stock data
+  stocks.forEach(function(s) { if (s && s.ticker) allStocks.push(s); });
+  if (typeof _moverScan !== 'undefined') {
+    _moverScan.forEach(function(m) {
+      if (m && m.ticker && !allStocks.find(function(s) { return s.ticker === m.ticker; })) {
+        allStocks.push(m);
+      }
+    });
+  }
+  if (typeof MOVER_UNIVERSE !== 'undefined') {
+    MOVER_UNIVERSE.forEach(function(u) {
+      if (!allStocks.find(function(s) { return s.ticker === u.t; })) {
+        allStocks.push({ ticker: u.t, name: u.n, sector: u.s, cmp: 0, roce: u.ro, pe: u.pe, mcap: u.mc, _cap: u.c });
+      }
+    });
+  }
+
+  var earningsCount = 0, promoterCount = 0, volumeCount = 0, roceCount = 0, revenueCount = 0, capMigCount = 0;
+
+  allStocks.forEach(function(s) {
+    if (!s || !s.ticker) return;
+    var engines = [];
+    var totalEngineScore = 0;
+
+    // Enrich from universe
+    var uv = typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.find(function(m) { return m.t === s.ticker; }) : null;
+    if (uv) {
+      if (!s.roce && uv.ro) s.roce = uv.ro;
+      if (!s.pe && uv.pe) s.pe = uv.pe;
+      if (!s.mcap && uv.mc) s.mcap = uv.mc;
+      if (!s.sector && uv.s) s.sector = uv.s;
+      if (!s._cap) s._cap = uv.c;
+    }
+
+    // Engine 1: Earnings Surprise — strong day move + good fundamentals
+    if (s.changePct && s.changePct > 5 && s.roce && s.roce > 12) {
+      engines.push({ name: 'EARNINGS SURPRISE', color: '#22c55e', strength: Math.min(100, Math.round(s.changePct * 8 + s.roce)) });
+      totalEngineScore += 20;
+      earningsCount++;
+    } else if (s.changePct && s.changePct > 3 && s.pe && s.pe < 30 && s.pe > 0) {
+      engines.push({ name: 'EARNINGS BEAT', color: '#86efac', strength: Math.min(100, Math.round(s.changePct * 6 + (30 - s.pe))) });
+      totalEngineScore += 12;
+      earningsCount++;
+    }
+
+    // Engine 2: Promoter/Insider Activity — proxied by strong price + low PE (smart money)
+    if (s.pe && s.pe > 0 && s.pe < 20 && s.changePct > 1 && s.roce && s.roce > 15) {
+      engines.push({ name: 'PROMOTER SIGNAL', color: '#a855f7', strength: Math.min(100, Math.round(s.roce * 2 + (20 - s.pe) * 2)) });
+      totalEngineScore += 15;
+      promoterCount++;
+    }
+
+    // Engine 3: Volume Anomaly — massive volume with price move
+    if (s.vol && s.avgVol && s.avgVol > 0) {
+      var volRatio = s.vol / s.avgVol;
+      if (volRatio >= 3 && s.changePct > 0) {
+        engines.push({ name: 'VOLUME ANOMALY', color: '#06b6d4', strength: Math.min(100, Math.round(volRatio * 15)) });
+        totalEngineScore += 18;
+        volumeCount++;
+      } else if (volRatio >= 2 && s.changePct > 1) {
+        engines.push({ name: 'VOLUME SPIKE', color: '#67e8f9', strength: Math.min(100, Math.round(volRatio * 12)) });
+        totalEngineScore += 10;
+        volumeCount++;
+      }
+    }
+
+    // Engine 4: ROCE Inflection — ROCE in sweet spot zone (improving quality)
+    if (s.roce) {
+      if (s.roce >= 15 && s.roce <= 25 && s.pe && s.pe < 35 && s.pe > 0) {
+        engines.push({ name: 'ROCE INFLECTION', color: '#f59e0b', strength: Math.min(100, Math.round(s.roce * 3)) });
+        totalEngineScore += 14;
+        roceCount++;
+      } else if (s.roce > 25) {
+        engines.push({ name: 'ROCE LEADER', color: '#fbbf24', strength: Math.min(100, Math.round(s.roce * 2.5)) });
+        totalEngineScore += 10;
+        roceCount++;
+      }
+    }
+
+    // Engine 5: Revenue Acceleration — strong momentum + reasonable valuation = growth
+    if (s.changePct > 2 && s.pe && s.pe > 0 && s.pe < 50 && s.roce && s.roce > 10) {
+      var revScore = Math.round(s.changePct * 5 + s.roce * 1.5);
+      if (revScore > 30) {
+        engines.push({ name: 'REVENUE ACCEL', color: '#ec4899', strength: Math.min(100, revScore) });
+        totalEngineScore += 12;
+        revenueCount++;
+      }
+    }
+
+    // Engine 6: Cap Migration — small cap with strong fundamentals (re-rating candidate)
+    if (s._cap === 'S' || (s.mcap && s.mcap < 10000)) {
+      if (s.roce && s.roce > 18 && s.pe && s.pe < 30 && s.pe > 0) {
+        engines.push({ name: 'CAP MIGRATION', color: '#4f8cff', strength: Math.min(100, Math.round(s.roce * 2 + (30 - s.pe))) });
+        totalEngineScore += 16;
+        capMigCount++;
+      }
+    }
+
+    if (engines.length > 0) {
+      var sc = s.cmp ? aiScore(s) : { total: totalEngineScore };
+      results.push({
+        ticker: s.ticker,
+        name: s.name || s.ticker,
+        sector: s.sector || '--',
+        cmp: s.cmp || 0,
+        engines: engines,
+        totalEngineScore: totalEngineScore,
+        score: sc.total + totalEngineScore,
+        roce: s.roce || 0,
+        pe: s.pe || 0,
+        mcap: s.mcap || 0
+      });
+    }
+  });
+
+  // Update counters
+  var el;
+  el = document.getElementById('discEarnings'); if (el) el.textContent = earningsCount;
+  el = document.getElementById('discPromoter'); if (el) el.textContent = promoterCount;
+  el = document.getElementById('discVolume'); if (el) el.textContent = volumeCount;
+  el = document.getElementById('discROCE'); if (el) el.textContent = roceCount;
+  el = document.getElementById('discRevenue'); if (el) el.textContent = revenueCount;
+  el = document.getElementById('discCapMig'); if (el) el.textContent = capMigCount;
+
+  results.sort(function(a, b) { return b.score - a.score; });
+  _discoveryCache = { results: results, updated: Date.now() };
+  renderDiscoveryResults(results);
+}
+
+function renderDiscoveryResults(results) {
+  var tbody = document.getElementById('discoveryTableBody');
+  if (!tbody) return;
+
+  if (results.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">No discoveries found. Run mover scan first for price data.</td></tr>';
+    return;
+  }
+
+  var top = results.slice(0, 50);
+  var rows = '';
+  top.forEach(function(r) {
+    var engineBadges = '';
+    r.engines.forEach(function(e) {
+      engineBadges += '<span style="display:inline-block;padding:1px 5px;margin:1px;border-radius:3px;font-size:8px;font-weight:700;background:' + e.color + '22;color:' + e.color + '">' + e.name + '</span>';
+    });
+
+    var strengthBar = '<div style="display:flex;align-items:center;gap:4px"><div style="width:60px;height:6px;background:var(--card2);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + Math.min(100, r.totalEngineScore * 2) + '%;background:linear-gradient(90deg,#22c55e,#4ade80);border-radius:3px"></div></div><span style="font-size:10px">' + r.totalEngineScore + '</span></div>';
+
+    rows += '<tr>';
+    rows += '<td><span class="ticker">' + r.ticker + '</span><div style="font-size:10px;color:var(--muted)">' + r.name + '</div></td>';
+    rows += '<td style="font-size:11px">' + r.sector + '</td>';
+    rows += '<td>' + (r.cmp > 0 ? '&#8377;' + r.cmp.toLocaleString('en-IN', {maximumFractionDigits:0}) : '--') + '</td>';
+    rows += '<td style="max-width:180px">' + engineBadges + '</td>';
+    rows += '<td>' + strengthBar + '</td>';
+    rows += '<td>' + (r.roce > 0 ? r.roce.toFixed(1) + '%' : '--') + '</td>';
+    rows += '<td>' + (r.pe > 0 ? r.pe.toFixed(1) : '--') + '</td>';
+    rows += '<td>' + (r.mcap > 0 ? r.mcap.toLocaleString('en-IN', {maximumFractionDigits:0}) : '--') + '</td>';
+    rows += '<td style="font-weight:700;color:' + (r.score >= 70 ? 'var(--green)' : r.score >= 50 ? 'var(--amber)' : 'var(--muted)') + '">' + r.score + '</td>';
+    rows += '<td><button onclick="showScorerResult(\'' + r.ticker + '\')" style="padding:3px 10px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:10px">Analyze</button></td>';
+    rows += '</tr>';
+  });
+  tbody.innerHTML = rows;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TRADE SIGNAL INTELLIGENCE — ORB, VWAP, Gap & Go, RS
+// ══════════════════════════════════════════════════════════════
+
+function runSignalEngine() {
+  var signals = [];
+  var orbCount = 0, vwapCount = 0, gapCount = 0, rsCount = 0;
+
+  var allStocks = [];
+  stocks.forEach(function(s) { if (s && s.ticker && s.cmp > 0) allStocks.push(s); });
+  if (typeof _moverScan !== 'undefined') {
+    _moverScan.forEach(function(m) {
+      if (m && m.ticker && m.cmp > 0 && !allStocks.find(function(s) { return s.ticker === m.ticker; })) {
+        allStocks.push(m);
+      }
+    });
+  }
+
+  // Calculate market benchmark (Nifty proxy from average)
+  var mktAvgChg = 0, mktCount = 0;
+  allStocks.forEach(function(s) { if (typeof s.changePct === 'number') { mktAvgChg += s.changePct; mktCount++; } });
+  mktAvgChg = mktCount > 0 ? mktAvgChg / mktCount : 0;
+
+  allStocks.forEach(function(s) {
+    if (!s.cmp || s.cmp <= 0) return;
+    var chg = s.changePct || 0;
+    var volRatio = (s.vol && s.avgVol && s.avgVol > 0) ? s.vol / s.avgVol : 1;
+
+    // Strategy 1: Opening Range Breakout (ORB)
+    // Stocks breaking above the day's opening range with volume
+    if (s.dayHigh && s.dayLow && s.open) {
+      var range = s.dayHigh - s.dayLow;
+      var rangeAsPercent = s.dayLow > 0 ? (range / s.dayLow * 100) : 0;
+      if (s.cmp >= s.dayHigh * 0.98 && rangeAsPercent > 1.5 && volRatio > 1.2) {
+        var orbTarget = s.cmp + range * 0.618;
+        var orbStop = s.dayLow;
+        var rr = orbStop > 0 ? ((orbTarget - s.cmp) / (s.cmp - orbStop)) : 1;
+        if (rr > 1.5) {
+          signals.push({
+            ticker: s.ticker, name: s.name || s.ticker,
+            strategy: 'ORB', stratColor: '#22c55e',
+            entry: s.cmp, target: orbTarget, stopLoss: orbStop,
+            rr: rr, volRatio: volRatio,
+            strength: Math.min(100, Math.round(rangeAsPercent * 15 + volRatio * 10)),
+            time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+          });
+          orbCount++;
+        }
+      }
+    }
+
+    // Strategy 2: VWAP (Volume Weighted Avg Price approximation)
+    // Price near or below VWAP with volume = buy zone
+    if (s.open && s.dayHigh && s.dayLow) {
+      var vwapApprox = (s.dayHigh + s.dayLow + s.cmp) / 3; // simplified VWAP
+      var vwapDist = (s.cmp - vwapApprox) / vwapApprox * 100;
+      if (vwapDist < -0.5 && vwapDist > -3 && chg > -1 && volRatio > 1) {
+        var vwapTarget = vwapApprox * 1.01;
+        var vwapStop = s.dayLow * 0.995;
+        signals.push({
+          ticker: s.ticker, name: s.name || s.ticker,
+          strategy: 'VWAP BUY', stratColor: '#4f8cff',
+          entry: s.cmp, target: vwapTarget, stopLoss: vwapStop,
+          rr: vwapStop > 0 ? ((vwapTarget - s.cmp) / (s.cmp - vwapStop)) : 1,
+          volRatio: volRatio,
+          strength: Math.min(100, Math.round(Math.abs(vwapDist) * 20 + volRatio * 8)),
+          time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+        });
+        vwapCount++;
+      }
+    }
+
+    // Strategy 3: Gap & Go — gapped up from open with volume
+    if (s.open && s.prevClose && s.prevClose > 0) {
+      var gapPct = (s.open - s.prevClose) / s.prevClose * 100;
+      if (gapPct > 1.5 && s.cmp >= s.open && volRatio > 1.5) {
+        var gapTarget = s.cmp * 1.03;
+        var gapStop = s.open * 0.995;
+        signals.push({
+          ticker: s.ticker, name: s.name || s.ticker,
+          strategy: 'GAP & GO', stratColor: '#f59e0b',
+          entry: s.cmp, target: gapTarget, stopLoss: gapStop,
+          rr: gapStop > 0 ? ((gapTarget - s.cmp) / (s.cmp - gapStop)) : 1,
+          volRatio: volRatio,
+          strength: Math.min(100, Math.round(gapPct * 12 + volRatio * 8)),
+          time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+        });
+        gapCount++;
+      }
+    }
+
+    // Strategy 4: Relative Strength vs Market — outperforming Nifty
+    var rs = chg - mktAvgChg;
+    if (rs > 2 && chg > 1 && volRatio > 1) {
+      var rsTarget = s.cmp * 1.025;
+      var rsStop = s.cmp * 0.985;
+      signals.push({
+        ticker: s.ticker, name: s.name || s.ticker,
+        strategy: 'RS LEADER', stratColor: '#a855f7',
+        entry: s.cmp, target: rsTarget, stopLoss: rsStop,
+        rr: rsStop > 0 ? ((rsTarget - s.cmp) / (s.cmp - rsStop)) : 1,
+        volRatio: volRatio,
+        strength: Math.min(100, Math.round(rs * 15 + volRatio * 5)),
+        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+      });
+      rsCount++;
+    }
+  });
+
+  // Update counters
+  var el;
+  el = document.getElementById('sigORB'); if (el) el.textContent = orbCount;
+  el = document.getElementById('sigVWAP'); if (el) el.textContent = vwapCount;
+  el = document.getElementById('sigGap'); if (el) el.textContent = gapCount;
+  el = document.getElementById('sigRS'); if (el) el.textContent = rsCount;
+
+  // Sort by strength
+  signals.sort(function(a, b) { return b.strength - a.strength; });
+
+  // Render table
+  var tbody = document.getElementById('signalTableBody');
+  if (!tbody) return;
+
+  if (signals.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">No signals detected. Run during market hours (9:15 AM - 3:30 PM) for best results.</td></tr>';
+    return;
+  }
+
+  var rows = '';
+  signals.slice(0, 30).forEach(function(sig) {
+    var strengthBar = '<div style="display:flex;align-items:center;gap:4px"><div style="width:50px;height:6px;background:var(--card2);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + sig.strength + '%;background:' + sig.stratColor + ';border-radius:3px"></div></div><span style="font-size:10px">' + sig.strength + '</span></div>';
+
+    rows += '<tr>';
+    rows += '<td><span class="ticker">' + sig.ticker + '</span><div style="font-size:10px;color:var(--muted)">' + (sig.name || '') + '</div></td>';
+    rows += '<td><span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:' + sig.stratColor + '22;color:' + sig.stratColor + '">' + sig.strategy + '</span></td>';
+    rows += '<td>&#8377;' + sig.entry.toLocaleString('en-IN', {maximumFractionDigits:2}) + '</td>';
+    rows += '<td class="up">&#8377;' + sig.target.toLocaleString('en-IN', {maximumFractionDigits:2}) + '</td>';
+    rows += '<td class="down">&#8377;' + sig.stopLoss.toLocaleString('en-IN', {maximumFractionDigits:2}) + '</td>';
+    rows += '<td style="font-weight:600;color:' + (sig.rr >= 2 ? 'var(--green)' : sig.rr >= 1.5 ? 'var(--amber)' : 'var(--red)') + '">' + sig.rr.toFixed(1) + ':1</td>';
+    rows += '<td>' + sig.volRatio.toFixed(1) + 'x</td>';
+    rows += '<td>' + strengthBar + '</td>';
+    rows += '<td style="font-size:11px;color:var(--muted)">' + sig.time + '</td>';
+    rows += '</tr>';
+  });
+  tbody.innerHTML = rows;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  WIRE DISCOVERY ENGINES INTO MAIN AI SCORE
+// ══════════════════════════════════════════════════════════════
+// Enhance existing aiScore with discovery engine bonus
+var _origAiScore = aiScore;
+aiScore = function(s) {
+  var result = _origAiScore(s);
+
+  // Discovery engine bonus points
+  var discoveryBonus = 0;
+
+  // Earnings surprise bonus
+  if (s.changePct > 5 && s.roce && s.roce > 12) {
+    discoveryBonus += 5;
+    result.factors.push('Discovery: Earnings surprise detected');
+  }
+
+  // Volume anomaly bonus
+  if (s.vol && s.avgVol && s.avgVol > 0 && s.vol / s.avgVol >= 3 && s.changePct > 0) {
+    discoveryBonus += 4;
+    result.factors.push('Discovery: Volume anomaly ' + (s.vol / s.avgVol).toFixed(1) + 'x');
+  }
+
+  // ROCE inflection bonus
+  if (s.roce && s.roce >= 15 && s.roce <= 25 && s.pe && s.pe < 35 && s.pe > 0) {
+    discoveryBonus += 3;
+    result.factors.push('Discovery: ROCE inflection zone');
+  }
+
+  // Cap migration bonus (small cap + strong fundamentals)
+  if ((s._cap === 'S' || (s.mcap && s.mcap < 10000)) && s.roce && s.roce > 18 && s.pe && s.pe < 30 && s.pe > 0) {
+    discoveryBonus += 4;
+    result.factors.push('Discovery: Cap migration candidate');
+  }
+
+  result.total = Math.min(100, result.total + discoveryBonus);
+  result.discoveryBonus = discoveryBonus;
+  return result;
+};
+
+// Update Fund Manager header card on portfolio refresh
+var _origRefreshPortfolio = typeof refreshPortfolio === 'function' ? refreshPortfolio : null;
+if (_origRefreshPortfolio) {
+  refreshPortfolio = function() {
+    _origRefreshPortfolio();
+    // Update fund manager card in header
+    try {
+      var mtdReturn = 0;
+      if (stocks.length > 0) {
+        var totalInv = 0, totalCur = 0;
+        stocks.forEach(function(s) {
+          if (s.buyPrice && s.cmp) { totalInv += s.buyPrice * (s.qty || 1); totalCur += s.cmp * (s.qty || 1); }
+        });
+        if (totalInv > 0) mtdReturn = (totalCur - totalInv) / totalInv * 100;
+      }
+      var el = document.getElementById('sFundMTD');
+      if (el) {
+        el.textContent = (mtdReturn >= 0 ? '+' : '') + mtdReturn.toFixed(1) + '%';
+        el.style.color = mtdReturn >= FM_TARGET_PCT ? 'var(--green)' : mtdReturn >= 0 ? 'var(--amber)' : 'var(--red)';
+      }
+    } catch(e) {}
+  };
+}
+
+console.log('[v13] AI Wealth Fund Manager + Discovery Engine + Trade Signals loaded');
 
 </script>
 </body>
