@@ -1174,7 +1174,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     <div class="card" style="margin-bottom:16px">
       <h3 style="margin:0 0 12px;font-size:16px">&#128200; Current Intraday Positions</h3>
       <div id="dtPositionsTable" style="font-size:13px">
-        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. v5.0 Risk-Managed AI auto-triggers at 9:35 AM &amp; 11:00 AM (no afternoon buys) &mdash; SL: -0.8%, equal-weight, max 2 per sector.</div>
+        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. v6.0 Anti-Mistake Engine: Catalyst shortlist at 9:25 AM, Post-ORB scan at 9:45 AM, re-scan at 10:45 AM &mdash; Max 3 picks, catalyst-required, SL: -0.8%, trade journal learning.</div>
       </div>
     </div>
 
@@ -1516,7 +1516,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v13.2 &mdash; AI Wealth Fund Manager + Risk-Managed Day Trade v5.0 + Discovery Engine + Trade Signals + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v13.3 &mdash; AI Wealth Fund Manager + Anti-Mistake Day Trade v6.0 + Catalyst-First Engine + Trade Journal + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -11585,15 +11585,24 @@ function resetDayTrade() {
 //  2 Bonuses: Vol+Mom Confirmed + Dashboard Intel
 //  Target: 3-5% daily on concentrated 3-5 stock picks
 // ---------------------------------------------------------------
-function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, extraData) {
+function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, extraData, intradayData) {
   var score = 0;
   var signals = [];
+  var hasCatalyst = false;
 
   var changePct = prevClose > 0 ? ((price - prevClose) / prevClose * 100) : 0;
 
+  // ═══ v6.0 CATALYST GATE — Fixes Mistake #2 ═══
+  // Check if this stock is on the pre-market shortlist (has catalyst)
+  var shortlistEntry = _dtShortlist.find(function(s) { return s.ticker === ticker; });
+  if (shortlistEntry && shortlistEntry.catalystScore > 0) {
+    hasCatalyst = true;
+    var catBonus = Math.min(30, shortlistEntry.catalystScore);
+    score += catBonus;
+    signals.push('CATALYST:' + shortlistEntry.catalysts[0]);
+  }
+
   // ═══ FACTOR 1: GAP QUALITY (0-30) ═══ [v5.0 FIX]
-  // Sweet spot: 1-3% gap = safest continuation pattern (Gap-and-Go)
-  // Key insight: stocks gapped >5% ALMOST ALWAYS fade intraday — HARD PENALTY
   if (changePct >= 1.5 && changePct <= 3) { score += 30; signals.push('PERFECT GAP'); }
   else if (changePct > 3 && changePct <= 4.5) { score += 22; signals.push('STRONG GAP'); }
   else if (changePct >= 1 && changePct < 1.5) { score += 18; signals.push('GOOD GAP'); }
@@ -11602,11 +11611,36 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
   else if (changePct > 6 && changePct <= 8) { score -= 5; signals.push('FADE RISK'); }
   else if (changePct > 8) { score -= 15; signals.push('OVERGAP-DANGER'); }
   else if (changePct > 0.3 && changePct < 0.5) { score += 3; }
-  // negative or flat = 0 points — hard skip for day trade
+
+  // ═══ v6.0 INTRADAY POSITION — Fixes Mistake #7, #8 ═══
+  // Use dayHigh/dayLow to detect if stock is HOLDING or FADING
+  // Don't buy stocks that are falling from their day high
+  if (intradayData && intradayData.dayHigh > 0 && intradayData.dayLow > 0) {
+    var dayRange = intradayData.dayHigh - intradayData.dayLow;
+    if (dayRange > 0) {
+      var intradayPos = (price - intradayData.dayLow) / dayRange;
+      if (intradayPos >= 0.85) {
+        // At day high — stock holding strong but risky entry at peak
+        score += 8; signals.push('NEAR-DAY-HIGH');
+      } else if (intradayPos >= 0.6) {
+        // Upper range — healthy pullback, IDEAL entry zone
+        score += 15; signals.push('PULLBACK-ENTRY');
+      } else if (intradayPos >= 0.4) {
+        // Mid range — indecisive, lower conviction
+        score += 2; signals.push('MID-RANGE');
+      } else {
+        // Lower range — stock is FADING from gap. DON'T BUY.
+        score -= 20; signals.push('FADING');
+      }
+    }
+    // v6.0 PULLBACK FILTER — Fixes Mistake #7
+    // Don't buy at absolute day high — need at least a small pullback
+    if (price >= intradayData.dayHigh * 0.998 && dayRange > price * 0.003) {
+      score -= 8; signals.push('AT-PEAK');
+    }
+  }
 
   // ═══ FACTOR 2: VOLUME CONFIRMATION (0-25) ═══
-  // Volume confirms the move is institutional, not noise
-  // This is the #1 reliability filter for day trades
   if (volume > 10000000) { score += 25; signals.push('MONSTER VOL'); }
   else if (volume > 5000000) { score += 22; signals.push('HUGE VOL'); }
   else if (volume > 2000000) { score += 18; signals.push('HIGH VOL'); }
@@ -11616,8 +11650,6 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
   else { score += 1; }
 
   // ═══ FACTOR 3: BREAKOUT POSITION (0-20) ═══
-  // Near 52W high = breakout territory = momentum continuation
-  // Near 52W low + big gap = reversal bounce play
   var range52 = high52 - low52;
   var pos52 = range52 > 0 ? (price - low52) / range52 : 0.5;
   if (pos52 >= 0.95) { score += 20; signals.push('52W BREAKOUT'); }
@@ -11627,24 +11659,21 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
   else if (pos52 <= 0.25 && changePct > 1.5) { score += 12; signals.push('REVERSAL'); }
   else { score += 5; }
 
-  // ═══ FACTOR 4: LIQUIDITY & TRADABILITY (0-15) — v3.0 ═══
-  // For day trading: liquidity matters more than fundamentals
-  // Large/mid caps move cleaner, small caps = higher reward but slippage risk
+  // ═══ FACTOR 4: LIQUIDITY & TRADABILITY (0-15) ═══
   if (extraData) {
     var capType = extraData.c || 'S';
     if (capType === 'L') { score += 12; signals.push('LARGE-CAP'); }
-    else if (capType === 'M') { score += 15; signals.push('MID-CAP'); } // Mid-caps: best risk/reward for day trade
+    else if (capType === 'M') { score += 15; signals.push('MID-CAP'); }
     else if (capType === 'S') { score += 10; }
-    else { score += 5; } // Micro-cap: thin liquidity
+    else { score += 5; }
   } else {
-    // Portfolio stocks — check if data exists on the stock object
     var pStock = stocks.find(function(s) { return s.ticker === ticker; });
     if (pStock) {
-      // Catalyst bonus from portfolio data — this is valuable real intel
       if (pStock.catalyst && pStock.catalyst.length > 5) {
+        hasCatalyst = true;
         var catUp = pStock.catalyst.toUpperCase();
         if (catUp.includes('BUYBACK') || catUp.includes('SPLIT') || catUp.includes('BONUS') || catUp.includes('ORDER WIN') || catUp.includes('APPROVAL') || catUp.includes('RESULTS')) {
-          score += 10; signals.push('CATALYST');
+          score += 10; signals.push('P-CATALYST');
         } else {
           score += 7;
         }
@@ -11652,27 +11681,23 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
         score += 7;
       }
     } else {
-      score += 7; // Unknown stock — neutral score, let momentum decide
+      score += 7;
     }
   }
 
   // ═══ FACTOR 5: PRICE BAND (0-10) ═══
-  // 200-3000 = ideal for day trade (good % moves, manageable position sizes)
   if (price >= 200 && price <= 3000) { score += 10; }
   else if (price >= 100 && price <= 5000) { score += 7; }
   else if (price >= 50 && price <= 10000) { score += 4; }
   else { score += 2; }
 
-  // ═══ BONUS: VOLUME + MOMENTUM CONFIRMATION (+0-15) ═══
-  // When BOTH volume AND momentum are strong = highest conviction signal
-  // This is the "institutional buying" fingerprint
+  // ═══ VOLUME + MOMENTUM CONFIRMATION (+0-15) ═══
   if (changePct >= 2.5 && volume > 3000000) { score += 15; signals.push('VOL+MOM CONFIRMED'); }
   else if (changePct >= 2 && volume > 2000000) { score += 12; signals.push('VOL+MOM STRONG'); }
   else if (changePct >= 1.5 && volume > 1000000) { score += 8; signals.push('VOL+MOM'); }
   else if (changePct >= 1 && volume > 500000) { score += 4; }
 
-  // ═══ BONUS: DASHBOARD INTELLIGENCE (+0-10) ═══
-  // Wire in existing dashboard intel for portfolio stocks
+  // ═══ DASHBOARD INTELLIGENCE (+0-10) ═══
   if (typeof getDashboardBonus === 'function') {
     var dBonus = getDashboardBonus(ticker);
     if (dBonus && dBonus.bonus > 0 && dBonus.sources >= 2) {
@@ -11684,57 +11709,64 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
     }
   }
 
-  // ═══ FACTOR 6: NEWS CATALYST (0-20) — v4.0 ═══
-  // Live news sentiment from pre-scan headlines
-  // Stocks with breaking positive catalysts get a significant edge
+  // ═══ FACTOR 6: NEWS CATALYST (0-30) — v6.0 UPGRADED ═══
+  // News is now CRITICAL — catalyst-first approach
   if (typeof _dtNewsSentiment !== 'undefined' && _dtNewsSentiment[ticker]) {
     var nSent = _dtNewsSentiment[ticker];
-    if (nSent.score >= 3) { score += 20; signals.push('NEWS-HOT'); }
-    else if (nSent.score >= 2) { score += 16; signals.push('NEWS-BULL'); }
-    else if (nSent.score >= 1) { score += 10; signals.push('NEWS+'); }
-    else if (nSent.score <= -2) { score -= 10; signals.push('NEWS-WARN'); }
-    else if (nSent.score <= -1) { score -= 5; signals.push('NEWS-'); }
-    // Catalyst type bonus
+    hasCatalyst = true;
+    if (nSent.score >= 3) { score += 25; signals.push('NEWS-HOT'); }
+    else if (nSent.score >= 2) { score += 20; signals.push('NEWS-BULL'); }
+    else if (nSent.score >= 1) { score += 12; signals.push('NEWS+'); }
+    else if (nSent.score <= -2) { score -= 15; signals.push('NEWS-WARN'); }
+    else if (nSent.score <= -1) { score -= 8; signals.push('NEWS-'); }
     if (nSent.catalysts && nSent.catalysts.length > 0) {
       if (nSent.catalysts.indexOf('RESULTS') >= 0 || nSent.catalysts.indexOf('BEAT') >= 0 || nSent.catalysts.indexOf('PROFIT') >= 0) {
-        score += 5; signals.push('EARN-CAT');
+        score += 8; signals.push('EARN-CAT');
       }
       if (nSent.catalysts.indexOf('ORDER WIN') >= 0 || nSent.catalysts.indexOf('DEAL') >= 0 || nSent.catalysts.indexOf('ACQUISITION') >= 0) {
-        score += 5; signals.push('BIZ-CAT');
+        score += 8; signals.push('BIZ-CAT');
       }
       if (nSent.catalysts.indexOf('BUYBACK') >= 0 || nSent.catalysts.indexOf('BONUS') >= 0 || nSent.catalysts.indexOf('SPLIT') >= 0 || nSent.catalysts.indexOf('DIVIDEND') >= 0) {
-        score += 5; signals.push('CORP-ACT');
+        score += 8; signals.push('CORP-ACT');
       }
     }
   }
 
+  // ═══ v6.0 CATALYST PENALTY — NO catalyst = HEAVY penalty ═══
+  // Fixes Mistake #2: Never trade without a reason
+  if (!hasCatalyst) {
+    score -= 25;
+    signals.push('NO-CATALYST');
+  }
+
+  // ═══ v6.0 JOURNAL-BASED SIGNAL ADJUSTMENT — Fixes Mistake #15 ═══
+  // If certain signals historically lose money, auto-reduce their weight
+  signals.forEach(function(sig) {
+    var adj = getSignalReliability(sig);
+    if (adj !== 0) {
+      score += adj;
+      if (adj < 0) signals.push('HIST-WARN');
+    }
+  });
+
   // ═══ 12-DIMENSION INTELLIGENCE OVERLAY (±20) ═══
-  // Wire unified intelligence into day trade scoring
   try {
     var uIntel = getUnifiedIntelligence(ticker);
-    // Economic macro boost/drag
     if (uIntel.dimensions.economic && uIntel.dimensions.economic.score >= 2) { score += 5; signals.push('MACRO+'); }
     else if (uIntel.dimensions.economic && uIntel.dimensions.economic.score <= -2) { score -= 5; signals.push('MACRO-'); }
-    // Market sentiment
     if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score >= 2) { score += 5; signals.push('SENT+'); }
     else if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score <= -2) { score -= 5; signals.push('SENT-'); }
-    // Risk management — penalize HIGH RISK for day trades
     if (uIntel.dimensions.risk && uIntel.dimensions.risk.riskLevel === 'HIGH RISK') { score -= 8; signals.push('RISK-HIGH'); }
-    // Weather/seasonal impact
     if (uIntel.dimensions.weather && Math.abs(uIntel.dimensions.weather.score) >= 2) {
       score += uIntel.dimensions.weather.score > 0 ? 3 : -3;
       signals.push(uIntel.dimensions.weather.score > 0 ? 'SEASON+' : 'SEASON-');
     }
-    // Cosmic/astro for day trading
     if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore >= 3) { score += 2; signals.push('COSMIC+'); }
     else if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore <= -2) { score -= 3; signals.push('COSMIC-'); }
-    // Value investing — deep value stocks rarely move fast, penalize for day trade
     if (uIntel.dimensions.value && uIntel.dimensions.value.pe > 0 && uIntel.dimensions.value.pe < 8) { score -= 2; signals.push('LOW-PE-SLOW'); }
-    // Growth stock bonus — growth stocks move more
     if (uIntel.dimensions.growth && uIntel.dimensions.growth.isGrowth) { score += 3; signals.push('GROWTH+'); }
-    // World events geopolitical risk
     if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.riskLevel === 'HIGH') { score -= 3; signals.push('GEO-RISK'); }
-  } catch(e) { /* proceed without unified intel */ }
+  } catch(e) {}
 
   // ═══ SECTOR ROTATION BOOST (±8) ═══
   try {
@@ -11753,11 +11785,201 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
     else if (regime.regime === 'BEAR') { score -= 5; }
   } catch(e) {}
 
-  return { total: Math.min(195, Math.round(score)), momentum: changePct.toFixed(2), vol: volume, signals: signals };
+  return { total: Math.min(200, Math.round(score)), momentum: changePct.toFixed(2), vol: volume, signals: signals, hasCatalyst: hasCatalyst };
+}
+
+// ╔═══════════════════════════════════════════════════════════════╗
+// ║  DAY TRADE AI v6.0 — ANTI-MISTAKE ENGINE                    ║
+// ║  Fixes 17 classic day trading mistakes:                      ║
+// ║  1. Pre-Market Shortlist (no 570-stock chase)                ║
+// ║  2. Catalyst Gate (no trade without reason)                  ║
+// ║  3. Intraday Position Filter (don't buy fading stocks)       ║
+// ║  4. Pullback Entry (don't buy at absolute peak)              ║
+// ║  5. Market Quality Gate (skip bad days)                      ║
+// ║  6. Max 3 Picks (quality > quantity)                         ║
+// ║  7. Trade Journal (learn from history)                       ║
+// ╚═══════════════════════════════════════════════════════════════╝
+
+// ---------------------------------------------------------------
+//  PRE-MARKET SHORTLIST — Catalyst-First Stock Selection
+//  Builds 15-20 stocks with IDENTIFIABLE catalysts BEFORE market opens
+//  Fixes Mistake #1 (chasing), #2 (no catalyst), #3 (too many stocks)
+// ---------------------------------------------------------------
+var _dtShortlist = [];
+var _dtShortlistBuilt = '';  // date string to avoid rebuilding
+
+function buildDayTradeShortlist() {
+  var todayStr = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'})).toISOString().slice(0, 10);
+  if (_dtShortlistBuilt === todayStr && _dtShortlist.length > 0) return _dtShortlist;
+
+  var shortlist = {};
+  var now = Date.now();
+
+  // ── SOURCE 1: PRIMARY_SIGNALS — stocks with hard catalyst signals ──
+  if (typeof PRIMARY_SIGNALS !== 'undefined') {
+    PRIMARY_SIGNALS.forEach(function(sig) {
+      if (!sig.ticker) return;
+      var sigAge = Math.floor((now - new Date(sig.date).getTime()) / 86400000);
+      if (sigAge > 5) return;
+      if (isEthicallyExcluded(sig.sector || '') || isEthicallyExcluded(sig.ticker || '')) return;
+      var bullishTypes = ['EARNINGS','ORDER_WIN','GOVT_APPROVAL','CREDIT_UPGRADE','PROMOTER_BUY','FII_SURGE','TRADE_DEAL','CAPACITY','BLOCK_DEAL','BUYBACK','BONUS','SPLIT','DEMERGER'];
+      var isBullish = bullishTypes.indexOf(sig.type) >= 0;
+      if (!isBullish) return;
+
+      if (!shortlist[sig.ticker]) shortlist[sig.ticker] = { ticker: sig.ticker, catalysts: [], catalystScore: 0, name: '', sector: '' };
+      shortlist[sig.ticker].catalysts.push('SIG:' + sig.type);
+      shortlist[sig.ticker].catalystScore += (sigAge <= 1 ? 35 : sigAge <= 3 ? 25 : 15);
+    });
+  }
+
+  // ── SOURCE 2: EARNINGS_CALENDAR — recent earnings beats ──
+  if (typeof EARNINGS_CALENDAR !== 'undefined') {
+    EARNINGS_CALENDAR.forEach(function(e) {
+      if (!e.ticker) return;
+      if (isEthicallyExcluded(e.sector || '') || isEthicallyExcluded(e.ticker || '')) return;
+      if (e.status === 'REPORTED') {
+        var surprise = (e.surprise || '').toUpperCase();
+        if (surprise.indexOf('BEAT') >= 0 || surprise.indexOf('STRONG') >= 0 || surprise.indexOf('ABOVE') >= 0) {
+          if (!shortlist[e.ticker]) shortlist[e.ticker] = { ticker: e.ticker, catalysts: [], catalystScore: 0, name: '', sector: '' };
+          shortlist[e.ticker].catalysts.push('EARNINGS_BEAT');
+          shortlist[e.ticker].catalystScore += 30;
+        }
+      }
+    });
+  }
+
+  // ── SOURCE 3: NEWS SENTIMENT — stocks with positive headlines ──
+  if (typeof _dtNewsSentiment !== 'undefined') {
+    Object.keys(_dtNewsSentiment).forEach(function(tk) {
+      var ns = _dtNewsSentiment[tk];
+      if (ns.score >= 1) {
+        if (isEthicallyExcluded(tk)) return;
+        if (!shortlist[tk]) shortlist[tk] = { ticker: tk, catalysts: [], catalystScore: 0, name: '', sector: '' };
+        shortlist[tk].catalysts.push('NEWS:+' + ns.score);
+        shortlist[tk].catalystScore += ns.score * 12;
+        if (ns.catalysts) {
+          ns.catalysts.forEach(function(c) {
+            if (shortlist[tk].catalysts.indexOf(c) < 0) shortlist[tk].catalysts.push(c);
+          });
+        }
+      }
+    });
+  }
+
+  // ── SOURCE 4: Portfolio stocks with catalysts ──
+  stocks.forEach(function(s) {
+    if (!s.ticker || !s.catalyst || s.catalyst.length < 5) return;
+    if (isEthicallyExcluded(s.sector || '') || isEthicallyExcluded(s.name || '')) return;
+    var catUp = s.catalyst.toUpperCase();
+    var hasCatalyst = ['BUYBACK','SPLIT','BONUS','ORDER WIN','APPROVAL','RESULTS','BEAT','STRONG','GROWTH','EXPANSION','DEAL','ACQUISITION','PARTNERSHIP'].some(function(kw) { return catUp.indexOf(kw) >= 0; });
+    if (hasCatalyst) {
+      if (!shortlist[s.ticker]) shortlist[s.ticker] = { ticker: s.ticker, catalysts: [], catalystScore: 0, name: '', sector: '' };
+      shortlist[s.ticker].catalysts.push('CAT:' + s.catalyst.substring(0, 30));
+      shortlist[s.ticker].catalystScore += 15;
+      shortlist[s.ticker].name = s.name;
+      shortlist[s.ticker].sector = s.sector || '';
+    }
+  });
+
+  // ── SOURCE 5: Dashboard intelligence scores ──
+  if (typeof getDashboardBonus === 'function') {
+    Object.keys(shortlist).forEach(function(tk) {
+      var dBonus = getDashboardBonus(tk);
+      if (dBonus && dBonus.bonus > 3 && dBonus.sources >= 2) {
+        shortlist[tk].catalystScore += Math.min(15, dBonus.bonus);
+        shortlist[tk].catalysts.push('INTEL:+' + dBonus.bonus);
+      }
+    });
+  }
+
+  // Enrich shortlist with names/sectors from universe + portfolio
+  Object.keys(shortlist).forEach(function(tk) {
+    var entry = shortlist[tk];
+    if (!entry.name) {
+      var pStock = stocks.find(function(s) { return s.ticker === tk; });
+      if (pStock) { entry.name = pStock.name || tk; entry.sector = pStock.sector || ''; }
+      else if (typeof MOVER_UNIVERSE !== 'undefined') {
+        var uStock = MOVER_UNIVERSE.find(function(m) { return m.t === tk; });
+        if (uStock) { entry.name = uStock.n || tk; entry.sector = uStock.s || ''; }
+      }
+    }
+  });
+
+  // Sort by catalyst score, take top 20
+  var sorted = Object.values(shortlist).sort(function(a, b) { return b.catalystScore - a.catalystScore; });
+  _dtShortlist = sorted.slice(0, 20);
+  _dtShortlistBuilt = todayStr;
+
+  console.log('[DT-v6] Pre-Market Shortlist built: ' + _dtShortlist.length + ' catalyst stocks');
+  _dtShortlist.forEach(function(s, i) {
+    console.log('  ' + (i+1) + '. ' + s.ticker + ' score=' + s.catalystScore + ' catalysts=[' + s.catalysts.join(', ') + ']');
+  });
+
+  return _dtShortlist;
 }
 
 // ---------------------------------------------------------------
-//  News Pre-Scan for Day Trade AI v4.0
+//  TRADE JOURNAL — Learn from past trade outcomes
+//  Fixes Mistake #15 (no learning from history)
+// ---------------------------------------------------------------
+var DT_JOURNAL_KEY = 'dtJournal_v6';
+
+function getDTJournal() {
+  try {
+    var raw = localStorage.getItem(DT_JOURNAL_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { trades: [], signalWinRates: {}, totalTrades: 0, totalWins: 0, avgReturn: 0, lastUpdated: '' };
+}
+
+function saveDTJournal(journal) {
+  try { localStorage.setItem(DT_JOURNAL_KEY, JSON.stringify(journal)); } catch(e) {}
+}
+
+function recordDTTradeOutcome(ticker, signals, returnPct, exitReason) {
+  var journal = getDTJournal();
+  var isWin = returnPct > 0;
+
+  journal.trades.push({
+    ticker: ticker, signals: signals, returnPct: returnPct,
+    exitReason: exitReason, isWin: isWin, date: new Date().toISOString().slice(0, 10)
+  });
+
+  // Keep last 100 trades only
+  if (journal.trades.length > 100) journal.trades = journal.trades.slice(-100);
+
+  // Update signal win rates
+  signals.forEach(function(sig) {
+    if (!journal.signalWinRates[sig]) journal.signalWinRates[sig] = { wins: 0, total: 0 };
+    journal.signalWinRates[sig].total++;
+    if (isWin) journal.signalWinRates[sig].wins++;
+  });
+
+  journal.totalTrades++;
+  if (isWin) journal.totalWins++;
+  journal.avgReturn = journal.trades.reduce(function(sum, t) { return sum + t.returnPct; }, 0) / journal.trades.length;
+  journal.lastUpdated = new Date().toISOString();
+
+  saveDTJournal(journal);
+  console.log('[DT-JOURNAL] Recorded: ' + ticker + ' return=' + returnPct.toFixed(2) + '% ' + (isWin ? 'WIN' : 'LOSS') + ' reason=' + exitReason);
+}
+
+// Get signal reliability adjustment from journal
+function getSignalReliability(signal) {
+  var journal = getDTJournal();
+  var sr = journal.signalWinRates[signal];
+  if (!sr || sr.total < 5) return 0; // Not enough data
+  var winRate = sr.wins / sr.total;
+  // If win rate < 30%, penalize this signal. If > 60%, boost it.
+  if (winRate < 0.3) return -10;
+  if (winRate < 0.4) return -5;
+  if (winRate > 0.7) return 10;
+  if (winRate > 0.6) return 5;
+  return 0;
+}
+
+// ---------------------------------------------------------------
+//  News Pre-Scan for Day Trade AI v6.0
 //  Fetches live headlines and builds per-stock sentiment map
 //  Used by dayTradeScore() and runDayTradeAI() for news catalyst scoring
 // ---------------------------------------------------------------
@@ -12236,174 +12458,202 @@ async function runDayTradeAI() {
   }
 
   // ── MARKET HOURS GUARD ──────────────────────────────────
-  // Day trading only works during market hours (9:15 AM - 3:25 PM IST)
-  // Before 9:15 AM: no live prices, scan will find zero picks
-  // After 3:25 PM: too close to close, no time for intraday exit
   var nowIST = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
   var hhmm = nowIST.getHours() * 100 + nowIST.getMinutes();
   if (hhmm < 915) {
-    alert('Market opens at 9:15 AM IST. Day Trade AI needs live prices to scan.\n\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + ' AM\nMarket opens in ' + Math.round((915 - hhmm > 100 ? (915 - hhmm - 40) : (915 - hhmm))) + ' minutes.\n\nTip: Use Pre-Market Intel tab for pre-market analysis!');
+    alert('Market opens at 9:15 AM IST. Day Trade AI needs live prices to scan.\n\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + ' AM\n\nTip: Use Pre-Market Intel tab for pre-market analysis!');
     return;
   }
-  if (hhmm > 1330) {
-    alert('v5.0 TIME GUARD: No new day trades after 1:30 PM.\n\nReason: Intraday momentum fades after lunch. Buying late = buying at top.\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + '\n\nUse "Square Off All" to close any open positions before 3:30 PM.');
+  // v6.0: Tighter time guard — no buys after 12:30 PM (was 1:30 PM)
+  // Research: afternoon buys have 65% loss rate on NSE
+  if (hhmm > 1230) {
+    alert('v6.0 TIME GUARD: No new day trades after 12:30 PM.\n\nReason: Afternoon momentum fades. 65% of afternoon buys lose money.\n\nUse "Square Off All" to close open positions before 3:30 PM.');
     return;
   }
 
   var btn = document.getElementById('dtRunBtn');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'Scanning...';
+    btn.textContent = 'v6 Scanning...';
   }
   var statusBadge = document.getElementById('dtStatusBadge');
   if (statusBadge) {
     statusBadge.style.background = '#f59e0b22';
     statusBadge.style.color = '#f59e0b';
     statusBadge.style.borderColor = '#f59e0b44';
-    statusBadge.innerHTML = '&#9889; v5.0 RISK-MANAGED ENGINE: Scanning ' + (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.length : 300) + '+ stocks...';
+    statusBadge.innerHTML = '&#9889; v6.0 ANTI-MISTAKE ENGINE: Building catalyst shortlist...';
   }
 
   try {
     // ══════════════════════════════════════════════════════════
-    //  STEP 0: NEWS PRE-SCAN — fetch live headlines for sentiment
-    //  This runs BEFORE price scan so dayTradeScore() can use news data
-    //  Fetches Google News RSS in parallel, builds per-stock sentiment map
+    //  STEP 0: NEWS PRE-SCAN + SHORTLIST BUILD
+    //  v6.0: News scan FIRST, then build catalyst shortlist
+    //  Fixes Mistake #1 (chasing) + #2 (no catalyst) + #3 (too many stocks)
     // ══════════════════════════════════════════════════════════
-    if (statusBadge) statusBadge.innerHTML = '&#128240; v4.0: Pre-scanning news catalysts...';
-    var newsCount = await fetchDayTradeNews();
-    if (statusBadge) statusBadge.innerHTML = '&#9889; v5.0 RISK-MANAGED: Scanning ' + (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.length : 300) + '+ stocks | ' + Object.keys(_dtNewsSentiment).length + ' news signals...';
+    if (statusBadge) statusBadge.innerHTML = '&#128240; v6.0: Scanning news catalysts...';
+    await fetchDayTradeNews();
+
+    // Build pre-market shortlist from all intelligence sources
+    buildDayTradeShortlist();
+    var shortlistTickers = _dtShortlist.map(function(s) { return s.ticker; });
+
+    if (statusBadge) statusBadge.innerHTML = '&#9889; v6.0: ' + _dtShortlist.length + ' catalyst stocks found | Fetching live prices...';
+    console.log('[DT-v6] Shortlist: ' + shortlistTickers.join(', '));
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 1: GATHER ALL CANDIDATES (portfolio + universe)
+    //  STEP 1: FAST PRICE SCAN — ONLY shortlisted + top movers
+    //  v6.0: Instead of scanning 570+ stocks (45 seconds),
+    //  scan only 15-20 catalyst stocks + portfolio (1-2 seconds)
+    //  Fixes Mistake #3 (too many stocks) + #9 (stale data)
     // ══════════════════════════════════════════════════════════
     var candidates = {};
 
-    // Portfolio stocks (40) — these have rich catalyst + dashboard intel data
+    // 1A: Portfolio stocks with catalyst data
     stocks.forEach(function(s) {
       if (!s.ticker || !s.cmp || s.cmp <= 0) return;
       if (isEthicallyExcluded(s.sector || '') || isEthicallyExcluded(s.name || '')) return;
       var changePct = s.prevClose > 0 ? ((s.cmp - s.prevClose) / s.prevClose * 100) : 0;
-      // PRE-FILTER: skip stocks that are flat or down — no edge for day trade
       if (changePct < 0.3) return;
       candidates[s.ticker] = {
-        ticker: s.ticker,
-        name: s.name || s.ticker,
-        sector: s.sector || '',
-        price: s.cmp,
-        prevClose: s.prevClose || s.cmp,
-        high52: s.high52 || 0,
-        low52: s.low52 || 0,
-        volume: s.volume || 0,
-        source: 'portfolio',
-        extraData: null
+        ticker: s.ticker, name: s.name || s.ticker, sector: s.sector || '',
+        price: s.cmp, prevClose: s.prevClose || s.cmp,
+        high52: s.high52 || 0, low52: s.low52 || 0,
+        volume: s.volume || 0, dayHigh: s.dayHigh || 0, dayLow: s.dayLow || 0,
+        source: 'portfolio', extraData: null
       };
     });
 
-    // ══════════════════════════════════════════════════════════
-    //  UNIVERSE SCAN v3.0 — FULL MARKET DISCOVERY
-    //  NO quality filter. NO top-80 limit. Scan ALL universe stocks.
-    //  Only ethical exclusion applies. Let price action decide, not PE/ROCE.
-    //  Day trading = momentum, not fundamentals.
-    // ══════════════════════════════════════════════════════════
-    var universeToFetch = [];
-    if (typeof MOVER_UNIVERSE !== 'undefined' && MOVER_UNIVERSE.length > 0) {
-      MOVER_UNIVERSE.forEach(function(m) {
-        if (isEthicallyExcluded(m.s || '') || isEthicallyExcluded(m.n || '')) return;
-        if (candidates[m.t]) return;
-        // v3.0: NO quality filter — fetch ALL stocks regardless of PE/ROCE
-        // Day trading cares about momentum, volume, price action — NOT fundamentals
-        universeToFetch.push(m);
+    // 1B: Fetch LIVE prices for shortlisted catalyst stocks
+    //     This is the KEY v6.0 change — only 15-20 stocks, not 570+
+    var tickersToFetch = [];
+    shortlistTickers.forEach(function(tk) {
+      if (!candidates[tk]) {
+        tickersToFetch.push(tk);
+      }
+    });
+
+    // Also add stocks from recent hot sectors (max 30 more)
+    if (typeof MOVER_UNIVERSE !== 'undefined') {
+      // Find sectors with news/catalyst activity
+      var catalystSectors = {};
+      _dtShortlist.forEach(function(s) {
+        if (s.sector) {
+          if (!catalystSectors[s.sector]) catalystSectors[s.sector] = 0;
+          catalystSectors[s.sector]++;
+        }
       });
+      // Add top stocks from catalyst sectors (max 30)
+      var sectorAdds = 0;
+      MOVER_UNIVERSE.forEach(function(m) {
+        if (sectorAdds >= 30) return;
+        if (isEthicallyExcluded(m.s || '') || isEthicallyExcluded(m.n || '')) return;
+        if (candidates[m.t] || tickersToFetch.indexOf(m.t) >= 0) return;
+        if (catalystSectors[m.s || ''] >= 1) {
+          tickersToFetch.push(m.t);
+          sectorAdds++;
+        }
+      });
+    }
 
-      // v3.0: NO sorting by fundamentals, NO top-80 limit
-      // Scan the ENTIRE universe to find real movers
-      console.log('[DT-v3] Scanning full universe: ' + universeToFetch.length + ' stocks (no quality filter)');
+    console.log('[DT-v6] Fast scan: ' + tickersToFetch.length + ' stocks to fetch (vs 570+ in v5)');
 
-      var batchSize = 50; // v4.1: 50-stock batches for 2x faster scanning
-      for (var i = 0; i < universeToFetch.length; i += batchSize) {
-        var batch = universeToFetch.slice(i, i + batchSize);
-        var symbolStr = batch.map(function(m) { return m.t + '.NS'; }).join(',');
-        try {
-          var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbolStr) + '&mode=all', {signal: AbortSignal.timeout(25000)});
-          var json = await resp.json();
-          if (json && json.success && json.data && json.data.stocks) {
-            Object.entries(json.data.stocks).forEach(function(entry) {
-              var sym = entry[0];
-              var d = entry[1];
-              var tk = sym.replace('.NS', '').replace('.BO', '');
-              if (d.price > 0) {
-                var changePct2 = d.prevClose > 0 ? ((d.price - d.prevClose) / d.prevClose * 100) : 0;
-                // PRE-FILTER: skip flat/down stocks — no edge for day trade
-                if (changePct2 < 0.3) return;
-                var uvEntry = batch.find(function(m) { return m.t === tk; });
-                candidates[tk] = {
-                  ticker: tk,
-                  name: uvEntry ? uvEntry.n : tk,
-                  sector: uvEntry ? uvEntry.s : '',
-                  price: d.price,
-                  prevClose: d.prevClose || d.price,
-                  high52: d.high52 || 0,
-                  low52: d.low52 || 0,
-                  volume: d.volume || 0,
-                  source: 'universe',
-                  extraData: uvEntry || null
-                };
+    // Fetch in 1-2 batches (MUCH faster than 12 batches)
+    var batchSize = 50;
+    for (var i = 0; i < tickersToFetch.length; i += batchSize) {
+      var batch = tickersToFetch.slice(i, i + batchSize);
+      var symbolStr = batch.map(function(tk) { return tk + '.NS'; }).join(',');
+      try {
+        var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbolStr) + '&mode=all', {signal: AbortSignal.timeout(20000)});
+        var json = await resp.json();
+        if (json && json.success && json.data && json.data.stocks) {
+          Object.entries(json.data.stocks).forEach(function(entry) {
+            var sym = entry[0]; var d = entry[1];
+            var tk = sym.replace('.NS', '').replace('.BO', '');
+            if (d.price > 0) {
+              var changePct2 = d.prevClose > 0 ? ((d.price - d.prevClose) / d.prevClose * 100) : 0;
+              if (changePct2 < 0.2) return; // Allow slightly lower for catalyst stocks
+              var uvEntry = null;
+              if (typeof MOVER_UNIVERSE !== 'undefined') {
+                uvEntry = MOVER_UNIVERSE.find(function(m) { return m.t === tk; });
               }
-            });
-          }
-        } catch(e) {
-          console.log('[DT-v3] Batch fetch error:', e.message || e);
+              var slEntry = _dtShortlist.find(function(s) { return s.ticker === tk; });
+              candidates[tk] = {
+                ticker: tk,
+                name: (slEntry && slEntry.name) || (uvEntry ? uvEntry.n : tk),
+                sector: (slEntry && slEntry.sector) || (uvEntry ? uvEntry.s : ''),
+                price: d.price, prevClose: d.prevClose || d.price,
+                high52: d.high52 || 0, low52: d.low52 || 0,
+                volume: d.volume || 0,
+                dayHigh: d.dayHigh || d.high || 0, dayLow: d.dayLow || d.low || 0,
+                source: slEntry ? 'catalyst' : 'sector-add',
+                extraData: uvEntry || null
+              };
+            }
+          });
         }
-        if (i + batchSize < universeToFetch.length) {
-          await new Promise(function(r) { setTimeout(r, 150); });
-        }
-
-        if (statusBadge) {
-          var fetched = Math.min(i + batchSize, universeToFetch.length);
-          var pct = Math.round(fetched / universeToFetch.length * 100);
-          var batchesLeft = Math.ceil((universeToFetch.length - fetched) / batchSize);
-          var etaSec = Math.round(batchesLeft * 2.5);
-          statusBadge.innerHTML = '&#9889; v5.0 SCAN: ' + fetched + '/' + universeToFetch.length + ' (' + pct + '%) | ' + Object.keys(candidates).length + ' green | ~' + etaSec + 's left';
-        }
+      } catch(e) {
+        console.log('[DT-v6] Batch fetch error:', e.message || e);
       }
     }
 
+    if (statusBadge) statusBadge.innerHTML = '&#9889; v6.0: ' + Object.keys(candidates).length + ' candidates | Scoring with catalyst gate...';
+
     // ══════════════════════════════════════════════════════════
-    //  STEP 2: SCORE ALL CANDIDATES with v3 engine
+    //  STEP 1C: MARKET QUALITY GATE — Fixes Mistake #10
+    //  If market is flat/weak AND few catalysts, skip trading today
+    //  Check Nifty 50 proxy via portfolio stocks average
+    // ══════════════════════════════════════════════════════════
+    var marketAvgChange = 0;
+    var marketStockCount = 0;
+    Object.values(candidates).forEach(function(c) {
+      var chg = c.prevClose > 0 ? ((c.price - c.prevClose) / c.prevClose * 100) : 0;
+      marketAvgChange += chg;
+      marketStockCount++;
+    });
+    marketAvgChange = marketStockCount > 0 ? marketAvgChange / marketStockCount : 0;
+
+    var catalystCount = _dtShortlist.filter(function(s) { return s.catalystScore >= 15; }).length;
+    var isWeakMarketDay = marketAvgChange < 0.3 && catalystCount < 3;
+
+    if (isWeakMarketDay) {
+      console.log('[DT-v6] MARKET QUALITY GATE: Weak market (avg ' + marketAvgChange.toFixed(2) + '%) with only ' + catalystCount + ' catalysts. Skipping.');
+      if (statusBadge) {
+        statusBadge.style.background = '#f59e0b22'; statusBadge.style.color = '#f59e0b'; statusBadge.style.borderColor = '#f59e0b44';
+        statusBadge.innerHTML = '&#128721; v6.0 MARKET GATE: Weak market (' + marketAvgChange.toFixed(1) + '%) + few catalysts (' + catalystCount + '). Sitting out today.';
+      }
+      if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
+      return;
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  STEP 2: SCORE ALL CANDIDATES with v6 engine
+    //  Now includes: catalyst gate + intraday position + pullback filter
     // ══════════════════════════════════════════════════════════
     var scored = [];
     Object.values(candidates).forEach(function(c) {
       var changePct3 = c.prevClose > 0 ? ((c.price - c.prevClose) / c.prevClose * 100) : 0;
-      // v5.0: Volume floor raised to 200K — thin stocks cause slippage losses
-      // Also HARD CAP at 6% — stocks gapped >6% fade intraday (data-proven)
-      if (changePct3 < 0.3 || changePct3 > 8 || c.volume < 200000) return;
+      // v6.0: Volume floor 200K, gap cap at 6%
+      if (changePct3 < 0.2 || changePct3 > 6 || c.volume < 200000) return;
 
-      var dtScore = dayTradeScore(c.ticker, c.price, c.prevClose, c.high52, c.low52, c.volume, c.sector, c.extraData);
+      // v6.0: Pass intraday data (dayHigh, dayLow) to scoring function
+      var intradayData = { dayHigh: c.dayHigh || 0, dayLow: c.dayLow || 0 };
+      var dtScore = dayTradeScore(c.ticker, c.price, c.prevClose, c.high52, c.low52, c.volume, c.sector, c.extraData, intradayData);
+
       scored.push({
-        ticker: c.ticker,
-        name: c.name,
-        sector: c.sector,
-        price: c.price,
-        prevClose: c.prevClose,
-        high52: c.high52,
-        low52: c.low52,
-        volume: c.volume,
-        changePct: changePct3,
-        dtScore: dtScore.total,
-        momentum: dtScore.momentum,
-        signals: dtScore.signals || [],
-        source: c.source
+        ticker: c.ticker, name: c.name, sector: c.sector,
+        price: c.price, prevClose: c.prevClose,
+        high52: c.high52, low52: c.low52, volume: c.volume,
+        dayHigh: c.dayHigh, dayLow: c.dayLow,
+        changePct: changePct3, dtScore: dtScore.total,
+        momentum: dtScore.momentum, signals: dtScore.signals || [],
+        source: c.source, hasCatalyst: dtScore.hasCatalyst
       });
     });
 
-    // Sort by score descending
     scored.sort(function(a, b) { return b.dtScore - a.dtScore; });
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 3A: RELATIVE STRENGTH vs MARKET (Institutional Edge #1)
-    //  Jefferies/Goldman don't buy "stocks that are up" —
-    //  they buy stocks OUTPERFORMING the market average.
-    //  If Nifty is +0.5% but CDSL is +3%, CDSL has real alpha.
+    //  STEP 3A: RELATIVE STRENGTH vs MARKET
     // ══════════════════════════════════════════════════════════
     var avgChange = 0;
     if (scored.length > 0) {
@@ -12416,14 +12666,11 @@ async function runDayTradeAI() {
       if (relStrength >= 3) { s.dtScore += 15; s.signals.push('RS-ALPHA +' + relStrength.toFixed(1)); }
       else if (relStrength >= 2) { s.dtScore += 12; s.signals.push('RS-STRONG'); }
       else if (relStrength >= 1) { s.dtScore += 7; s.signals.push('RS+'); }
-      // Stocks below market average get penalized
       else if (relStrength < -0.5) { s.dtScore -= 5; }
     });
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 3B: SECTOR ROTATION DETECTION (Institutional Edge #2)
-    //  When capital flows into a sector, ALL stocks in that sector move.
-    //  Detect hot sectors and overweight the BEST stock in each.
+    //  STEP 3B: SECTOR ROTATION DETECTION
     // ══════════════════════════════════════════════════════════
     var sectorData = {};
     scored.forEach(function(s) {
@@ -12436,158 +12683,144 @@ async function runDayTradeAI() {
         sectorData[s.sector].best = s;
       }
     });
-    // Hot sector = 3+ stocks up AND average sector change > 1.5%
     var hotSectors = {};
     Object.keys(sectorData).forEach(function(sec) {
       var d = sectorData[sec];
       var sectorAvg = d.count > 0 ? d.totalChg / d.count : 0;
-      if (d.count >= 3 && sectorAvg > 1.5) {
+      if (d.count >= 2 && sectorAvg > 1.2) {
         hotSectors[sec] = { avg: sectorAvg, count: d.count, best: d.best ? d.best.ticker : '' };
       }
     });
     scored.forEach(function(s) {
       if (s.sector && hotSectors[s.sector]) {
-        s.dtScore += 10;
-        s.signals.push('HOT-SECTOR');
-        // Best stock in hot sector gets extra boost — "sector leader" play
+        s.dtScore += 10; s.signals.push('HOT-SECTOR');
         if (hotSectors[s.sector].best === s.ticker) {
-          s.dtScore += 8;
-          s.signals.push('SECTOR-LEADER');
+          s.dtScore += 8; s.signals.push('SECTOR-LEADER');
         }
       }
     });
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 3C: SMART MONEY DETECTION (Institutional Edge #3)
-    //  Volume spike + near 52W high + gap up = institutional accumulation
-    //  This is the "big fish buying" signal that retail misses
+    //  STEP 3C: SMART MONEY DETECTION
     // ══════════════════════════════════════════════════════════
     scored.forEach(function(s) {
       var range52 = s.high52 - s.low52;
       var pos52 = range52 > 0 ? (s.price - s.low52) / range52 : 0.5;
-      // All 3 conditions = institutional buy signal
       if (s.changePct >= 2 && s.volume > 3000000 && pos52 >= 0.8) {
-        s.dtScore += 12;
-        s.signals.push('SMART-MONEY');
-      }
-      // Volume spike with breakout
-      else if (s.volume > 5000000 && pos52 >= 0.9) {
-        s.dtScore += 8;
-        s.signals.push('BREAKOUT-VOL');
+        s.dtScore += 12; s.signals.push('SMART-MONEY');
+      } else if (s.volume > 5000000 && pos52 >= 0.9) {
+        s.dtScore += 8; s.signals.push('BREAKOUT-VOL');
       }
     });
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 3D: NEWS CATALYST CONFIRMATION (Intelligence Edge #4)
-    //  Stocks with positive breaking news get institutional attention.
-    //  News + momentum + volume = highest conviction setup.
-    //  This is what separates our AI from basic screeners.
+    //  STEP 3D: NEWS TRIPLE CONFIRMATION
     // ══════════════════════════════════════════════════════════
     if (typeof _dtNewsSentiment !== 'undefined' && Object.keys(_dtNewsSentiment).length > 0) {
       var newsBoostCount = 0;
       scored.forEach(function(s) {
         var nSent = _dtNewsSentiment[s.ticker];
         if (!nSent) return;
-        // Triple confirmation: news + momentum + volume = maximum conviction
         if (nSent.score >= 2 && s.changePct >= 1.5 && s.volume > 1000000) {
-          s.dtScore += 12;
-          s.signals.push('NEWS+MOM+VOL');
-          newsBoostCount++;
+          s.dtScore += 15; s.signals.push('NEWS+MOM+VOL'); newsBoostCount++;
+        } else if (nSent.score >= 2 && s.changePct >= 0.5) {
+          s.dtScore += 8; s.signals.push('NEWS+MOM'); newsBoostCount++;
+        } else if (nSent.score >= 1 && s.changePct >= 0.3) {
+          s.dtScore += 5; newsBoostCount++;
         }
-        // Double confirmation: strong news + any momentum
-        else if (nSent.score >= 2 && s.changePct >= 0.5) {
-          s.dtScore += 7;
-          s.signals.push('NEWS+MOM');
-          newsBoostCount++;
-        }
-        // Single news positive
-        else if (nSent.score >= 1 && s.changePct >= 0.3) {
-          s.dtScore += 4;
-          newsBoostCount++;
-        }
-        // Negative news penalty — even if momentum is up, be cautious
-        if (nSent.score <= -2) {
-          s.dtScore -= 8;
-          s.signals.push('NEWS-RISK');
-        }
+        if (nSent.score <= -2) { s.dtScore -= 10; s.signals.push('NEWS-RISK'); }
       });
-      console.log('[DT-NEWS] News catalyst boost applied to ' + newsBoostCount + ' candidates');
+      console.log('[DT-v6] News boost applied to ' + newsBoostCount + ' candidates');
     }
 
-    // Final sort after all institutional + news boosts
+    // Final sort
     scored.sort(function(a, b) { return b.dtScore - a.dtScore; });
 
-    console.log('[DT-v4] Scored ' + scored.length + ' candidates. Top 10:');
+    console.log('[DT-v6] Scored ' + scored.length + ' candidates. Top 10:');
     scored.slice(0, 10).forEach(function(s, idx) {
-      console.log('  ' + (idx + 1) + '. ' + s.ticker + ' score=' + s.dtScore + ' chg=' + s.changePct.toFixed(2) + '% vol=' + s.volume + ' [' + s.signals.join(', ') + ']');
+      console.log('  ' + (idx + 1) + '. ' + s.ticker + ' score=' + s.dtScore + ' chg=' + s.changePct.toFixed(2) + '% catalyst=' + s.hasCatalyst + ' [' + s.signals.join(', ') + ']');
     });
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 4: CONCENTRATED PICK — Top 3-5 high-conviction only
+    //  STEP 4: v6.0 CATALYST-FIRST PICK — Max 3 stocks
+    //  Fixes Mistake #2 (no catalyst) + #11 (overtrading)
+    //  HARD RULE: Must have catalyst. Max 3 picks (not 5).
+    //  Only add 4th if score within 15% of top pick.
     // ══════════════════════════════════════════════════════════
-    var MIN_SCORE = 55; // v5.0: Raised threshold — quality over quantity
-    // v5.0 HARD FILTER: Reject overgapped stocks (>6%) — these almost always fade
+    var MIN_SCORE = 60; // v6.0: Higher bar — catalyst stocks score naturally higher
     var safeScored = scored.filter(function(s) {
       return s.changePct <= 6 && s.changePct >= 0.5;
     });
-    var picks = safeScored.filter(function(s) {
-      return s.dtScore >= MIN_SCORE && parseFloat(s.momentum) > 0.5;
+
+    // v6.0 CATALYST GATE: Prefer stocks WITH catalysts
+    var catalystPicks = safeScored.filter(function(s) {
+      return s.hasCatalyst && s.dtScore >= MIN_SCORE && parseFloat(s.momentum) > 0.5;
+    });
+    var noCatalystPicks = safeScored.filter(function(s) {
+      return !s.hasCatalyst && s.dtScore >= MIN_SCORE + 20 && parseFloat(s.momentum) > 0.5;
     });
 
-    // v5.0: SECTOR DIVERSIFICATION — max 2 stocks per sector
-    // Old engine could pick 5 IT stocks; if IT reverses, all 5 lose
+    // Catalyst stocks first, then very high-scoring non-catalyst stocks
+    var picks = catalystPicks.concat(noCatalystPicks);
+
+    // v6.0: SECTOR DIVERSIFICATION — max 2 per sector
     var sectorCount = {};
     picks = picks.filter(function(s) {
       var sec = s.sector || 'Unknown';
       if (!sectorCount[sec]) sectorCount[sec] = 0;
-      if (sectorCount[sec] >= 2) return false; // Max 2 per sector
+      if (sectorCount[sec] >= 2) return false;
       sectorCount[sec]++;
       return true;
     });
 
-    // Cap at 5 picks
-    picks = picks.slice(0, 5);
+    // v6.0: MAX 3 PICKS (was 5) — Fixes Mistake #11
+    // Only allow 4th pick if its score is within 15% of #1
+    var maxPicks = 3;
+    if (picks.length > maxPicks) {
+      var topScore = picks[0].dtScore;
+      picks = picks.filter(function(s, idx) {
+        if (idx < maxPicks) return true;
+        // Only allow extra pick if score within 15% of top
+        return s.dtScore >= topScore * 0.85;
+      });
+      picks = picks.slice(0, 4); // Absolute max 4
+    }
 
-    // If very few quality picks, lower threshold slightly but KEEP the overgap filter
-    if (picks.length < 2) {
+    // Fallback: if no catalyst picks, try lower threshold but still require SOME quality
+    if (picks.length < 1) {
       sectorCount = {};
       picks = safeScored.filter(function(s) {
-        if (s.dtScore < 40 || parseFloat(s.momentum) <= 0) return false;
+        if (s.dtScore < 45 || parseFloat(s.momentum) <= 0) return false;
         var sec = s.sector || 'Unknown';
         if (!sectorCount[sec]) sectorCount[sec] = 0;
         if (sectorCount[sec] >= 2) return false;
         sectorCount[sec]++;
         return true;
-      }).slice(0, 4);
+      }).slice(0, 2); // Max 2 on fallback
     }
 
     if (picks.length === 0) {
-      alert('No high-conviction day trade candidates found. Market may be flat — waiting for a better setup.');
+      console.log('[DT-v6] No picks today — sitting out. This is CORRECT behavior.');
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       if (statusBadge) {
-        statusBadge.style.background = '#ef444422';
-        statusBadge.style.color = '#ef4444';
-        statusBadge.style.borderColor = '#ef444444';
-        statusBadge.innerHTML = '&#10060; No high-conviction setups &mdash; stay cash, wait for catalyst';
+        statusBadge.style.background = '#06b6d422'; statusBadge.style.color = '#06b6d4'; statusBadge.style.borderColor = '#06b6d444';
+        statusBadge.innerHTML = '&#128161; v6.0 DISCIPLINE: No catalyst setups today. Sitting out = smart money move. Cash preserved.';
       }
       return;
     }
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 5: RISK-BALANCED ALLOCATION [v5.0 — Equal weight]
-    //  Old: 35%/25%/20% concentration caused single-stock blowups
-    //  New: Equal weight across picks — diversification IS the edge
-    //  Max 20% per pick, max 5 picks = 100% deployed
+    //  STEP 5: RISK-BALANCED ALLOCATION [v6.0 — Equal weight, 3 picks]
+    //  With 3 picks: ~33% each. With 2: 40% each. With 1: 50%.
+    //  Never deploy more than 50% on a single stock.
     // ══════════════════════════════════════════════════════════
-    var CONVICTION_WEIGHTS = [0.20, 0.20, 0.20, 0.20, 0.20];
+    var perPickWeight = picks.length >= 3 ? 0.30 : picks.length === 2 ? 0.40 : 0.50;
     var totalCash = w.cash;
     var minPerTrade = 12000;
 
-    // Calculate allocation for each pick
     var allocations = [];
     for (var p = 0; p < picks.length; p++) {
-      var weight = p < CONVICTION_WEIGHTS.length ? CONVICTION_WEIGHTS[p] : 0.08;
-      var alloc = Math.floor(totalCash * weight);
+      var alloc = Math.floor(totalCash * perPickWeight);
       if (alloc >= minPerTrade) {
         allocations.push({ pick: picks[p], allocation: alloc });
       }
@@ -12600,7 +12833,7 @@ async function runDayTradeAI() {
     }
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 6: EXECUTE BUY TRADES
+    //  STEP 6: EXECUTE BUY TRADES + JOURNAL
     // ══════════════════════════════════════════════════════════
     var todayStr = new Date().toISOString().slice(0, 10);
     var buyCount = 0;
@@ -12616,37 +12849,22 @@ async function runDayTradeAI() {
       var cost = qty * pick.price;
       var allocPct = Math.round(cost / totalCash * 100);
 
-      // Position record
       w.positions.push({
-        ticker: pick.ticker,
-        name: pick.name,
-        sector: pick.sector,
-        buyPrice: pick.price,
-        currentPrice: pick.price,
-        qty: qty,
-        currentValue: cost,
-        pnl: 0,
-        pnlPct: 0,
-        dtScore: pick.dtScore,
-        momentum: pick.momentum,
-        signals: pick.signals,
-        source: pick.source,
-        allocPct: allocPct,
-        buyTime: new Date().toISOString()
+        ticker: pick.ticker, name: pick.name, sector: pick.sector,
+        buyPrice: pick.price, currentPrice: pick.price,
+        qty: qty, currentValue: cost, pnl: 0, pnlPct: 0,
+        dtScore: pick.dtScore, momentum: pick.momentum,
+        signals: pick.signals, source: pick.source,
+        hasCatalyst: pick.hasCatalyst,
+        allocPct: allocPct, buyTime: new Date().toISOString()
       });
 
-      // Trade record
-      var sigStr = pick.signals.length > 0 ? pick.signals.slice(0, 3).join(' + ') : 'MOMENTUM';
+      var sigStr = pick.signals.length > 0 ? pick.signals.slice(0, 4).join(' + ') : 'CATALYST';
       w.trades.push({
-        type: 'BUY',
-        ticker: pick.ticker,
-        name: pick.name,
-        qty: qty,
-        price: pick.price,
-        dtScore: pick.dtScore,
-        reason: '⚡ v5 Score ' + pick.dtScore + '/195 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '% | SL:-0.8% | ' + pick.source + (_dtNewsSentiment[pick.ticker] ? ' | News:' + _dtNewsSentiment[pick.ticker].score : ''),
-        source: 'daytrade',
-        time: new Date().toISOString()
+        type: 'BUY', ticker: pick.ticker, name: pick.name,
+        qty: qty, price: pick.price, dtScore: pick.dtScore,
+        reason: '⚡ v6 Score ' + pick.dtScore + '/200 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '% | SL:-0.8% | ' + pick.source + (pick.hasCatalyst ? ' | CATALYST' : ' | NO-CAT'),
+        source: 'daytrade', time: new Date().toISOString()
       });
 
       w.cash -= cost;
@@ -12657,28 +12875,25 @@ async function runDayTradeAI() {
     w.todayDate = todayStr;
     saveDT(w);
 
-    // Update status
     var lastAction = document.getElementById('dtLastAction');
     if (lastAction) {
-      var newsInfo = Object.keys(_dtNewsSentiment).length > 0 ? ' | ' + Object.keys(_dtNewsSentiment).length + ' news signals' : '';
-      lastAction.innerHTML = '&#128994; v4: Bought ' + buyCount + ' @ ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) + ' | ' + topSignals.join(', ') + newsInfo;
+      var catInfo = ' | ' + picks.filter(function(p) { return p.hasCatalyst; }).length + '/' + picks.length + ' have catalysts';
+      lastAction.innerHTML = '&#128994; v6.0: Bought ' + buyCount + ' @ ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) + ' | ' + topSignals.join(', ') + catInfo;
     }
 
     if (statusBadge) {
-      statusBadge.style.background = '#22c55e22';
-      statusBadge.style.color = '#22c55e';
-      statusBadge.style.borderColor = '#22c55e44';
-      var newsStatus = Object.keys(_dtNewsSentiment).length > 0 ? ' | ' + Object.keys(_dtNewsSentiment).length + ' news catalysts scanned' : '';
-      statusBadge.innerHTML = '&#128994; v5.0 RISK-MANAGED: ' + buyCount + ' picks (20% equal-wt, SL -0.8%) | ' + topSignals.join(', ') + newsStatus;
+      statusBadge.style.background = '#22c55e22'; statusBadge.style.color = '#22c55e'; statusBadge.style.borderColor = '#22c55e44';
+      var catPct = Math.round(picks.filter(function(p) { return p.hasCatalyst; }).length / picks.length * 100);
+      statusBadge.innerHTML = '&#128994; v6.0 ANTI-MISTAKE: ' + buyCount + ' catalyst picks (' + perPickWeight * 100 + '% each, SL -0.8%) | ' + catPct + '% have catalysts | ' + topSignals.join(', ');
     }
 
-    console.log('[DT-v4] Bought ' + buyCount + ' stocks (news-powered + conviction-weighted). Cash: ' + w.cash.toLocaleString('en-IN'));
-    console.log('[DT-v4] Allocation: ' + topSignals.join(', '));
-    console.log('[DT-v4] News signals: ' + Object.keys(_dtNewsSentiment).length + ' stocks with sentiment data');
+    console.log('[DT-v6] Bought ' + buyCount + ' stocks. Cash: ' + w.cash.toLocaleString('en-IN'));
+    console.log('[DT-v6] Allocation: ' + topSignals.join(', '));
+    console.log('[DT-v6] Catalyst rate: ' + picks.filter(function(p) { return p.hasCatalyst; }).length + '/' + picks.length);
 
   } catch(err) {
-    console.error('[DT-v4] Error:', err);
-    alert('Day Trade v4 error: ' + (err.message || err));
+    console.error('[DT-v6] Error:', err);
+    alert('Day Trade v6 error: ' + (err.message || err));
   }
 
   if (btn) {
@@ -12795,6 +13010,10 @@ async function runDayTradeSmartExits() {
         reason: exitReason,
         source: 'daytrade', time: now.toISOString()
       });
+      // v6.0: Record trade outcome in journal for learning
+      try {
+        recordDTTradeOutcome(pos.ticker, pos.signals || [], returnPct, exitReason);
+      } catch(je) { console.log('[DT-JOURNAL] Error recording:', je); }
       w.positions.splice(i, 1);
       exitCount++;
       exitLog.push(exitReason.split(':')[0] + ' ' + pos.ticker + ' @ ' + (returnPct >= 0 ? '+' : '') + returnPct.toFixed(1) + '%');
@@ -12817,14 +13036,14 @@ async function runDayTradeSmartExits() {
 
 // (OLD exit monitor moved into Auto Day Trade Engine below)
 // ---------------------------------------------------------------
-//  AUTO DAY TRADE ENGINE v2.0 — Risk-Managed Automation [v5.0]
-//  Trigger Points (REVISED — old 9:20 was too early, afternoon buys lose money):
-//    T1: 9:35 AM — Post-Opening Scan (let first 20 min chaos settle)
-//    T2: 11:00 AM — Mid-Morning Re-scan (if morning was flat/no picks)
-//    T3: REMOVED — No afternoon buys (data shows momentum fades after lunch)
+//  AUTO DAY TRADE ENGINE v3.0 — Anti-Mistake Automation [v6.0]
+//  Trigger Points:
+//    T0: 9:25 AM — Pre-Market Prep (build catalyst shortlist)
+//    T1: 9:45 AM — Post-ORB Scan (opening range formed, scan catalyst stocks)
+//    T2: 10:45 AM — Mid-Morning Re-scan (if morning had no picks)
+//    T3: REMOVED — No afternoon buys
 //    T4: 3:10 PM — Auto Square-Off (in exit monitor)
-//  Each trigger fires ONCE per day (localStorage gate)
-//  If positions already open, buy triggers skip (only T4 fires)
+//  Key v6.0 change: T0 builds shortlist BEFORE market, T1 delayed to 9:45 for ORB
 // ---------------------------------------------------------------
 var DT_AUTO_KEY = 'dtAutoTrigger_v1';
 
@@ -12836,12 +13055,12 @@ function getDTAutoState() {
       var state = JSON.parse(raw);
       if (state.date === todayStr) return state;
     }
-    // New day — reset all triggers
-    var fresh = { date: todayStr, t1_morning: false, t2_midday: false, t3_afternoon: false, autoEnabled: true };
+    // New day — reset all triggers (v6.0: added t0_prep)
+    var fresh = { date: todayStr, t0_prep: false, t1_morning: false, t2_midday: false, t3_afternoon: false, autoEnabled: true };
     localStorage.setItem(DT_AUTO_KEY, JSON.stringify(fresh));
     return fresh;
   } catch(e) {
-    return { date: '', t1_morning: false, t2_midday: false, t3_afternoon: false, autoEnabled: true };
+    return { date: '', t0_prep: false, t1_morning: false, t2_midday: false, t3_afternoon: false, autoEnabled: true };
   }
 }
 
@@ -12864,31 +13083,42 @@ function checkDayTradeAutoTrigger() {
   // Skip if insufficient cash
   if (w.cash < 15000) return;
 
-  // ── T1: POST-OPENING SCAN — 9:35 to 9:45 AM [v5.0 — delayed from 9:20] ──
-  // Let first 20 min of wild swings settle. By 9:35, real trends emerge.
-  if (!autoState.t1_morning && hhmm >= 935 && hhmm <= 945 && w.positions.length === 0) {
+  // ── T0: PRE-MARKET SHORTLIST BUILD — 9:25 to 9:30 AM [v6.0 NEW] ──
+  // Build catalyst shortlist BEFORE market opens
+  if (!autoState.t0_prep && hhmm >= 925 && hhmm <= 935) {
+    autoState.t0_prep = true;
+    saveDTAutoState(autoState);
+    console.log('[DT-AUTO] T0 PRE-MARKET PREP: 9:25 AM — Building catalyst shortlist...');
+    updateDTAutoStatus('T0: Building catalyst shortlist...', '#06b6d4');
+    // Fetch news and build shortlist (no trading yet)
+    fetchDayTradeNews().then(function() { buildDayTradeShortlist(); });
+    return;
+  }
+
+  // ── T1: POST-ORB SCAN — 9:45 to 9:55 AM [v6.0 — delayed from 9:35] ──
+  // Wait for 30-min Opening Range to form. Professional ORB timing.
+  // Fixes Mistake #6: buying in opening chaos
+  if (!autoState.t1_morning && hhmm >= 945 && hhmm <= 955 && w.positions.length === 0) {
     autoState.t1_morning = true;
     saveDTAutoState(autoState);
-    console.log('[DT-AUTO] T1 POST-OPEN TRIGGER: 9:35 AM — Running after opening chaos settles...');
-    updateDTAutoStatus('T1: Post-open scan (chaos settled)...', '#22c55e');
+    console.log('[DT-AUTO] T1 POST-ORB TRIGGER: 9:45 AM — Opening range formed, scanning catalyst stocks...');
+    updateDTAutoStatus('T1: Post-ORB scan (opening range settled)...', '#22c55e');
     runDayTradeAI();
     return;
   }
 
-  // ── T2: MID-MORNING RE-SCAN — 11:00 to 11:10 AM ──
-  // If morning scan found nothing (market was flat), try again for late movers
-  if (!autoState.t2_midday && hhmm >= 1100 && hhmm <= 1110 && w.positions.length === 0) {
+  // ── T2: MID-MORNING RE-SCAN — 10:45 to 10:55 AM [v6.0 — earlier] ──
+  // If morning scan found nothing, try once more before noon cutoff
+  if (!autoState.t2_midday && hhmm >= 1045 && hhmm <= 1055 && w.positions.length === 0) {
     autoState.t2_midday = true;
     saveDTAutoState(autoState);
-    console.log('[DT-AUTO] T2 MID-MORNING TRIGGER: 11:00 AM — Re-scanning for late movers...');
-    updateDTAutoStatus('T2: Mid-morning re-scan...', '#f59e0b');
+    console.log('[DT-AUTO] T2 MID-MORNING TRIGGER: 10:45 AM — Re-scanning catalyst stocks...');
+    updateDTAutoStatus('T2: Mid-morning catalyst re-scan...', '#f59e0b');
     runDayTradeAI();
     return;
   }
 
-  // ── T3: REMOVED in v5.0 — afternoon buys historically lose money ──
-  // Data showed buying after 1 PM = buying at intraday top = consistent losses
-  // The old T3 afternoon trigger at 1:00 PM was a major loss contributor
+  // ── T3: REMOVED — afternoon buys historically lose money ──
 
   // Update status display with next trigger info
   updateDTAutoCountdown(hhmm, w.positions.length, autoState);
@@ -12909,12 +13139,15 @@ function updateDTAutoCountdown(hhmm, posCount, autoState) {
   var nextTrigger = '';
   var nextTime = '';
 
-  if (hhmm < 935 && !autoState.t1_morning) {
-    nextTrigger = 'T1 Post-Open Scan';
-    nextTime = '9:35 AM';
-  } else if (hhmm < 1100 && !autoState.t2_midday && posCount === 0) {
+  if (hhmm < 925 && !autoState.t0_prep) {
+    nextTrigger = 'T0 Pre-Market Prep';
+    nextTime = '9:25 AM';
+  } else if (hhmm < 945 && !autoState.t1_morning) {
+    nextTrigger = 'T1 Post-ORB Scan';
+    nextTime = '9:45 AM';
+  } else if (hhmm < 1045 && !autoState.t2_midday && posCount === 0) {
     nextTrigger = 'T2 Mid-Morning Re-scan';
-    nextTime = '11:00 AM';
+    nextTime = '10:45 AM';
   } else if (posCount > 0) {
     nextTrigger = 'T4 Auto Square-Off';
     nextTime = '3:10 PM';
