@@ -28,6 +28,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .tab.active{color:var(--accent);border-color:var(--accent)}
 .tab-badge{position:absolute;top:6px;right:8px;background:var(--red);color:#fff;font-size:9px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700}
 
+/* Sub-tabs v12 */
+.subtab-row{display:flex;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.subtab{padding:6px 14px;cursor:pointer;font-size:12px;font-weight:500;color:var(--muted);border-radius:6px;transition:.2s;white-space:nowrap}
+.subtab:hover{color:var(--text);background:var(--card2)}
+.subtab.active{color:#fff;background:var(--accent);font-weight:600}
+
 /* Main */
 .main{max-width:1440px;margin:0 auto;padding:24px}
 .grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px}
@@ -400,8 +406,9 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Multibagger Portfolio <span>Live Tracker</span></h1>
+  <h1>Multibagger Portfolio <span>v12 &mdash; Live</span></h1>
   <div class="hdr-right">
+    <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
       <div class="live-dot" id="liveDot"></div>
       <span id="mktStatusHdr">Checking market...</span>
@@ -415,34 +422,55 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <div class="refresh-bar" style="position:absolute;bottom:0;left:0;right:0"><div class="refresh-bar-fill" id="refreshBar" style="width:100%"></div></div>
 </div>
 
-<div class="tabs" id="tabBar">
-  <div class="tab active" onclick="switchTab('portfolio',this)">&#128202; Portfolio</div>
-  <div class="tab" onclick="switchTab('alerts',this)" id="alertsTab">&#128276; Alerts <span class="tab-badge" id="alertBadge" style="display:none">0</span></div>
-  <div class="tab" onclick="switchTab('energy',this)">&#9889; Energy & Battery</div>
-  <div class="tab" onclick="switchTab('news',this)">&#128240; News</div>
-  <div class="tab" onclick="switchTab('valuation',this)">&#128202; Valuation</div>
-  <div class="tab" onclick="switchTab('technical',this)">&#128200; Technical</div>
-  <div class="tab" onclick="switchTab('fundamental',this)">&#128176; Fundamentals</div>
-  <div class="tab" onclick="switchTab('newsint',this)">&#127760; News Intel</div>
-  <div class="tab" onclick="switchTab('earnings',this)">&#128181; Earnings</div>
-  <div class="tab" onclick="switchTab('ranking',this)">&#127942; Rankings</div>
-  <div class="tab" onclick="switchTab('sentiment',this)">&#127757; Sentiment & News</div>
-  <div class="tab" onclick="switchTab('scorer',this)">&#128270; Stock Scorer</div>
-  <div class="tab" onclick="switchTab('portfolioai',this)">&#129302; Portfolio AI</div>
-  <div class="tab" onclick="switchTab('papertrade',this)">&#128176; Paper Trade</div>
-  <div class="tab" onclick="switchTab('daytrade',this)">&#9889; Day Trade</div>
-  <div class="tab" onclick="switchTab('predictor',this)">&#127919; Price Predictor</div>
-  <div class="tab" onclick="switchTab('config',this)">&#9881;&#65039; Alert Settings</div>
+<!-- ═══ v12 CONSOLIDATED NAVIGATION ═══ -->
+<div class="tabs" id="tabBar" style="flex-wrap:wrap;gap:0;border-bottom:2px solid var(--border)">
+  <div class="tab active" onclick="switchMajorTab('dashboard',this)" data-group="dashboard" style="font-weight:700;font-size:13px">&#128202; Dashboard</div>
+  <div class="tab" onclick="switchMajorTab('intelligence',this)" data-group="intelligence" style="font-weight:700;font-size:13px">&#129504; Intelligence</div>
+  <div class="tab" onclick="switchMajorTab('scanner',this)" data-group="scanner" style="font-weight:700;font-size:13px">&#128269; Scanner</div>
+  <div class="tab" onclick="switchMajorTab('tradelab',this)" data-group="tradelab" style="font-weight:700;font-size:13px">&#128176; Trade Lab</div>
+  <div class="tab" onclick="switchMajorTab('shadowpre',this)" data-group="shadowpre" style="font-weight:700;font-size:13px">&#128737; Shadow & Pre-Market</div>
+  <div class="tab" onclick="switchMajorTab('settings',this)" data-group="settings" style="font-weight:700;font-size:13px">&#9881;&#65039; Settings</div>
+</div>
+<!-- Sub-tab rows (shown per group) -->
+<div id="subtabs-dashboard" class="subtab-row" style="display:flex;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
+  <span class="subtab active" onclick="switchTab('portfolio',this)">Holdings</span>
+  <span class="subtab" onclick="switchTab('alerts',this)" id="alertsTab">Alerts <span class="tab-badge" id="alertBadge" style="display:none">0</span></span>
+  <span class="subtab" onclick="switchTab('portfolioai',this)">Portfolio AI</span>
+  <span class="subtab" onclick="switchTab('valuation',this)">Valuation</span>
+</div>
+<div id="subtabs-intelligence" class="subtab-row" style="display:none;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
+  <span class="subtab active" onclick="switchTab('technical',this)">Technical</span>
+  <span class="subtab" onclick="switchTab('fundamental',this)">Fundamentals</span>
+  <span class="subtab" onclick="switchTab('earnings',this)">Earnings</span>
+  <span class="subtab" onclick="switchTab('newsint',this)">News Intel</span>
+  <span class="subtab" onclick="switchTab('sentiment',this)">Sentiment</span>
+  <span class="subtab" onclick="switchTab('news',this)">News Feed</span>
+</div>
+<div id="subtabs-scanner" class="subtab-row" style="display:none;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
+  <span class="subtab active" onclick="switchTab('scorer',this)">Stock Scorer</span>
+  <span class="subtab" onclick="switchTab('ranking',this)">Rankings</span>
+  <span class="subtab" onclick="switchTab('predictor',this)">Price Predictor</span>
+</div>
+<div id="subtabs-tradelab" class="subtab-row" style="display:none;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
+  <span class="subtab active" onclick="switchTab('papertrade',this)">Paper Trade</span>
+  <span class="subtab" onclick="switchTab('daytrade',this)">Day Trade</span>
+</div>
+<div id="subtabs-shadowpre" class="subtab-row" style="display:none;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
+  <span class="subtab active" onclick="switchTab('energy',this)">Shadow Intel</span>
+</div>
+<div id="subtabs-settings" class="subtab-row" style="display:none;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
+  <span class="subtab active" onclick="switchTab('config',this)">Alert Settings</span>
 </div>
 
 <div class="main">
 
-  <!-- Summary Cards -->
+  <!-- Summary Cards — v12 upgraded -->
   <div class="grid4" id="summaryCards">
     <div class="stat-card"><div class="stat-label">Total Stocks</div><div class="stat-val" id="sTotal">40</div><div class="stat-sub" style="color:var(--muted)">Across 3 categories</div></div>
     <div class="stat-card"><div class="stat-label">Prices Loaded</div><div class="stat-val" id="sLoaded">0 / 40</div><div class="stat-sub" id="sLoadedSub" style="color:var(--muted)">Fetching...</div></div>
     <div class="stat-card"><div class="stat-label">Active Alerts</div><div class="stat-val" id="sAlerts" style="color:var(--amber)">0</div><div class="stat-sub" style="color:var(--muted)">Today</div></div>
     <div class="stat-card"><div class="stat-label">Market</div><div class="stat-val" id="sMkt" style="font-size:16px">--</div><div class="stat-sub" id="sMktSub" style="color:var(--muted)">NSE/BSE</div></div>
+    <div class="stat-card" style="border-left:3px solid var(--accent)"><div class="stat-label">AI Engine v2</div><div class="stat-val" style="font-size:14px" id="sAIEngine">12D + Regime + Rotation</div><div class="stat-sub" id="sTopSector" style="color:var(--green)">Top sector: --</div></div>
   </div>
 
   <!-- ==================== PORTFOLIO TAB ==================== -->
@@ -1859,22 +1887,57 @@ function closeModal() { document.getElementById('detailModal').classList.remove(
 document.getElementById('detailModal').addEventListener('click', e => { if(e.target.id==='detailModal') closeModal(); });
 
 // ============================================================
-//  TABS
+//  v12 TAB SYSTEM — Major Groups + Sub-tabs
 // ============================================================
+var TAB_GROUPS = {
+  dashboard:     ['portfolio','alerts','portfolioai','valuation'],
+  intelligence:  ['technical','fundamental','earnings','newsint','sentiment','news'],
+  scanner:       ['scorer','ranking','predictor'],
+  tradelab:      ['papertrade','daytrade'],
+  shadowpre:     ['energy'],
+  settings:      ['config']
+};
+var _currentGroup = 'dashboard';
+var _currentTab = 'portfolio';
+
+function switchMajorTab(group, el) {
+  _currentGroup = group;
+  // highlight major tab
+  document.querySelectorAll('#tabBar .tab').forEach(t => t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  // show correct subtab row
+  Object.keys(TAB_GROUPS).forEach(g => {
+    var row = document.getElementById('subtabs-'+g);
+    if(row) row.style.display = g===group ? 'flex' : 'none';
+  });
+  // activate the first subtab in the group
+  var firstTab = TAB_GROUPS[group][0];
+  var subRow = document.getElementById('subtabs-'+group);
+  if(subRow) {
+    var firstSub = subRow.querySelector('.subtab');
+    if(firstSub) switchTab(firstTab, firstSub);
+  }
+}
+
 function switchTab(tab, el) {
+  _currentTab = tab;
+  // highlight subtab
+  var subRow = document.getElementById('subtabs-'+_currentGroup);
+  if(subRow) subRow.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  // load tab-specific data
   if (tab === 'sentiment') loadSentimentTab();
   if (tab === 'technical') loadTechnicalTab();
   if (tab === 'fundamental') loadFundamentalTab();
   if (tab === 'newsint') loadNewsIntelTab();
   if (tab === 'earnings') loadEarningsTab();
   if (tab === 'ranking') loadRankingTab();
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
   if (tab === 'papertrade') loadPaperTrade();
   if (tab === 'daytrade') loadDayTrade();
   if (tab === 'predictor') loadPredictorTab();
+  // hide all tab content divs, show only selected
   ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','daytrade','predictor','config'].forEach(t => {
-    const d = document.getElementById('tab-'+t);
+    var d = document.getElementById('tab-'+t);
     if(d) d.style.display = t===tab ? 'block' : 'none';
   });
   if(tab==='alerts') { alerts.forEach(a=>a.read=true); updateAlertBadge(); }
@@ -4678,6 +4741,285 @@ function startContinuousIntelligence() {
 }
 setTimeout(startContinuousIntelligence, 15000);
 
+// ═══════════════════════════════════════════════════════════════
+//  AI ENGINE v2: MARKET REGIME + SECTOR ROTATION + QUALITY MOMENTUM
+// ═══════════════════════════════════════════════════════════════
+
+// ── 1. MARKET REGIME DETECTION ──────────────────────────────
+// Classifies market as BULL / BEAR / SIDEWAYS using VIX, FII, Nifty position
+window._marketRegime = { regime: 'SIDEWAYS', confidence: 50, updated: 0 };
+
+function detectMarketRegime() {
+  try {
+    const G = typeof PRE_MARKET_GLOBAL !== 'undefined' ? PRE_MARKET_GLOBAL : null;
+    if (!G) return window._marketRegime;
+    const now = Date.now();
+    if (now - window._marketRegime.updated < 300000) return window._marketRegime; // cache 5 min
+
+    let bullSignals = 0, bearSignals = 0;
+
+    // VIX regime
+    const vix = G.indiaVix && G.indiaVix.value ? G.indiaVix.value : 15;
+    if (vix < 13) bullSignals += 2;       // Low vol = bull
+    else if (vix < 16) bullSignals += 1;
+    else if (vix > 22) bearSignals += 2;   // High vol = bear
+    else if (vix > 18) bearSignals += 1;
+
+    // FII flow direction
+    const fii = G.fiiFlow && G.fiiFlow.value ? G.fiiFlow.value : 0;
+    if (fii > 1000) bullSignals += 2;      // Strong FII buying
+    else if (fii > 0) bullSignals += 1;
+    else if (fii < -1000) bearSignals += 2; // Strong FII selling
+    else if (fii < 0) bearSignals += 1;
+
+    // GIFT Nifty direction
+    const giftChg = G.giftNifty && G.giftNifty.changePct ? G.giftNifty.changePct : 0;
+    if (giftChg > 0.5) bullSignals += 1;
+    else if (giftChg < -0.5) bearSignals += 1;
+
+    // US markets direction
+    const spChg = G.sp500 && G.sp500.changePct ? G.sp500.changePct : 0;
+    if (spChg > 0.5) bullSignals += 1;
+    else if (spChg < -0.5) bearSignals += 1;
+
+    // Crude oil (inverse for most Indian stocks)
+    const crudeChg = G.brentCrude && G.brentCrude.changePct ? G.brentCrude.changePct : 0;
+    if (crudeChg > 2) bearSignals += 1;    // High crude = headwind
+    else if (crudeChg < -2) bullSignals += 1;
+
+    // Market breadth from mover scan
+    if (typeof _moverScan !== 'undefined' && _moverScan.length > 0) {
+      const up = _moverScan.filter(m => m.chg > 0).length;
+      const dn = _moverScan.filter(m => m.chg < 0).length;
+      const breadth = _moverScan.length > 0 ? up / _moverScan.length : 0.5;
+      if (breadth > 0.65) bullSignals += 2;
+      else if (breadth > 0.55) bullSignals += 1;
+      else if (breadth < 0.35) bearSignals += 2;
+      else if (breadth < 0.45) bearSignals += 1;
+    }
+
+    let regime = 'SIDEWAYS';
+    const net = bullSignals - bearSignals;
+    if (net >= 4) regime = 'STRONG_BULL';
+    else if (net >= 2) regime = 'BULL';
+    else if (net <= -4) regime = 'STRONG_BEAR';
+    else if (net <= -2) regime = 'BEAR';
+
+    const confidence = Math.min(95, 50 + Math.abs(net) * 8);
+
+    window._marketRegime = { regime, confidence, bullSignals, bearSignals, net, vix, fii, updated: now };
+    console.log('[REGIME] ' + regime + ' (bull=' + bullSignals + ' bear=' + bearSignals + ' conf=' + confidence + '%)');
+    // Update header regime badge
+    var rb = document.getElementById('regimeBadge');
+    if(rb) {
+      var colors = {STRONG_BULL:'#22c55e',BULL:'#86efac',SIDEWAYS:'#f59e0b',BEAR:'#fca5a5',STRONG_BEAR:'#ef4444'};
+      var labels = {STRONG_BULL:'STRONG BULL',BULL:'BULL',SIDEWAYS:'SIDEWAYS',BEAR:'BEAR',STRONG_BEAR:'STRONG BEAR'};
+      rb.textContent = (labels[regime]||regime) + ' ' + confidence + '%';
+      rb.style.color = colors[regime] || 'var(--muted)';
+      rb.style.background = (colors[regime]||'#888') + '22';
+      rb.style.borderColor = (colors[regime]||'#888') + '55';
+      rb.style.border = '1px solid ' + (colors[regime]||'#888') + '55';
+    }
+    return window._marketRegime;
+  } catch(e) { return window._marketRegime; }
+}
+
+// ── 2. DYNAMIC WEIGHTS based on regime + mode ──────────────
+function getRegimeWeights(mode) {
+  const r = detectMarketRegime();
+  // Default balanced weights
+  const w = { momentum: 1.0, value: 1.0, quality: 1.0, signal: 1.0, regime: r.regime };
+
+  if (mode === 'daytrade') {
+    // Day trade: momentum is king, quality matters less
+    w.momentum = 1.5; w.value = 0.6; w.quality = 0.5; w.signal = 1.3;
+  } else if (mode === 'swing') {
+    // Swing/Paper trade: balanced with momentum tilt
+    w.momentum = 1.3; w.value = 0.9; w.quality = 0.8; w.signal = 1.1;
+  }
+  // else 'longterm' keeps balanced weights
+
+  // Regime adjustments
+  if (r.regime === 'STRONG_BULL' || r.regime === 'BULL') {
+    w.momentum *= 1.2;  // In bull, momentum works better
+    w.quality *= 0.9;    // Quality premium shrinks
+    w.signal *= 1.1;     // Catalysts get amplified
+  } else if (r.regime === 'STRONG_BEAR' || r.regime === 'BEAR') {
+    w.momentum *= 0.7;  // In bear, momentum is unreliable
+    w.quality *= 1.4;    // Quality premium explodes
+    w.value *= 1.3;      // Value becomes more important
+    w.signal *= 0.8;     // Catalysts get discounted
+  }
+
+  return w;
+}
+
+// ── 3. SECTOR ROTATION MODEL ───────────────────────────────
+// Tracks which sectors have structural tailwinds
+window._sectorRotation = {};
+
+function computeSectorRotation() {
+  const now = Date.now();
+  if (window._sectorRotationUpdated && now - window._sectorRotationUpdated < 600000) return window._sectorRotation;
+
+  const G = typeof PRE_MARKET_GLOBAL !== 'undefined' ? PRE_MARKET_GLOBAL : null;
+  const rotation = {};
+
+  // Base sector scores from macro cues
+  const sectors = ['IT','Banking','Auto','Pharma','Chemical','Metal','Infra','Cement','Telecom','Power','Oil','FMCG','Textiles','Capital Goods','Consumer','Real Estate','Media','Insurance','Defence'];
+
+  sectors.forEach(s => {
+    let score = 0;
+    const sl = s.toLowerCase();
+
+    // FII flow impact
+    if (G && G.fiiFlow) {
+      const fii = G.fiiFlow.value || 0;
+      if (fii > 500) {
+        // FII buying → benefits large caps, banks, IT
+        if (['Banking','IT','Insurance','Auto'].includes(s)) score += 2;
+      } else if (fii < -500) {
+        // FII selling → defensive sectors benefit
+        if (['Power','Telecom','Pharma','FMCG'].includes(s)) score += 1;
+        if (['Banking','IT'].includes(s)) score -= 1;
+      }
+    }
+
+    // Crude impact
+    if (G && G.brentCrude) {
+      const crudeChg = G.brentCrude.changePct || 0;
+      if (crudeChg > 2) {
+        if (['Oil'].includes(s)) score += 2;     // Oil companies benefit
+        if (['Auto','Aviation','Chemical','Paint'].includes(s)) score -= 2; // Cost pressure
+      } else if (crudeChg < -2) {
+        if (['Auto','Chemical','Paint'].includes(s)) score += 2; // Cost relief
+        if (['Oil'].includes(s)) score -= 1;
+      }
+    }
+
+    // USD/INR impact
+    if (G && G.usdInr) {
+      const usdChg = G.usdInr.changePct || 0;
+      if (usdChg > 0.5) { // Rupee weakening
+        if (['IT','Pharma','Textiles'].includes(s)) score += 2; // Exporters benefit
+        if (['Oil','Capital Goods'].includes(s)) score -= 1;     // Import cost up
+      } else if (usdChg < -0.5) { // Rupee strengthening
+        if (['Oil','Capital Goods','Auto'].includes(s)) score += 1;
+        if (['IT'].includes(s)) score -= 1;
+      }
+    }
+
+    // Nasdaq correlation for IT
+    if (G && G.nasdaq && s === 'IT') {
+      if (G.nasdaq.changePct > 1) score += 2;
+      else if (G.nasdaq.changePct < -1) score -= 2;
+    }
+
+    // Seasonal patterns (monsoon, festival, budget)
+    const month = new Date().getMonth(); // 0=Jan
+    if (month >= 5 && month <= 8) { // Jun-Sep monsoon
+      if (['Auto','Consumer','FMCG','Cement','Infra'].includes(s)) score += 1; // Rural demand
+      if (['Power'].includes(s)) score -= 1;
+    }
+    if (month >= 8 && month <= 10) { // Sep-Nov festival
+      if (['Auto','Consumer','FMCG','Real Estate','Media'].includes(s)) score += 2;
+    }
+
+    // China+1 structural tailwind
+    if (['Chemical','Textiles','Capital Goods','Auto'].includes(s)) score += 1;
+
+    // Capex cycle play
+    if (['Capital Goods','Infra','Cement','Power','Metal'].includes(s)) score += 1;
+
+    rotation[s] = { score: Math.max(-5, Math.min(5, score)), label: score >= 2 ? 'IN FAVOR' : score <= -2 ? 'OUT OF FAVOR' : 'NEUTRAL' };
+  });
+
+  window._sectorRotation = rotation;
+  window._sectorRotationUpdated = now;
+  // Update top-sector card in header
+  try {
+    var best = '', bestScore = -99;
+    Object.keys(rotation).forEach(function(sec) {
+      if (rotation[sec].score > bestScore) { bestScore = rotation[sec].score; best = sec; }
+    });
+    var el = document.getElementById('sTopSector');
+    if (el && best) el.textContent = 'Top sector: ' + best + ' (+' + bestScore + ')';
+  } catch(e2) {}
+  return rotation;
+}
+
+function getSectorRotationScore(sector) {
+  if (!sector) return 0;
+  const rotation = computeSectorRotation();
+  // Match sector string to rotation keys
+  const sLower = sector.toLowerCase();
+  for (const [key, val] of Object.entries(rotation)) {
+    if (sLower.includes(key.toLowerCase()) || key.toLowerCase().includes(sLower.split('/')[0].trim())) {
+      return val.score;
+    }
+  }
+  return 0;
+}
+
+// ── 4. QUALITY MOMENTUM SCORING ────────────────────────────
+// Combines price momentum with fundamental quality
+function scoreQualityMomentum(s) {
+  let qm = 0;
+  const factors = [];
+
+  // Momentum quality: price up + fundamentals improving = high quality momentum
+  const priceUp = (s.changePct || 0) > 0;
+  const roceGood = (s.roce || 0) > 15;
+  const peReasonable = (s.pe || 0) > 0 && (s.pe || 999) < 40;
+
+  if (priceUp && roceGood && peReasonable) {
+    qm += 5;
+    factors.push('Quality momentum — price+ROCE+PE aligned');
+  } else if (priceUp && roceGood) {
+    qm += 3;
+    factors.push('Momentum with quality backing');
+  } else if (priceUp && !roceGood) {
+    qm += 1;
+    factors.push('Momentum without quality — caution');
+  }
+
+  // Revenue growth acceleration (if available)
+  if (s.revGrowth && s.revGrowth > 20) {
+    qm += 3;
+    if (s.changePct > 0) qm += 2; // Price confirming growth
+  }
+
+  // Sector rotation boost
+  const sectorBoost = getSectorRotationScore(s.sector);
+  if (sectorBoost >= 2) {
+    qm += 3;
+    factors.push('Sector ' + (s.sector || '') + ' IN FAVOR');
+  } else if (sectorBoost <= -2) {
+    qm -= 2;
+    factors.push('Sector ' + (s.sector || '') + ' OUT OF FAVOR');
+  }
+
+  return { score: Math.max(-5, Math.min(10, qm)), factors };
+}
+
+// ── 5. CORRELATION-AWARE PICK FILTER ───────────────────────
+// Prevents picking too many stocks from the same sector
+function filterCorrelatedPicks(candidates, maxPerSector) {
+  maxPerSector = maxPerSector || 2;
+  const sectorCount = {};
+  const filtered = [];
+  candidates.sort((a, b) => (b.score || b.total || 0) - (a.score || a.total || 0));
+  candidates.forEach(c => {
+    const sect = (c.sector || 'Unknown').split('/')[0].trim();
+    sectorCount[sect] = (sectorCount[sect] || 0);
+    if (sectorCount[sect] < maxPerSector) {
+      filtered.push(c);
+      sectorCount[sect]++;
+    }
+  });
+  return filtered;
+}
+
 // ═══════════════════════════════════════════════════════════
 //  MULTI-FACTOR AI SCORING ENGINE (0-100) + Dashboard Intel
 // ═══════════════════════════════════════════════════════════
@@ -4816,7 +5158,18 @@ function aiScore(s) {
   else if (_smartSig && _smartSig.total >= 40) { signal += 5; factors.push('🔮 Early signal: ' + _smartSig.topSignal); }
   else if (_smartSig && _smartSig.total >= 25) { signal += 3; factors.push('🔮 Signal building: ' + _smartSig.topSignal); }
 
-  const baseTotal = Math.min(25, momentum) + Math.min(25, value) + Math.min(25, quality) + Math.min(25, signal);
+  // ── QUALITY MOMENTUM OVERLAY ──
+  const qm = scoreQualityMomentum(s);
+  if (qm.factors.length > 0) factors.push(...qm.factors);
+
+  // ── REGIME-AWARE DYNAMIC WEIGHTING ──
+  const regW = getRegimeWeights('longterm');
+  const wMom = Math.min(25, momentum) * regW.momentum;
+  const wVal = Math.min(25, value) * regW.value;
+  const wQual = Math.min(25, quality) * regW.quality;
+  const wSig = Math.min(25, signal) * regW.signal;
+  const baseTotal = Math.min(100, wMom + wVal + wQual + wSig) + qm.score;
+  factors.push('📊 Regime: ' + regW.regime);
 
   // ── DASHBOARD INTELLIGENCE BONUS (±15 from cross-tab data) ──
   const dBonus = getDashboardBonus(s.ticker);
@@ -5368,6 +5721,18 @@ async function runAIAutoTrade() {
           else if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore <= -2) tradeScore -= 1;
           if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.riskLevel === 'HIGH') tradeScore -= 2;
         } catch(e) { /* proceed without */ }
+
+        // Layer 8: Sector Rotation + Market Regime
+        try {
+          var sectorBoost = getSectorRotationScore(m.sector);
+          if (sectorBoost >= 2) tradeScore += 5;
+          else if (sectorBoost <= -2) tradeScore -= 4;
+          var regime = detectMarketRegime();
+          if (regime.regime === 'STRONG_BULL') tradeScore += 5;
+          else if (regime.regime === 'BULL') tradeScore += 3;
+          else if (regime.regime === 'STRONG_BEAR') tradeScore -= 5;
+          else if (regime.regime === 'BEAR') tradeScore -= 3;
+        } catch(e) {}
 
         return {
           stock: { ticker: m.ticker, name: m.name, sector: m.sector, cmp: m.cmp, changePct: m.changePct, vol: m.vol },
@@ -9943,6 +10308,18 @@ function computeScore(data, yfTicker, portfolioStock) {
     if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.riskLevel === 'HIGH') uBoost -= 2;
     // Diversification
     if (uIntel.dimensions.diversification && uIntel.dimensions.diversification.concentrated && uIntel.dimensions.diversification.concentrated.length > 0) uBoost -= 1;
+    // Sector rotation overlay
+    try {
+      const sectorBoost = getSectorRotationScore(portfolioStock ? portfolioStock.sector : '');
+      if (sectorBoost >= 2) uBoost += 2;
+      else if (sectorBoost <= -2) uBoost -= 2;
+    } catch(e) {}
+    // Regime overlay
+    try {
+      const regime = detectMarketRegime();
+      if (regime.regime === 'STRONG_BULL') uBoost += 2;
+      else if (regime.regime === 'STRONG_BEAR') uBoost -= 2;
+    } catch(e) {}
     unifiedScore = Math.max(0, Math.min(15, 7 + uBoost));
     unifiedInsights = uIntel.insights || [];
   } catch(e) { unifiedScore = 7; }
@@ -11183,7 +11560,24 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
     if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.riskLevel === 'HIGH') { score -= 3; signals.push('GEO-RISK'); }
   } catch(e) { /* proceed without unified intel */ }
 
-  return { total: Math.min(175, Math.round(score)), momentum: changePct.toFixed(2), vol: volume, signals: signals };
+  // ═══ SECTOR ROTATION BOOST (±8) ═══
+  try {
+    var sectorBoost = getSectorRotationScore(sector);
+    if (sectorBoost >= 2) { score += 8; signals.push('SECTOR-FAVOR'); }
+    else if (sectorBoost >= 1) { score += 4; }
+    else if (sectorBoost <= -2) { score -= 6; signals.push('SECTOR-DRAG'); }
+  } catch(e) {}
+
+  // ═══ REGIME OVERLAY (±10) ═══
+  try {
+    var regime = detectMarketRegime();
+    if (regime.regime === 'STRONG_BULL') { score += 10; signals.push('BULL-MKT'); }
+    else if (regime.regime === 'BULL') { score += 5; }
+    else if (regime.regime === 'STRONG_BEAR') { score -= 10; signals.push('BEAR-MKT'); }
+    else if (regime.regime === 'BEAR') { score -= 5; }
+  } catch(e) {}
+
+  return { total: Math.min(195, Math.round(score)), momentum: changePct.toFixed(2), vol: volume, signals: signals };
 }
 
 // ---------------------------------------------------------------
