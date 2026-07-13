@@ -1516,7 +1516,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v13.3 &mdash; AI Wealth Fund Manager + Anti-Mistake Day Trade v6.0 + Catalyst-First Engine + Trade Journal + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v13.4 &mdash; AI Wealth Fund Manager + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Circuit Breaker + Risk-Based Sizing + Cooldown Engine + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -11577,6 +11577,240 @@ function resetDayTrade() {
   loadDayTrade();
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  INSTITUTIONAL RISK CONTROL ENGINE v1.0 [v13.4]
+//  Source: Jefferies, Goldman Sachs, Renaissance Technologies, Prop Firms
+//  70-Mistake Audit → 5 critical systems:
+//    1. Daily Loss Circuit Breaker (2% max daily loss)
+//    2. Risk-Based Position Sizing (1% risk per trade)
+//    3. Revenge Trading Cooldown (15/30/EOD after losses)
+//    4. Drawdown Management (peak wallet tracking)
+//    5. Session P&L Tracking (real-time daily performance)
+//  "Strategies rarely follow prediction-driven model; structured
+//   process where risk is measured and contained" — Goldman Sachs
+// ═══════════════════════════════════════════════════════════════
+var DT_RISK_KEY = 'dtRiskControl_v1';
+
+function getDTRiskState() {
+  try {
+    var todayStr = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'})).toISOString().slice(0, 10);
+    var raw = localStorage.getItem(DT_RISK_KEY);
+    if (raw) {
+      var state = JSON.parse(raw);
+      if (state.date === todayStr) return state;
+    }
+    // New day — reset daily risk controls
+    var w = getDT();
+    var fresh = {
+      date: todayStr,
+      // Daily Loss Circuit Breaker
+      dailyPnL: 0,                    // Cumulative P&L today (₹)
+      dailyPnLPct: 0,                 // Cumulative P&L as % of starting cash
+      startingCash: w.cash + w.positions.reduce(function(s, p) { return s + (p.currentPrice || p.buyPrice) * p.qty; }, 0),
+      circuitBreakerTripped: false,   // True = no more trades today
+      // Revenge Trading Cooldown
+      consecutiveLosses: 0,           // Streak of consecutive losses today
+      lastLossTime: null,             // ISO timestamp of last loss
+      cooldownUntil: null,            // ISO timestamp — no trading until this time
+      cooldownActive: false,          // True = currently in cooldown
+      positionSizeReduction: 1.0,     // Multiplier (0.5 = half size after loss)
+      // Drawdown Management
+      peakWalletValue: w.cash + w.positions.reduce(function(s, p) { return s + (p.currentPrice || p.buyPrice) * p.qty; }, 0),
+      drawdownPct: 0,                 // Current drawdown from peak
+      drawdownMultiplier: 1.0,        // Position size multiplier based on drawdown
+      // Session stats
+      tradesExecuted: 0,
+      winsToday: 0,
+      lossesToday: 0,
+      biggestWin: 0,
+      biggestLoss: 0
+    };
+    // Persist peak wallet from historical data
+    var allTimePeak = parseFloat(localStorage.getItem('dtPeakWallet') || '0');
+    if (allTimePeak > fresh.peakWalletValue) fresh.peakWalletValue = allTimePeak;
+    localStorage.setItem(DT_RISK_KEY, JSON.stringify(fresh));
+    return fresh;
+  } catch(e) {
+    return {
+      date: '', dailyPnL: 0, dailyPnLPct: 0, startingCash: DT_START,
+      circuitBreakerTripped: false, consecutiveLosses: 0, lastLossTime: null,
+      cooldownUntil: null, cooldownActive: false, positionSizeReduction: 1.0,
+      peakWalletValue: DT_START, drawdownPct: 0, drawdownMultiplier: 1.0,
+      tradesExecuted: 0, winsToday: 0, lossesToday: 0, biggestWin: 0, biggestLoss: 0
+    };
+  }
+}
+
+function saveDTRiskState(state) {
+  try {
+    localStorage.setItem(DT_RISK_KEY, JSON.stringify(state));
+    // Persist all-time peak wallet
+    if (state.peakWalletValue > parseFloat(localStorage.getItem('dtPeakWallet') || '0')) {
+      localStorage.setItem('dtPeakWallet', String(state.peakWalletValue));
+    }
+  } catch(e) {}
+}
+
+// Record a trade outcome into risk control state
+// Called from runDayTradeSmartExits() after each exit
+function updateRiskStateOnExit(pnl, pnlPct) {
+  var risk = getDTRiskState();
+  risk.dailyPnL += pnl;
+  risk.dailyPnLPct = risk.startingCash > 0 ? (risk.dailyPnL / risk.startingCash * 100) : 0;
+  risk.tradesExecuted++;
+
+  if (pnlPct > 0) {
+    // WIN
+    risk.winsToday++;
+    risk.consecutiveLosses = 0;
+    risk.positionSizeReduction = 1.0; // Reset size reduction on win
+    if (pnlPct > risk.biggestWin) risk.biggestWin = pnlPct;
+    console.log('[RISK-CTRL] WIN +' + pnlPct.toFixed(2) + '% | Daily P&L: ' + (risk.dailyPnLPct >= 0 ? '+' : '') + risk.dailyPnLPct.toFixed(2) + '% | Streak reset');
+  } else {
+    // LOSS
+    risk.lossesToday++;
+    risk.consecutiveLosses++;
+    risk.lastLossTime = new Date().toISOString();
+    if (pnlPct < risk.biggestLoss) risk.biggestLoss = pnlPct;
+
+    // Revenge Trading Cooldown Logic
+    if (risk.consecutiveLosses >= 3) {
+      // 3+ consecutive losses → DONE FOR THE DAY
+      risk.circuitBreakerTripped = true;
+      risk.cooldownActive = true;
+      risk.cooldownUntil = null; // Permanent for today
+      risk.positionSizeReduction = 0;
+      console.log('[RISK-CTRL] ⛔ 3 CONSECUTIVE LOSSES — TRADING DISABLED FOR TODAY');
+    } else if (risk.consecutiveLosses === 2) {
+      // 2 consecutive losses → 30-minute cooldown + half position size
+      var cd2 = new Date();
+      cd2.setMinutes(cd2.getMinutes() + 30);
+      risk.cooldownUntil = cd2.toISOString();
+      risk.cooldownActive = true;
+      risk.positionSizeReduction = 0.5;
+      console.log('[RISK-CTRL] ⚠️ 2 consecutive losses — 30min cooldown + 50% position size');
+    } else if (pnlPct <= -0.5) {
+      // Single loss > 0.5% → 15-minute cooldown
+      var cd1 = new Date();
+      cd1.setMinutes(cd1.getMinutes() + 15);
+      risk.cooldownUntil = cd1.toISOString();
+      risk.cooldownActive = true;
+      risk.positionSizeReduction = 0.75;
+      console.log('[RISK-CTRL] ⚠️ Loss > 0.5% — 15min cooldown + 75% position size');
+    }
+  }
+
+  // Daily Loss Circuit Breaker — 2% max daily loss
+  if (risk.dailyPnLPct <= -2.0) {
+    risk.circuitBreakerTripped = true;
+    console.log('[RISK-CTRL] ⛔ CIRCUIT BREAKER: Daily loss ' + risk.dailyPnLPct.toFixed(2) + '% exceeds -2% limit. TRADING DISABLED.');
+  }
+
+  // Update peak wallet and drawdown
+  var w = getDT();
+  var currentWalletValue = w.cash + w.positions.reduce(function(s, p) { return s + (p.currentPrice || p.buyPrice) * p.qty; }, 0);
+  if (currentWalletValue > risk.peakWalletValue) {
+    risk.peakWalletValue = currentWalletValue;
+  }
+  risk.drawdownPct = risk.peakWalletValue > 0 ? ((risk.peakWalletValue - currentWalletValue) / risk.peakWalletValue * 100) : 0;
+
+  // Drawdown-based position reduction (institutional standard)
+  if (risk.drawdownPct >= 12) {
+    risk.drawdownMultiplier = 0.25;  // 12%+ drawdown: quarter size only
+    console.log('[RISK-CTRL] ⛔ SEVERE DRAWDOWN ' + risk.drawdownPct.toFixed(1) + '% — position size at 25%');
+  } else if (risk.drawdownPct >= 8) {
+    risk.drawdownMultiplier = 0.50;  // 8-12% drawdown: half size
+    console.log('[RISK-CTRL] ⚠️ DRAWDOWN ' + risk.drawdownPct.toFixed(1) + '% — position size at 50%');
+  } else if (risk.drawdownPct >= 5) {
+    risk.drawdownMultiplier = 0.75;  // 5-8% drawdown: 75% size
+    console.log('[RISK-CTRL] DRAWDOWN ' + risk.drawdownPct.toFixed(1) + '% — position size at 75%');
+  } else {
+    risk.drawdownMultiplier = 1.0;
+  }
+
+  saveDTRiskState(risk);
+}
+
+// Check if trading is allowed right now
+// Returns { allowed: bool, reason: string, sizeMultiplier: number }
+function checkRiskGate() {
+  var risk = getDTRiskState();
+  var result = { allowed: true, reason: '', sizeMultiplier: 1.0 };
+
+  // CHECK 1: Circuit Breaker
+  if (risk.circuitBreakerTripped) {
+    result.allowed = false;
+    if (risk.consecutiveLosses >= 3) {
+      result.reason = '⛔ CIRCUIT BREAKER: 3 consecutive losses today. Trading disabled. Tomorrow is another day.';
+    } else {
+      result.reason = '⛔ CIRCUIT BREAKER: Daily loss ' + risk.dailyPnLPct.toFixed(2) + '% exceeds -2% limit. No more trades today. Capital preservation > everything.';
+    }
+    return result;
+  }
+
+  // CHECK 2: Cooldown Period
+  if (risk.cooldownActive && risk.cooldownUntil) {
+    var now = new Date();
+    var cooldownEnd = new Date(risk.cooldownUntil);
+    if (now < cooldownEnd) {
+      var minsLeft = Math.ceil((cooldownEnd - now) / 60000);
+      result.allowed = false;
+      result.reason = '⏳ COOLDOWN: ' + minsLeft + ' minutes remaining after ' + risk.consecutiveLosses + ' consecutive loss(es). Revenge trading is the #1 account killer.';
+      return result;
+    } else {
+      // Cooldown expired
+      risk.cooldownActive = false;
+      risk.cooldownUntil = null;
+      saveDTRiskState(risk);
+    }
+  }
+
+  // Calculate combined size multiplier
+  result.sizeMultiplier = risk.positionSizeReduction * risk.drawdownMultiplier;
+  if (result.sizeMultiplier < 0.25) result.sizeMultiplier = 0.25; // Floor at 25%
+
+  // Add informational warnings
+  if (risk.dailyPnLPct <= -1.0) {
+    result.reason = '⚠️ Daily loss at ' + risk.dailyPnLPct.toFixed(2) + '%. Approaching -2% circuit breaker. Position sizes reduced.';
+  }
+  if (risk.drawdownPct >= 5) {
+    result.reason += (result.reason ? ' | ' : '') + 'Drawdown: ' + risk.drawdownPct.toFixed(1) + '% from peak.';
+  }
+
+  return result;
+}
+
+// Get risk-based position size (institutional formula)
+// Position Size = (Account × Risk%) ÷ (Entry × StopLoss%)
+// Default: Risk 1% of wallet, SL at 0.8%
+function getRiskBasedPositionSize(walletValue, entryPrice, stopLossPct, sizeMultiplier) {
+  var riskPerTrade = 0.01; // 1% risk per trade (institutional standard)
+  var slPct = stopLossPct || 0.008; // 0.8% stop loss
+  var riskAmount = walletValue * riskPerTrade; // Max ₹ we can lose on this trade
+  var perShareRisk = entryPrice * slPct; // ₹ risk per share
+  var maxQty = Math.floor(riskAmount / perShareRisk);
+  var positionValue = maxQty * entryPrice;
+
+  // Apply drawdown + cooldown multiplier
+  var adjustedQty = Math.floor(maxQty * (sizeMultiplier || 1.0));
+  var adjustedValue = adjustedQty * entryPrice;
+
+  // Cap at 30% of wallet (never over-concentrate)
+  var maxPositionValue = walletValue * 0.30;
+  if (adjustedValue > maxPositionValue) {
+    adjustedQty = Math.floor(maxPositionValue / entryPrice);
+    adjustedValue = adjustedQty * entryPrice;
+  }
+
+  return {
+    qty: adjustedQty,
+    value: adjustedValue,
+    riskAmount: Math.round(adjustedQty * perShareRisk),
+    riskPct: walletValue > 0 ? (adjustedQty * perShareRisk / walletValue * 100).toFixed(2) : '0',
+    allocPct: walletValue > 0 ? Math.round(adjustedValue / walletValue * 100) : 0
+  };
+}
+
 // ---------------------------------------------------------------
 //  Day Trade Scoring v4.0 — NEWS-POWERED MOMENTUM ENGINE
 //  CHANGES from v3: Added Factor 6: News Catalyst (0-20+15 catalyst bonus)
@@ -12471,6 +12705,17 @@ async function runDayTradeAI() {
     return;
   }
 
+  // ══════════════════════════════════════════════════════════
+  //  v13.4 RISK GATE — Institutional-grade pre-trade check
+  //  Circuit Breaker + Cooldown + Drawdown check BEFORE any scan
+  //  Source: Goldman Sachs, Prop Firm rules, 70-Mistake Audit
+  // ══════════════════════════════════════════════════════════
+  var riskGate = checkRiskGate();
+  if (!riskGate.allowed) {
+    alert('🛡️ INSTITUTIONAL RISK CONTROL\n\n' + riskGate.reason + '\n\n"The goal of a successful trader is to make the best trades. Money is secondary." — Alexander Elder');
+    return;
+  }
+
   var btn = document.getElementById('dtRunBtn');
   if (btn) {
     btn.disabled = true;
@@ -12481,7 +12726,7 @@ async function runDayTradeAI() {
     statusBadge.style.background = '#f59e0b22';
     statusBadge.style.color = '#f59e0b';
     statusBadge.style.borderColor = '#f59e0b44';
-    statusBadge.innerHTML = '&#9889; v6.0 ANTI-MISTAKE ENGINE: Building catalyst shortlist...';
+    statusBadge.innerHTML = '&#128737; v13.4 INSTITUTIONAL ENGINE: Building catalyst shortlist...';
   }
 
   try {
@@ -12804,36 +13049,60 @@ async function runDayTradeAI() {
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       if (statusBadge) {
         statusBadge.style.background = '#06b6d422'; statusBadge.style.color = '#06b6d4'; statusBadge.style.borderColor = '#06b6d444';
-        statusBadge.innerHTML = '&#128161; v6.0 DISCIPLINE: No catalyst setups today. Sitting out = smart money move. Cash preserved.';
+        statusBadge.innerHTML = '&#128161; v13.4 DISCIPLINE: No catalyst setups today. Sitting out = smart money move. Capital preserved.';
       }
       return;
     }
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 5: RISK-BALANCED ALLOCATION [v6.0 — Equal weight, 3 picks]
-    //  With 3 picks: ~33% each. With 2: 40% each. With 1: 50%.
-    //  Never deploy more than 50% on a single stock.
+    //  STEP 5: INSTITUTIONAL RISK-BASED POSITION SIZING [v13.4]
+    //  OLD: Fixed 30/40/50% allocation (retail approach)
+    //  NEW: Position Size = (Wallet × 1%) ÷ (Entry × SL%)
+    //  Source: Prop firm formula — risk exactly 1% per trade
+    //  Adjusts for: drawdown level, cooldown state, consecutive losses
+    //  Cap: Max 30% of wallet per position (never over-concentrate)
     // ══════════════════════════════════════════════════════════
-    var perPickWeight = picks.length >= 3 ? 0.30 : picks.length === 2 ? 0.40 : 0.50;
     var totalCash = w.cash;
     var minPerTrade = 12000;
+    var riskState = getDTRiskState();
+    var sizeMultiplier = riskGate.sizeMultiplier || 1.0;
+
+    // Log risk state for transparency
+    if (sizeMultiplier < 1.0) {
+      console.log('[DT-v13.4] Position size reduced to ' + Math.round(sizeMultiplier * 100) + '% due to risk controls');
+    }
+    if (riskGate.reason) {
+      console.log('[DT-v13.4] Risk warning: ' + riskGate.reason);
+    }
 
     var allocations = [];
     for (var p = 0; p < picks.length; p++) {
-      var alloc = Math.floor(totalCash * perPickWeight);
-      if (alloc >= minPerTrade) {
-        allocations.push({ pick: picks[p], allocation: alloc });
+      var sizing = getRiskBasedPositionSize(totalCash, picks[p].price, 0.008, sizeMultiplier);
+      if (sizing.value >= minPerTrade && sizing.qty > 0) {
+        allocations.push({
+          pick: picks[p],
+          allocation: sizing.value,
+          qty: sizing.qty,
+          riskAmount: sizing.riskAmount,
+          riskPct: sizing.riskPct,
+          allocPct: sizing.allocPct
+        });
       }
     }
 
     if (allocations.length === 0) {
-      alert('Insufficient cash for conviction-sized positions.');
+      var reason = sizeMultiplier < 1.0 ?
+        'Risk controls reduced position sizes below minimum (₹12,000). This is the system protecting your capital.' :
+        'Insufficient cash for conviction-sized positions.';
+      alert(reason);
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       return;
     }
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 6: EXECUTE BUY TRADES + JOURNAL
+    //  STEP 6: EXECUTE BUY TRADES [v13.4 — Risk-sized positions]
+    //  Uses pre-calculated qty from getRiskBasedPositionSize()
+    //  Each trade risks exactly 1% of wallet (adjusted for drawdown/cooldown)
     // ══════════════════════════════════════════════════════════
     var todayStr = new Date().toISOString().slice(0, 10);
     var buyCount = 0;
@@ -12843,10 +13112,12 @@ async function runDayTradeAI() {
       var pick = a.pick;
       if (w.cash < minPerTrade) return;
 
-      var amt = Math.min(a.allocation, w.cash);
-      var qty = Math.floor(amt / pick.price);
+      // v13.4: Use pre-calculated risk-based qty (not fixed % allocation)
+      var qty = a.qty || Math.floor(Math.min(a.allocation, w.cash) / pick.price);
       if (qty <= 0) return;
       var cost = qty * pick.price;
+      if (cost > w.cash) { qty = Math.floor(w.cash / pick.price); cost = qty * pick.price; }
+      if (qty <= 0) return;
       var allocPct = Math.round(cost / totalCash * 100);
 
       w.positions.push({
@@ -12859,37 +13130,45 @@ async function runDayTradeAI() {
         allocPct: allocPct, buyTime: new Date().toISOString()
       });
 
+      var riskInfo = a.riskPct ? ' | Risk ' + a.riskPct + '%' : '';
+      var sizeInfo = sizeMultiplier < 1.0 ? ' | Size×' + sizeMultiplier.toFixed(2) : '';
       var sigStr = pick.signals.length > 0 ? pick.signals.slice(0, 4).join(' + ') : 'CATALYST';
       w.trades.push({
         type: 'BUY', ticker: pick.ticker, name: pick.name,
         qty: qty, price: pick.price, dtScore: pick.dtScore,
-        reason: '⚡ v6 Score ' + pick.dtScore + '/200 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '% | SL:-0.8% | ' + pick.source + (pick.hasCatalyst ? ' | CATALYST' : ' | NO-CAT'),
+        reason: '🛡️ v13.4 Score ' + pick.dtScore + '/200 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '%' + riskInfo + sizeInfo + ' | SL:-0.8% | ' + pick.source + (pick.hasCatalyst ? ' | CATALYST' : ' | NO-CAT'),
         source: 'daytrade', time: new Date().toISOString()
       });
 
       w.cash -= cost;
       buyCount++;
-      topSignals.push(pick.ticker + '(' + allocPct + '%)');
+      topSignals.push(pick.ticker + '(' + allocPct + '%' + (sizeMultiplier < 1.0 ? '↓' : '') + ')');
     });
 
     w.todayDate = todayStr;
     saveDT(w);
 
+    // Update risk state with trade count
+    riskState.tradesExecuted += buyCount;
+    saveDTRiskState(riskState);
+
     var lastAction = document.getElementById('dtLastAction');
     if (lastAction) {
       var catInfo = ' | ' + picks.filter(function(p) { return p.hasCatalyst; }).length + '/' + picks.length + ' have catalysts';
-      lastAction.innerHTML = '&#128994; v6.0: Bought ' + buyCount + ' @ ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) + ' | ' + topSignals.join(', ') + catInfo;
+      var riskInfo = sizeMultiplier < 1.0 ? ' | Size×' + sizeMultiplier.toFixed(2) : '';
+      lastAction.innerHTML = '&#128737; v13.4: Bought ' + buyCount + ' @ ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) + ' | ' + topSignals.join(', ') + catInfo + riskInfo;
     }
 
     if (statusBadge) {
       statusBadge.style.background = '#22c55e22'; statusBadge.style.color = '#22c55e'; statusBadge.style.borderColor = '#22c55e44';
       var catPct = Math.round(picks.filter(function(p) { return p.hasCatalyst; }).length / picks.length * 100);
-      statusBadge.innerHTML = '&#128994; v6.0 ANTI-MISTAKE: ' + buyCount + ' catalyst picks (' + perPickWeight * 100 + '% each, SL -0.8%) | ' + catPct + '% have catalysts | ' + topSignals.join(', ');
+      var riskLabel = sizeMultiplier < 1.0 ? ' | RISK-ADJUSTED ×' + sizeMultiplier.toFixed(2) : ' | 1% RISK/TRADE';
+      statusBadge.innerHTML = '&#128737; v13.4 INSTITUTIONAL: ' + buyCount + ' risk-sized picks (SL -0.8%)' + riskLabel + ' | ' + catPct + '% catalysts | ' + topSignals.join(', ');
     }
 
-    console.log('[DT-v6] Bought ' + buyCount + ' stocks. Cash: ' + w.cash.toLocaleString('en-IN'));
-    console.log('[DT-v6] Allocation: ' + topSignals.join(', '));
-    console.log('[DT-v6] Catalyst rate: ' + picks.filter(function(p) { return p.hasCatalyst; }).length + '/' + picks.length);
+    console.log('[DT-v13.4] Bought ' + buyCount + ' stocks. Cash: ' + w.cash.toLocaleString('en-IN'));
+    console.log('[DT-v13.4] Allocation: ' + topSignals.join(', '));
+    console.log('[DT-v13.4] Risk multiplier: ' + sizeMultiplier + ' | Catalyst rate: ' + picks.filter(function(p) { return p.hasCatalyst; }).length + '/' + picks.length);
 
   } catch(err) {
     console.error('[DT-v6] Error:', err);
@@ -12995,6 +13274,8 @@ async function runDayTradeSmartExits() {
         exitCount++;
         exitLog.push('PARTIAL ' + pos.ticker + ' ' + halfQty + 'qty @ +' + returnPct.toFixed(1) + '%');
         console.log('[DT-EXIT] Partial book: ' + pos.ticker + ' ' + halfQty + 'qty at +' + returnPct.toFixed(1) + '%');
+        // v13.4: Record partial win in risk state
+        try { updateRiskStateOnExit(partialPnl, returnPct); } catch(re) {}
       }
       continue; // Don't fully exit — keep remaining half
     }
@@ -13014,6 +13295,10 @@ async function runDayTradeSmartExits() {
       try {
         recordDTTradeOutcome(pos.ticker, pos.signals || [], returnPct, exitReason);
       } catch(je) { console.log('[DT-JOURNAL] Error recording:', je); }
+      // v13.4: Update institutional risk controls (circuit breaker, cooldown, drawdown)
+      try {
+        updateRiskStateOnExit(pnl, returnPct);
+      } catch(re) { console.log('[RISK-CTRL] Error updating:', re); }
       w.positions.splice(i, 1);
       exitCount++;
       exitLog.push(exitReason.split(':')[0] + ' ' + pos.ticker + ' @ ' + (returnPct >= 0 ? '+' : '') + returnPct.toFixed(1) + '%');
@@ -13024,11 +13309,23 @@ async function runDayTradeSmartExits() {
   if (exitCount > 0) {
     saveDT(w);
     updateDTDisplay(w);
+
+    // v13.4: Show risk control status after exits
+    var risk = getDTRiskState();
+    var riskStatus = '';
+    if (risk.circuitBreakerTripped) {
+      riskStatus = ' | ⛔ CIRCUIT BREAKER ACTIVE';
+    } else if (risk.cooldownActive) {
+      riskStatus = ' | ⏳ COOLDOWN (' + risk.consecutiveLosses + ' losses)';
+    } else if (risk.dailyPnLPct <= -1.0) {
+      riskStatus = ' | ⚠️ Daily ' + risk.dailyPnLPct.toFixed(1) + '%';
+    }
+
     var lastAction = document.getElementById('dtLastAction');
     if (lastAction) {
-      lastAction.innerHTML = '&#9889; Smart Exit: ' + exitCount + ' actions | ' + exitLog.slice(0, 3).join(', ');
+      lastAction.innerHTML = '&#9889; Smart Exit: ' + exitCount + ' actions | ' + exitLog.slice(0, 3).join(', ') + riskStatus;
     }
-    console.log('[DT-EXIT] ' + exitCount + ' smart exits executed');
+    console.log('[DT-EXIT] ' + exitCount + ' smart exits executed | Daily P&L: ' + risk.dailyPnLPct.toFixed(2) + '% | Losses today: ' + risk.lossesToday + ' | Consec: ' + risk.consecutiveLosses);
   }
 
   return exitCount;
@@ -13082,6 +13379,14 @@ function checkDayTradeAutoTrigger() {
 
   // Skip if insufficient cash
   if (w.cash < 15000) return;
+
+  // v13.4: Skip if risk controls block trading
+  var riskGateAuto = checkRiskGate();
+  if (!riskGateAuto.allowed) {
+    console.log('[DT-AUTO] Blocked by risk controls: ' + riskGateAuto.reason);
+    updateDTAutoStatus('⛔ ' + riskGateAuto.reason.substring(0, 60), '#ef4444');
+    return;
+  }
 
   // ── T0: PRE-MARKET SHORTLIST BUILD — 9:25 to 9:30 AM [v6.0 NEW] ──
   // Build catalyst shortlist BEFORE market opens
