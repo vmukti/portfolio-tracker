@@ -13169,7 +13169,7 @@ function loadFundManager() {
   var dtReturnPct = DT_START > 0 ? (dtTotalPnl / DT_START * 100) : 0;
 
   // Paper trade contribution
-  var ptW = getWallet();
+  var ptW = getPT();
   var ptNAV = ptW.cash;
   ptW.positions.forEach(function(p) {
     var s = stocks.find(function(st) { return st.ticker === p.ticker; });
