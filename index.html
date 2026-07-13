@@ -1174,7 +1174,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     <div class="card" style="margin-bottom:16px">
       <h3 style="margin:0 0 12px;font-size:16px">&#128200; Current Intraday Positions</h3>
       <div id="dtPositionsTable" style="font-size:13px">
-        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. AI auto-triggers at 9:20 AM, 11:00 AM &amp; 1:00 PM &mdash; or click &quot;Run Day Trade AI&quot; manually.</div>
+        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. v5.0 Risk-Managed AI auto-triggers at 9:35 AM &amp; 11:00 AM (no afternoon buys) &mdash; SL: -0.8%, equal-weight, max 2 per sector.</div>
       </div>
     </div>
 
@@ -1516,7 +1516,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v13.0 &mdash; AI Wealth Fund Manager + Discovery Engine + Trade Signals + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v13.2 &mdash; AI Wealth Fund Manager + Risk-Managed Day Trade v5.0 + Discovery Engine + Trade Signals + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -11591,16 +11591,17 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
 
   var changePct = prevClose > 0 ? ((price - prevClose) / prevClose * 100) : 0;
 
-  // ═══ FACTOR 1: GAP QUALITY (0-30) ═══
-  // Sweet spot: 1.5-4% gap = continuation pattern (Gap-and-Go)
-  // Too small = no edge; Too big (>6%) = fade/reversal risk
-  if (changePct >= 2 && changePct <= 4) { score += 30; signals.push('PERFECT GAP'); }
-  else if (changePct >= 1.5 && changePct < 2) { score += 25; signals.push('GOOD GAP'); }
-  else if (changePct > 4 && changePct <= 6) { score += 22; signals.push('STRONG GAP'); }
-  else if (changePct >= 1 && changePct < 1.5) { score += 15; signals.push('MILD GAP'); }
-  else if (changePct > 6 && changePct <= 10) { score += 10; signals.push('HOT-CAUTION'); }
-  else if (changePct > 0.3 && changePct < 1) { score += 5; }
-  else if (changePct > 10) { score += 3; signals.push('FADE RISK'); }
+  // ═══ FACTOR 1: GAP QUALITY (0-30) ═══ [v5.0 FIX]
+  // Sweet spot: 1-3% gap = safest continuation pattern (Gap-and-Go)
+  // Key insight: stocks gapped >5% ALMOST ALWAYS fade intraday — HARD PENALTY
+  if (changePct >= 1.5 && changePct <= 3) { score += 30; signals.push('PERFECT GAP'); }
+  else if (changePct > 3 && changePct <= 4.5) { score += 22; signals.push('STRONG GAP'); }
+  else if (changePct >= 1 && changePct < 1.5) { score += 18; signals.push('GOOD GAP'); }
+  else if (changePct >= 0.5 && changePct < 1) { score += 10; signals.push('MILD GAP'); }
+  else if (changePct > 4.5 && changePct <= 6) { score += 5; signals.push('HOT-CAUTION'); }
+  else if (changePct > 6 && changePct <= 8) { score -= 5; signals.push('FADE RISK'); }
+  else if (changePct > 8) { score -= 15; signals.push('OVERGAP-DANGER'); }
+  else if (changePct > 0.3 && changePct < 0.5) { score += 3; }
   // negative or flat = 0 points — hard skip for day trade
 
   // ═══ FACTOR 2: VOLUME CONFIRMATION (0-25) ═══
@@ -12244,8 +12245,8 @@ async function runDayTradeAI() {
     alert('Market opens at 9:15 AM IST. Day Trade AI needs live prices to scan.\n\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + ' AM\nMarket opens in ' + Math.round((915 - hhmm > 100 ? (915 - hhmm - 40) : (915 - hhmm))) + ' minutes.\n\nTip: Use Pre-Market Intel tab for pre-market analysis!');
     return;
   }
-  if (hhmm > 1525) {
-    alert('Market closes at 3:30 PM. Too late for new day trades — no time for intraday exit.\n\nUse "Square Off All" to close any open positions before 3:30 PM.');
+  if (hhmm > 1330) {
+    alert('v5.0 TIME GUARD: No new day trades after 1:30 PM.\n\nReason: Intraday momentum fades after lunch. Buying late = buying at top.\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + '\n\nUse "Square Off All" to close any open positions before 3:30 PM.');
     return;
   }
 
@@ -12259,7 +12260,7 @@ async function runDayTradeAI() {
     statusBadge.style.background = '#f59e0b22';
     statusBadge.style.color = '#f59e0b';
     statusBadge.style.borderColor = '#f59e0b44';
-    statusBadge.innerHTML = '&#9889; v4.0 NEWS-POWERED ENGINE: Scanning ' + (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.length : 300) + '+ stocks...';
+    statusBadge.innerHTML = '&#9889; v5.0 RISK-MANAGED ENGINE: Scanning ' + (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.length : 300) + '+ stocks...';
   }
 
   try {
@@ -12270,7 +12271,7 @@ async function runDayTradeAI() {
     // ══════════════════════════════════════════════════════════
     if (statusBadge) statusBadge.innerHTML = '&#128240; v4.0: Pre-scanning news catalysts...';
     var newsCount = await fetchDayTradeNews();
-    if (statusBadge) statusBadge.innerHTML = '&#9889; v4.0 NEWS-POWERED: Scanning ' + (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.length : 300) + '+ stocks | ' + Object.keys(_dtNewsSentiment).length + ' news signals...';
+    if (statusBadge) statusBadge.innerHTML = '&#9889; v5.0 RISK-MANAGED: Scanning ' + (typeof MOVER_UNIVERSE !== 'undefined' ? MOVER_UNIVERSE.length : 300) + '+ stocks | ' + Object.keys(_dtNewsSentiment).length + ' news signals...';
 
     // ══════════════════════════════════════════════════════════
     //  STEP 1: GATHER ALL CANDIDATES (portfolio + universe)
@@ -12362,7 +12363,7 @@ async function runDayTradeAI() {
           var pct = Math.round(fetched / universeToFetch.length * 100);
           var batchesLeft = Math.ceil((universeToFetch.length - fetched) / batchSize);
           var etaSec = Math.round(batchesLeft * 2.5);
-          statusBadge.innerHTML = '&#9889; v4.1 SCAN: ' + fetched + '/' + universeToFetch.length + ' (' + pct + '%) | ' + Object.keys(candidates).length + ' green | ~' + etaSec + 's left';
+          statusBadge.innerHTML = '&#9889; v5.0 SCAN: ' + fetched + '/' + universeToFetch.length + ' (' + pct + '%) | ' + Object.keys(candidates).length + ' green | ~' + etaSec + 's left';
         }
       }
     }
@@ -12373,9 +12374,9 @@ async function runDayTradeAI() {
     var scored = [];
     Object.values(candidates).forEach(function(c) {
       var changePct3 = c.prevClose > 0 ? ((c.price - c.prevClose) / c.prevClose * 100) : 0;
-      // v3.0: Lower volume floor to 50K — many small/mid movers are thin early morning
-      // The scoring engine already penalizes low volume, so let it through
-      if (changePct3 < 0.3 || c.volume < 50000) return;
+      // v5.0: Volume floor raised to 200K — thin stocks cause slippage losses
+      // Also HARD CAP at 6% — stocks gapped >6% fade intraday (data-proven)
+      if (changePct3 < 0.3 || changePct3 > 8 || c.volume < 200000) return;
 
       var dtScore = dayTradeScore(c.ticker, c.price, c.prevClose, c.high52, c.low52, c.volume, c.sector, c.extraData);
       scored.push({
@@ -12524,18 +12525,39 @@ async function runDayTradeAI() {
     // ══════════════════════════════════════════════════════════
     //  STEP 4: CONCENTRATED PICK — Top 3-5 high-conviction only
     // ══════════════════════════════════════════════════════════
-    var MIN_SCORE = 50; // Higher threshold = higher conviction
-    var picks = scored.filter(function(s) {
+    var MIN_SCORE = 55; // v5.0: Raised threshold — quality over quantity
+    // v5.0 HARD FILTER: Reject overgapped stocks (>6%) — these almost always fade
+    var safeScored = scored.filter(function(s) {
+      return s.changePct <= 6 && s.changePct >= 0.5;
+    });
+    var picks = safeScored.filter(function(s) {
       return s.dtScore >= MIN_SCORE && parseFloat(s.momentum) > 0.5;
     });
 
-    // Cap at 5 picks — concentration is key for 3-5% target
+    // v5.0: SECTOR DIVERSIFICATION — max 2 stocks per sector
+    // Old engine could pick 5 IT stocks; if IT reverses, all 5 lose
+    var sectorCount = {};
+    picks = picks.filter(function(s) {
+      var sec = s.sector || 'Unknown';
+      if (!sectorCount[sec]) sectorCount[sec] = 0;
+      if (sectorCount[sec] >= 2) return false; // Max 2 per sector
+      sectorCount[sec]++;
+      return true;
+    });
+
+    // Cap at 5 picks
     picks = picks.slice(0, 5);
 
-    // If very few quality picks, lower threshold slightly but still need 3+
+    // If very few quality picks, lower threshold slightly but KEEP the overgap filter
     if (picks.length < 2) {
-      picks = scored.filter(function(s) {
-        return s.dtScore >= 35 && parseFloat(s.momentum) > 0;
+      sectorCount = {};
+      picks = safeScored.filter(function(s) {
+        if (s.dtScore < 40 || parseFloat(s.momentum) <= 0) return false;
+        var sec = s.sector || 'Unknown';
+        if (!sectorCount[sec]) sectorCount[sec] = 0;
+        if (sectorCount[sec] >= 2) return false;
+        sectorCount[sec]++;
+        return true;
       }).slice(0, 4);
     }
 
@@ -12552,11 +12574,12 @@ async function runDayTradeAI() {
     }
 
     // ══════════════════════════════════════════════════════════
-    //  STEP 5: CONVICTION-WEIGHTED ALLOCATION
-    //  Top pick gets 35%, 2nd=25%, 3rd=20%, 4th=12%, 5th=8%
-    //  NOT equal weight — concentrate on highest conviction
+    //  STEP 5: RISK-BALANCED ALLOCATION [v5.0 — Equal weight]
+    //  Old: 35%/25%/20% concentration caused single-stock blowups
+    //  New: Equal weight across picks — diversification IS the edge
+    //  Max 20% per pick, max 5 picks = 100% deployed
     // ══════════════════════════════════════════════════════════
-    var CONVICTION_WEIGHTS = [0.35, 0.25, 0.20, 0.12, 0.08];
+    var CONVICTION_WEIGHTS = [0.20, 0.20, 0.20, 0.20, 0.20];
     var totalCash = w.cash;
     var minPerTrade = 12000;
 
@@ -12621,7 +12644,7 @@ async function runDayTradeAI() {
         qty: qty,
         price: pick.price,
         dtScore: pick.dtScore,
-        reason: '⚡ v4 Score ' + pick.dtScore + '/155 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '% | ' + pick.source + (_dtNewsSentiment[pick.ticker] ? ' | News:' + _dtNewsSentiment[pick.ticker].score : ''),
+        reason: '⚡ v5 Score ' + pick.dtScore + '/195 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '% | SL:-0.8% | ' + pick.source + (_dtNewsSentiment[pick.ticker] ? ' | News:' + _dtNewsSentiment[pick.ticker].score : ''),
         source: 'daytrade',
         time: new Date().toISOString()
       });
@@ -12646,7 +12669,7 @@ async function runDayTradeAI() {
       statusBadge.style.color = '#22c55e';
       statusBadge.style.borderColor = '#22c55e44';
       var newsStatus = Object.keys(_dtNewsSentiment).length > 0 ? ' | ' + Object.keys(_dtNewsSentiment).length + ' news catalysts scanned' : '';
-      statusBadge.innerHTML = '&#128994; v4 NEWS-POWERED LIVE: ' + buyCount + ' conviction picks | ' + topSignals.join(', ') + newsStatus;
+      statusBadge.innerHTML = '&#128994; v5.0 RISK-MANAGED: ' + buyCount + ' picks (20% equal-wt, SL -0.8%) | ' + topSignals.join(', ') + newsStatus;
     }
 
     console.log('[DT-v4] Bought ' + buyCount + ' stocks (news-powered + conviction-weighted). Cash: ' + w.cash.toLocaleString('en-IN'));
@@ -12712,20 +12735,21 @@ async function runDayTradeSmartExits() {
     // Update peak price tracking
     if (!pos.peakPrice || livePrice > pos.peakPrice) pos.peakPrice = livePrice;
 
-    // EXIT 1: Hard stop-loss at -1.5%
-    if (returnPct <= -1.5) {
+    // EXIT 1: Hard stop-loss at -0.8% [v5.0 — tighter from -1.5%]
+    // In day trading, capital preservation > hitting home runs
+    if (returnPct <= -0.8) {
       shouldExit = true;
-      exitReason = 'STOP-LOSS: ' + returnPct.toFixed(2) + '% (limit -1.5%)';
+      exitReason = 'STOP-LOSS: ' + returnPct.toFixed(2) + '% (limit -0.8%)';
     }
 
-    // EXIT 2: Trailing stop — activates at +1.5%, trails at 60% of peak gain
+    // EXIT 2: Trailing stop — activates at +0.8%, trails at 50% of peak gain [v5.0 — earlier activation, tighter trail]
     if (!shouldExit && pos.peakPrice && pos.peakPrice > pos.buyPrice) {
       var peakReturn = (pos.peakPrice - pos.buyPrice) / pos.buyPrice * 100;
-      if (peakReturn >= 1.5) {
-        var trailLevel = pos.buyPrice * (1 + peakReturn * 0.006); // Keep 60% of peak gain
+      if (peakReturn >= 0.8) {
+        var trailLevel = pos.buyPrice * (1 + peakReturn * 0.005); // Keep 50% of peak gain
         if (livePrice < trailLevel) {
           shouldExit = true;
-          exitReason = 'TRAIL-STOP: Peak +' + peakReturn.toFixed(1) + '%, now +' + returnPct.toFixed(1) + '% (trail at 60% of peak)';
+          exitReason = 'TRAIL-STOP: Peak +' + peakReturn.toFixed(1) + '%, now +' + returnPct.toFixed(1) + '% (trail at 50% of peak)';
         }
       }
     }
@@ -12736,8 +12760,9 @@ async function runDayTradeSmartExits() {
       exitReason = 'TIME EXIT: 3:10 PM auto square-off | P&L ' + (returnPct >= 0 ? '+' : '') + returnPct.toFixed(2) + '%';
     }
 
-    // EXIT 4: Partial profit booking at +3% — sell half
-    if (!shouldExit && returnPct >= 3 && pos.qty > 1 && !pos.partialBooked) {
+    // EXIT 4: Partial profit booking at +2% — sell half [v5.0 — earlier from +3%]
+    // In day trading, +2% is a GREAT trade. Book half, let half ride with trailing stop.
+    if (!shouldExit && returnPct >= 2 && pos.qty > 1 && !pos.partialBooked) {
       var halfQty = Math.floor(pos.qty / 2);
       if (halfQty >= 1) {
         var partialPnl = (livePrice - pos.buyPrice) * halfQty;
@@ -12792,12 +12817,12 @@ async function runDayTradeSmartExits() {
 
 // (OLD exit monitor moved into Auto Day Trade Engine below)
 // ---------------------------------------------------------------
-//  AUTO DAY TRADE ENGINE v1.0 — Multi-Trigger Smart Automation
-//  Trigger Points:
-//    T1: 9:20 AM — Opening Momentum (primary, first-hour edge)
+//  AUTO DAY TRADE ENGINE v2.0 — Risk-Managed Automation [v5.0]
+//  Trigger Points (REVISED — old 9:20 was too early, afternoon buys lose money):
+//    T1: 9:35 AM — Post-Opening Scan (let first 20 min chaos settle)
 //    T2: 11:00 AM — Mid-Morning Re-scan (if morning was flat/no picks)
-//    T3: 1:00 PM — Afternoon Catalyst (post-lunch breakouts)
-//    T4: 3:10 PM — Auto Square-Off (already in exit monitor)
+//    T3: REMOVED — No afternoon buys (data shows momentum fades after lunch)
+//    T4: 3:10 PM — Auto Square-Off (in exit monitor)
 //  Each trigger fires ONCE per day (localStorage gate)
 //  If positions already open, buy triggers skip (only T4 fires)
 // ---------------------------------------------------------------
@@ -12839,13 +12864,13 @@ function checkDayTradeAutoTrigger() {
   // Skip if insufficient cash
   if (w.cash < 15000) return;
 
-  // ── T1: MORNING OPEN — 9:20 to 9:30 AM ──
-  // Best edge: first hour has maximum momentum from overnight gaps
-  if (!autoState.t1_morning && hhmm >= 920 && hhmm <= 930 && w.positions.length === 0) {
+  // ── T1: POST-OPENING SCAN — 9:35 to 9:45 AM [v5.0 — delayed from 9:20] ──
+  // Let first 20 min of wild swings settle. By 9:35, real trends emerge.
+  if (!autoState.t1_morning && hhmm >= 935 && hhmm <= 945 && w.positions.length === 0) {
     autoState.t1_morning = true;
     saveDTAutoState(autoState);
-    console.log('[DT-AUTO] T1 MORNING TRIGGER: 9:20 AM — Running opening momentum scan...');
-    updateDTAutoStatus('T1: Morning scan starting...', '#22c55e');
+    console.log('[DT-AUTO] T1 POST-OPEN TRIGGER: 9:35 AM — Running after opening chaos settles...');
+    updateDTAutoStatus('T1: Post-open scan (chaos settled)...', '#22c55e');
     runDayTradeAI();
     return;
   }
@@ -12861,16 +12886,9 @@ function checkDayTradeAutoTrigger() {
     return;
   }
 
-  // ── T3: AFTERNOON CATALYST — 1:00 to 1:10 PM ──
-  // Post-lunch breakouts, news-driven afternoon moves
-  if (!autoState.t3_afternoon && hhmm >= 1300 && hhmm <= 1310 && w.positions.length === 0) {
-    autoState.t3_afternoon = true;
-    saveDTAutoState(autoState);
-    console.log('[DT-AUTO] T3 AFTERNOON TRIGGER: 1:00 PM — Scanning for afternoon catalysts...');
-    updateDTAutoStatus('T3: Afternoon catalyst scan...', '#f97316');
-    runDayTradeAI();
-    return;
-  }
+  // ── T3: REMOVED in v5.0 — afternoon buys historically lose money ──
+  // Data showed buying after 1 PM = buying at intraday top = consistent losses
+  // The old T3 afternoon trigger at 1:00 PM was a major loss contributor
 
   // Update status display with next trigger info
   updateDTAutoCountdown(hhmm, w.positions.length, autoState);
@@ -12891,15 +12909,12 @@ function updateDTAutoCountdown(hhmm, posCount, autoState) {
   var nextTrigger = '';
   var nextTime = '';
 
-  if (hhmm < 920 && !autoState.t1_morning) {
-    nextTrigger = 'T1 Morning Scan';
-    nextTime = '9:20 AM';
+  if (hhmm < 935 && !autoState.t1_morning) {
+    nextTrigger = 'T1 Post-Open Scan';
+    nextTime = '9:35 AM';
   } else if (hhmm < 1100 && !autoState.t2_midday && posCount === 0) {
     nextTrigger = 'T2 Mid-Morning Re-scan';
     nextTime = '11:00 AM';
-  } else if (hhmm < 1300 && !autoState.t3_afternoon && posCount === 0) {
-    nextTrigger = 'T3 Afternoon Catalyst';
-    nextTime = '1:00 PM';
   } else if (posCount > 0) {
     nextTrigger = 'T4 Auto Square-Off';
     nextTime = '3:10 PM';
