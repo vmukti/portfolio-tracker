@@ -490,6 +490,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
       <input type="text" id="searchInput" placeholder="Search by name, ticker, or sector..." oninput="filterTable()">
       <select id="layerFilter" onchange="filterTable()">
         <option value="all">All Categories</option>
+        <option value="Holdings">&#128176; My Holdings</option>
         <option value="Immediate">&#9889; Immediate (1-2 Weeks)</option>
         <option value="1-Month">&#128197; One-Month (July)</option>
         <option value="Long-Term">&#127942; Long-Term (3-5 Years)</option>
@@ -1524,6 +1525,10 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 //  STOCK DATA &mdash; All 70 stocks with Yahoo Finance tickers
 // ============================================================
 const stocks = [
+  // ===== MY HOLDINGS — Actual Portfolio Positions =====
+  {name:"Allcargo Logistics",ticker:"ALLCARGO",scanStatus:"INTACT",yf:"ALLCARGO.NS",layer:"Holdings",sector:"Logistics",cmp:0,prevClose:0,change:0,changePct:0,mcap:1200,pe:15,roce:10,low52:7,high52:16,score:6.0,thesis:"Integrated logistics player. Post-demerger (ECU Worldwide) pure-play on India logistics. Asset-light 3PL + CFS/ICD network.",catalyst:"POST-DEMERGER RE-RATING",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Jio Financial Services",ticker:"JIOFIN",scanStatus:"INTACT",yf:"JIOFIN.NS",layer:"Holdings",sector:"Fintech",cmp:0,prevClose:0,change:0,changePct:0,mcap:160000,pe:100,roce:2,low52:223,high52:339,score:6.5,thesis:"Reliance-backed financial services platform. Insurance (BlackRock JV), lending, broking, payments. Early-stage but massive distribution moat via Jio ecosystem.",catalyst:"FINANCIAL SERVICES BUILDOUT",catalystDate:"",vol:0,avgVol:0,loaded:false},
+
   // ===== IMMEDIATE — 1-2 Week Catalysts (10 stocks) =====
   {name:"Cyient",ticker:"CYIENT",scanStatus:"STRENGTHENING",yf:"CYIENT.NS",layer:"Immediate",sector:"AI/Semi Design",cmp:0,prevClose:0,change:0,changePct:0,mcap:10225,pe:24,roce:20,low52:750,high52:1376,score:8.5,thesis:"Buyback tender at ₹1,125 (32.8% premium to CMP). Window Jun 23-30. Azimuth AI ASIC stake.",catalyst:"BUYBACK TENDER Jun 23-30 @ ₹1,125",catalystDate:"2026-06-30",vol:0,avgVol:0,loaded:false},
   {name:"Dixon Technologies",ticker:"DIXON",scanStatus:"STRENGTHENING",yf:"DIXON.NS",layer:"Immediate",sector:"EMS/Technology",cmp:0,prevClose:0,change:0,changePct:0,mcap:87000,pe:95,roce:28,low52:10000,high52:19400,score:8.0,thesis:"Govt approval of Dixon-Vivo JV imminent. ~22M handsets/yr shift. India #1 EMS.",catalyst:"GOVT JV APPROVAL imminent",catalystDate:"2026-06-30",vol:0,avgVol:0,loaded:false},
@@ -1704,7 +1709,7 @@ function updateApiBadge() {
 }
 
 // Apply Yahoo Finance data to a stock object
-function applyPriceData(stock, price, prevClose, volume, high52, low52) {
+function applyPriceData(stock, price, prevClose, volume, high52, low52, dayHigh, dayLow) {
   const oldCmp = stock.cmp;
   stock.cmp = Math.round((price || 0) * 100) / 100;
   stock.prevClose = prevClose || 0;
@@ -1713,6 +1718,13 @@ function applyPriceData(stock, price, prevClose, volume, high52, low52) {
   stock.vol = volume || 0;
   if (high52) stock.high52 = high52;
   if (low52) stock.low52 = low52;
+  // Intraday fields for Signal Engine
+  if (dayHigh) stock.dayHigh = dayHigh;
+  if (dayLow) stock.dayLow = dayLow;
+  // Derive open from prevClose (Yahoo doesn't always give explicit open)
+  if (!stock.open && stock.prevClose > 0) stock.open = stock.prevClose;
+  // Approximate avgVol from current volume if not set
+  if (!stock.avgVol || stock.avgVol <= 0) stock.avgVol = Math.round((stock.vol || 0) * 0.8);
   stock.loaded = true;
   checkAlerts(stock, oldCmp);
   // Flash animation
@@ -1736,7 +1748,7 @@ async function fetchViaAppsScript() {
     if (data.data.stocks) {
       stocks.forEach(s => {
         const d = data.data.stocks[s.yf];
-        if (d) { applyPriceData(s, d.price, d.prevClose, d.volume, d.high52, d.low52); loadedCount++; }
+        if (d) { applyPriceData(s, d.price, d.prevClose, d.volume, d.high52, d.low52, d.dayHigh, d.dayLow); loadedCount++; }
       });
     }
 
@@ -1801,7 +1813,7 @@ async function fetchPriceViaProxy(stock) {
       const result = data?.chart?.result?.[0];
       if (!result) continue;
       const meta = result.meta;
-      applyPriceData(stock, meta.regularMarketPrice, meta.previousClose || meta.chartPreviousClose, meta.regularMarketVolume, meta.fiftyTwoWeekHigh, meta.fiftyTwoWeekLow);
+      applyPriceData(stock, meta.regularMarketPrice, meta.previousClose || meta.chartPreviousClose, meta.regularMarketVolume, meta.fiftyTwoWeekHigh, meta.fiftyTwoWeekLow, meta.regularMarketDayHigh, meta.regularMarketDayLow);
       return true;
     } catch(e) { continue; }
   }
@@ -3645,7 +3657,7 @@ function renderAIFitPanel(report, ticker, companyName) {
 
   // Suggested layer
   if (report.suggestedLayer) {
-    const layerColors = { 'Immediate': '#22c55e', '1-Month': '#3b82f6', 'Long-Term': '#8b5cf6' };
+    const layerColors = { 'Holdings': '#f59e0b', 'Immediate': '#22c55e', '1-Month': '#3b82f6', 'Long-Term': '#8b5cf6' };
     html += '<div style="font-size:12px;margin-bottom:16px">Suggested layer: <span style="background:' + (layerColors[report.suggestedLayer]||'#64748b') + '33;color:' + (layerColors[report.suggestedLayer]||'#64748b') + ';padding:2px 10px;border-radius:4px;font-weight:600">' + report.suggestedLayer + '</span></div>';
   }
 
@@ -13702,14 +13714,14 @@ function runSignalEngine() {
 
     // Strategy 1: Opening Range Breakout (ORB)
     // Stocks breaking above the day's opening range with volume
-    if (s.dayHigh && s.dayLow && s.open) {
+    if (s.dayHigh && s.dayLow) {
       var range = s.dayHigh - s.dayLow;
       var rangeAsPercent = s.dayLow > 0 ? (range / s.dayLow * 100) : 0;
-      if (s.cmp >= s.dayHigh * 0.98 && rangeAsPercent > 1.5 && volRatio > 1.2) {
+      if (s.cmp >= s.dayHigh * 0.98 && rangeAsPercent > 0.8 && volRatio > 1.0) {
         var orbTarget = s.cmp + range * 0.618;
         var orbStop = s.dayLow;
-        var rr = orbStop > 0 ? ((orbTarget - s.cmp) / (s.cmp - orbStop)) : 1;
-        if (rr > 1.5) {
+        var rr = orbStop > 0 && s.cmp > orbStop ? ((orbTarget - s.cmp) / (s.cmp - orbStop)) : 1;
+        if (rr > 1.0) {
           signals.push({
             ticker: s.ticker, name: s.name || s.ticker,
             strategy: 'ORB', stratColor: '#22c55e',
@@ -13725,7 +13737,7 @@ function runSignalEngine() {
 
     // Strategy 2: VWAP (Volume Weighted Avg Price approximation)
     // Price near or below VWAP with volume = buy zone
-    if (s.open && s.dayHigh && s.dayLow) {
+    if (s.dayHigh && s.dayLow) {
       var vwapApprox = (s.dayHigh + s.dayLow + s.cmp) / 3; // simplified VWAP
       var vwapDist = (s.cmp - vwapApprox) / vwapApprox * 100;
       if (vwapDist < -0.5 && vwapDist > -3 && chg > -1 && volRatio > 1) {
@@ -13745,11 +13757,12 @@ function runSignalEngine() {
     }
 
     // Strategy 3: Gap & Go — gapped up from open with volume
-    if (s.open && s.prevClose && s.prevClose > 0) {
-      var gapPct = (s.open - s.prevClose) / s.prevClose * 100;
-      if (gapPct > 1.5 && s.cmp >= s.open && volRatio > 1.5) {
+    if (s.prevClose && s.prevClose > 0 && s.dayLow) {
+      var effectiveOpen = s.open || s.dayLow;
+      var gapPct = (effectiveOpen - s.prevClose) / s.prevClose * 100;
+      if (gapPct > 1.0 && s.cmp >= effectiveOpen && volRatio > 1.0) {
         var gapTarget = s.cmp * 1.03;
-        var gapStop = s.open * 0.995;
+        var gapStop = effectiveOpen * 0.995;
         signals.push({
           ticker: s.ticker, name: s.name || s.ticker,
           strategy: 'GAP & GO', stratColor: '#f59e0b',
@@ -13765,7 +13778,7 @@ function runSignalEngine() {
 
     // Strategy 4: Relative Strength vs Market — outperforming Nifty
     var rs = chg - mktAvgChg;
-    if (rs > 2 && chg > 1 && volRatio > 1) {
+    if (rs > 1.5 && chg > 0.5 && volRatio >= 1.0) {
       var rsTarget = s.cmp * 1.025;
       var rsStop = s.cmp * 0.985;
       signals.push({
