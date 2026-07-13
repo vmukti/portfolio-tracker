@@ -3030,6 +3030,62 @@ function _buildPreMarketPanel(pmDiv) {
       }
     }
 
+    // ── SIGNAL 11: 12-Dimension Unified Intelligence (0-15) ──
+    try {
+      var uIntel = getUnifiedIntelligence(s.ticker);
+      if (uIntel && uIntel.composite > 0) {
+        if (uIntel.dimensions.economic && uIntel.dimensions.economic.score >= 2) {
+          score += 4; confidence += 3;
+          reasons.push('📊 Macro: ' + uIntel.dimensions.economic.label);
+        } else if (uIntel.dimensions.economic && uIntel.dimensions.economic.score <= -2) {
+          score -= 3;
+          reasons.push('📊 Macro headwind');
+        }
+        if (uIntel.dimensions.risk && uIntel.dimensions.risk.riskLevel === 'HIGH RISK') {
+          score -= 4;
+          reasons.push('⚠️ High risk: ' + (uIntel.dimensions.risk.factors || []).slice(0,2).join(', '));
+        } else if (uIntel.dimensions.risk && uIntel.dimensions.risk.riskLevel === 'LOW RISK') {
+          score += 2;
+        }
+        if (uIntel.dimensions.growth && uIntel.dimensions.growth.isGrowth) {
+          score += 3; confidence += 2;
+          reasons.push('🌱 Growth: ROCE ' + (uIntel.dimensions.growth.roceLabel || ''));
+        }
+        if (uIntel.dimensions.weather && uIntel.dimensions.weather.score >= 2) {
+          score += 2;
+          reasons.push('🌧️ ' + uIntel.dimensions.weather.label);
+        } else if (uIntel.dimensions.weather && uIntel.dimensions.weather.score <= -2) {
+          score -= 2;
+          reasons.push('☀️ Weather drag: ' + uIntel.dimensions.weather.label);
+        }
+        if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score >= 2) {
+          score += 2;
+          if (direction === 'NEUTRAL') direction = 'UP';
+        } else if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score <= -2) {
+          score -= 2;
+          if (direction === 'NEUTRAL') direction = 'DOWN';
+        }
+        if (uIntel.dimensions.value && uIntel.dimensions.value.isBuffettZone) {
+          score += 3; confidence += 2;
+          reasons.push('💎 Buffett Zone value');
+        }
+        if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.riskLevel === 'HIGH') {
+          score -= 2;
+          reasons.push('🌍 Geopolitical risk');
+        } else if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.beneficiary) {
+          score += 2;
+          reasons.push('🌍 China+1 beneficiary');
+        }
+        if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore >= 3) {
+          score += 1;
+        }
+        if (uIntel.dimensions.diversification && uIntel.dimensions.diversification.concentrationRisk === 'HIGH') {
+          score -= 2;
+          reasons.push('📦 Sector concentration risk');
+        }
+      }
+    } catch(e) { /* unified intel not available */ }
+
     // Cap confidence at 95
     confidence = Math.min(95, Math.max(10, confidence));
 
@@ -9936,6 +9992,47 @@ function computeSignals(data, portfolioStock) {
   else if (rangeRatio > 0.80) signals.push({type:'volatility',label:'High Volatility — Wide Range',strength:'weak',icon:'⚡'});
   if (posIn52W >= 45 && posIn52W <= 70 && changePct >= 0) signals.push({type:'sweetspot',label:'Sweet Spot — Uptrend Mid-Range',strength:'moderate',icon:'✅'});
   if (portfolioStock && portfolioStock.catalyst) signals.push({type:'catalyst',label:'Catalyst: '+portfolioStock.catalyst.substring(0,40),strength:'strong',icon:'🎯'});
+
+  // ── 12-DIMENSION UNIFIED INTELLIGENCE SIGNALS ──
+  try {
+    const ticker = portfolioStock ? portfolioStock.ticker : '';
+    if (ticker && typeof getUnifiedIntelligence === 'function') {
+      const uIntel = getUnifiedIntelligence(ticker);
+      if (uIntel && uIntel.composite > 0) {
+        if (uIntel.dimensions.economic && uIntel.dimensions.economic.score >= 2) {
+          signals.push({type:'economic',label:'Macro Tailwind: '+uIntel.dimensions.economic.label,strength:'moderate',icon:'📊'});
+        } else if (uIntel.dimensions.economic && uIntel.dimensions.economic.score <= -2) {
+          signals.push({type:'economic',label:'Macro Headwind Active',strength:'moderate',icon:'📊'});
+        }
+        if (uIntel.dimensions.weather && Math.abs(uIntel.dimensions.weather.score) >= 2) {
+          signals.push({type:'weather',label:uIntel.dimensions.weather.label,strength:Math.abs(uIntel.dimensions.weather.score)>=3?'strong':'moderate',icon:uIntel.dimensions.weather.score>0?'🌧️':'☀️'});
+        }
+        if (uIntel.dimensions.growth && uIntel.dimensions.growth.isGrowth) {
+          signals.push({type:'growth',label:'GARP Growth — ROCE '+uIntel.dimensions.growth.roceLabel,strength:'strong',icon:'🌱'});
+        }
+        if (uIntel.dimensions.value && uIntel.dimensions.value.isBuffettZone) {
+          signals.push({type:'value',label:'Buffett Zone — Deep Value',strength:'strong',icon:'💎'});
+        }
+        if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score >= 3) {
+          signals.push({type:'sentiment',label:'Market Greed — Sentiment Bullish',strength:'moderate',icon:'🐂'});
+        } else if (uIntel.dimensions.sentiment && uIntel.dimensions.sentiment.score <= -3) {
+          signals.push({type:'sentiment',label:'Market Fear — Sentiment Bearish',strength:'moderate',icon:'🐻'});
+        }
+        if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.riskLevel === 'HIGH') {
+          signals.push({type:'geopolitical',label:'Geopolitical Risk Elevated',strength:'strong',icon:'🌍'});
+        } else if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.beneficiary) {
+          signals.push({type:'geopolitical',label:'China+1 Beneficiary Sector',strength:'moderate',icon:'🌍'});
+        }
+        if (uIntel.dimensions.risk && uIntel.dimensions.risk.riskLevel === 'HIGH RISK') {
+          signals.push({type:'risk',label:'High Risk — '+(uIntel.dimensions.risk.factors||[]).slice(0,2).join(', '),strength:'strong',icon:'⚠️'});
+        }
+        if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore >= 3) {
+          signals.push({type:'astro',label:'Cosmic Alignment Favorable',strength:'weak',icon:'🔮'});
+        }
+      }
+    }
+  } catch(e) { /* unified intel unavailable */ }
+
   return signals;
 }
 
