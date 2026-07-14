@@ -1147,8 +1147,8 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
   <div id="tab-daytrade" style="display:none">
     <div style="text-align:center;padding:20px 0 10px">
-      <h2 style="margin:0;font-size:22px">&#9889; AI Day Trade Simulator v3.0 &mdash; Predator Detection Engine</h2>
-      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">v13.5: Stop Hunt Detector + FII/DII Flow Momentum + Retail Sentiment Radar + Edge Probability + Institutional Footprint + News Velocity</p>
+      <h2 style="margin:0;font-size:22px">&#9889; AI Day Trade Simulator v4.0 &mdash; Legends Engine</h2>
+      <p style="color:var(--muted);margin:4px 0 0;font-size:13px">v13.6: Minervini Trend Template + PTJ 200-Day MA Defense + Reward:Risk Ratio + Conviction Sizing + Predator Detection + 14 Legendary Traders' Wisdom</p>
       <div id="dtStatusBadge" style="display:inline-block;margin-top:8px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#4f8cff22;color:#4f8cff;border:1px solid #4f8cff44">&#128337; STATUS: No positions &mdash; Market ready</div>
       <div id="dtAutoStatus" style="display:inline-block;margin-top:8px;margin-left:12px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:600;background:#22c55e11;color:#60a5fa;border:1px solid #22c55e33">&#9889; AUTO: Initializing...</div>
     </div>
@@ -1183,6 +1183,30 @@ tbody tr.flash-down{animation:flashRed .8s ease}
         <div style="font-size:9px;color:#ef4444;font-weight:700;letter-spacing:0.5px">EDGE PROBABILITY</div>
         <div id="predatorEdge" style="font-size:14px;font-weight:800;color:#ef4444;margin-top:2px">&#8212;</div>
         <div id="predatorEdgeDetail" style="font-size:9px;color:var(--muted);margin-top:1px">Win rate tracking</div>
+      </div>
+    </div>
+
+    <!-- v13.6: Legends Intelligence Dashboard -->
+    <div id="legendsDashboard" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;padding:10px;background:var(--card2);border-radius:10px;border:1px solid #f59e0b40">
+      <div style="text-align:center;padding:6px">
+        <div style="font-size:9px;color:#22c55e;font-weight:700;letter-spacing:0.5px">TREND TEMPLATE</div>
+        <div id="legendsTrend" style="font-size:14px;font-weight:800;color:#22c55e;margin-top:2px">&#8212;</div>
+        <div id="legendsTrendDetail" style="font-size:9px;color:var(--muted);margin-top:1px">Minervini 8-point</div>
+      </div>
+      <div style="text-align:center;padding:6px">
+        <div style="font-size:9px;color:#60a5fa;font-weight:700;letter-spacing:0.5px">REWARD:RISK</div>
+        <div id="legendsRR" style="font-size:14px;font-weight:800;color:#60a5fa;margin-top:2px">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px">PTJ seeks 5:1</div>
+      </div>
+      <div style="text-align:center;padding:6px">
+        <div style="font-size:9px;color:#a78bfa;font-weight:700;letter-spacing:0.5px">CONVICTION SIZE</div>
+        <div id="legendsConviction" style="font-size:14px;font-weight:800;color:#a78bfa;margin-top:2px">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px">Druckenmiller sizing</div>
+      </div>
+      <div style="text-align:center;padding:6px">
+        <div style="font-size:9px;color:#ef4444;font-weight:700;letter-spacing:0.5px">LEGENDS BLOCKED</div>
+        <div id="legendsBlocked" style="font-size:14px;font-weight:800;color:#ef4444;margin-top:2px">0</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px">200MA + Bad R:R</div>
       </div>
     </div>
 
@@ -1540,7 +1564,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v13.5 &mdash; AI Wealth Fund Manager + Predator Detection Engine + Stop Hunt Detector + FII/DII Flow Momentum + Retail Sentiment Radar + Edge Probability + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v13.6 &mdash; AI Wealth Fund Manager + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -12449,6 +12473,270 @@ async function initPredatorEngine() {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  v13.6: LEGENDS ENGINE — Wisdom of 14 Legendary Traders
+//  Source: Jhunjhunwala, Damani, Kedia, Mukherjea, Pabrai (India)
+//         Soros, Druckenmiller, PTJ, Livermore, Seykota,
+//         Minervini, O'Neil, Darvas, Larry Williams (Global)
+//
+//  System 1: Minervini Trend Template (8-point qualification gate)
+//  System 2: 200-Day MA Defense (PTJ #1 rule — hard block)
+//  System 3: Reward:Risk Ratio Calculator (PTJ 5:1 principle)
+//  System 4: Conviction-Based Position Sizing (Druckenmiller)
+//  System 5: Legends Composite Score (unified gate)
+// ═══════════════════════════════════════════════════════════════════
+
+// ① MINERVINI TREND TEMPLATE — 8-Point Stock Qualification Gate
+// Mark Minervini: 220% CAGR, won US Investing Championship twice (155% & 334%)
+// SEPA method: only buy stocks in confirmed Stage 2 uptrend
+// Uses 52-week position as proxy for moving averages
+function getMinerviniTrendTemplate(ticker, price, prevClose, high52, low52, volume, changePct, dayHigh, dayLow) {
+  var score = 0;
+  var signals = [];
+  var blocked = false;
+  var blockReason = '';
+
+  var range52 = high52 - low52;
+  var pos52 = (range52 > 0) ? (price - low52) / range52 : 0.5;
+  var aboveLow = (low52 > 0) ? ((price - low52) / low52 * 100) : 0;
+  var belowHigh = (high52 > 0) ? ((high52 - price) / high52 * 100) : 0;
+
+  // ═══ PTJ 200-DAY MA DEFENSE — HARD GATE ═══
+  // Paul Tudor Jones: "If price drops below the 200-day MA, get out."
+  // 25 years, zero losing years — this is his #1 rule.
+  // If stock is in bottom 35% of annual range → almost certainly below 200-day MA
+  if (pos52 < 0.35) {
+    blocked = true;
+    blockReason = 'BELOW-200MA: Stock at ' + Math.round(pos52 * 100) + '% of 52wk range (PTJ defense line)';
+    signals.push('200MA-BLOCK');
+    return { score: 0, maxScore: 8, pct: 0, signals: signals, blocked: blocked, blockReason: blockReason, pass: false, pos52: pos52, aboveLow: Math.round(aboveLow), belowHigh: Math.round(belowHigh) };
+  }
+
+  // Point 1: Above 200-day MA proxy (pos52 >= 0.40)
+  if (pos52 >= 0.40) { score++; signals.push('ABOVE-200MA'); }
+
+  // Point 2: Above 150-day MA proxy (pos52 >= 0.55)
+  if (pos52 >= 0.55) { score++; signals.push('ABOVE-150MA'); }
+
+  // Point 3: Above 50-day MA proxy (pos52 >= 0.65)
+  if (pos52 >= 0.65) { score++; signals.push('ABOVE-50MA'); }
+
+  // Point 4: 25%+ above 52-week low (Minervini actual SEPA rule)
+  if (aboveLow >= 25) { score++; signals.push('25%+ABOVE-LOW'); }
+
+  // Point 5: Within 25% of 52-week high (Minervini actual SEPA rule)
+  if (belowHigh <= 25) { score++; signals.push('NEAR-52W-HIGH'); }
+
+  // Point 6: Intraday trend intact (not collapsing today)
+  // Livermore: "Trade only when the path of least resistance is clear"
+  if (changePct >= -0.3) { score++; signals.push('TREND-OK'); }
+
+  // Point 7: Volume health — stock is liquid, not dead
+  // O'Neil: Volume confirms institutional participation
+  if (volume >= 50000) { score++; signals.push('VOL-ALIVE'); }
+
+  // Point 8: Relative strength — stock outperforming market
+  // Minervini: RS ranking in top 30%
+  if (changePct >= 0.5) { score++; signals.push('RS-STRONG'); }
+
+  var pass = score >= 5; // Need 5/8 minimum to qualify
+
+  return {
+    score: score, maxScore: 8, pct: Math.round(score / 8 * 100),
+    signals: signals, blocked: blocked, blockReason: blockReason,
+    pass: pass, pos52: pos52, aboveLow: Math.round(aboveLow), belowHigh: Math.round(belowHigh)
+  };
+}
+
+// ② REWARD:RISK RATIO CALCULATOR
+// Paul Tudor Jones: "Seek $5 profit for every $1 risked" (5:1)
+// At 5:1, you only need 20% win rate to be profitable.
+// Ed Seykota: "Risk <1% per trade" — the denominator of R:R
+function calculateRewardRisk(price, high52, low52, prevClose, dayHigh, dayLow, stopLossPct) {
+  stopLossPct = stopLossPct || 0.008;
+
+  var signals = [];
+  var blocked = false;
+  var blockReason = '';
+
+  var riskPerShare = price * stopLossPct;
+  var pos52 = (high52 > low52) ? (price - low52) / (high52 - low52) : 0.5;
+
+  // REWARD: conservative upside potential for day trade
+  var distToHigh = high52 > price ? (high52 - price) / price : 0;
+  var todayRange = (dayHigh > 0 && dayLow > 0) ? (dayHigh - dayLow) / price : 0;
+  var baseTarget = 0.015;
+
+  var rewardPct = Math.min(baseTarget, Math.max(distToHigh, todayRange));
+  if (rewardPct < 0.005) rewardPct = 0.005;
+  if (rewardPct > 0.03) rewardPct = 0.03;
+
+  var rewardPerShare = price * rewardPct;
+  var ratio = riskPerShare > 0 ? (rewardPerShare / riskPerShare) : 0;
+  ratio = Math.round(ratio * 10) / 10;
+
+  var score = 0;
+  if (ratio >= 5.0) { score = 20; signals.push('RR-5:1'); }
+  else if (ratio >= 4.0) { score = 15; signals.push('RR-4:1'); }
+  else if (ratio >= 3.0) { score = 10; signals.push('RR-3:1'); }
+  else if (ratio >= 2.0) { score = 5; signals.push('RR-2:1'); }
+  else if (ratio >= 1.5) { score = 0; signals.push('RR-1.5:1'); }
+  else {
+    score = -15;
+    blocked = true;
+    blockReason = 'BAD-RR: ' + ratio.toFixed(1) + ':1 (need 2:1 min, PTJ seeks 5:1)';
+    signals.push('RR-POOR');
+  }
+
+  return {
+    ratio: ratio, rewardPct: Math.round(rewardPct * 1000) / 10,
+    riskPct: Math.round(stopLossPct * 1000) / 10,
+    score: score, signals: signals, blocked: blocked, blockReason: blockReason
+  };
+}
+
+// ③ CONVICTION-BASED POSITION SIZING MULTIPLIER
+// Druckenmiller (30 yrs, zero down years): "Be a pig when conviction is high"
+// Damani: Concentrated portfolio of high-conviction bets
+// Pabrai: "50-80% in 5-10 great ideas"
+// Kedia: "Stake always >5%" — meaningful positions or nothing
+function getConvictionMultiplier(trendScore, rrRatio, predatorScore, hasCatalyst) {
+  var multiplier = 1.0;
+  var signals = [];
+
+  // Trend Template conviction
+  if (trendScore >= 8) { multiplier *= 1.5; signals.push('TREND-PERFECT'); }
+  else if (trendScore >= 7) { multiplier *= 1.3; signals.push('TREND-STRONG'); }
+  else if (trendScore >= 6) { multiplier *= 1.15; signals.push('TREND-GOOD'); }
+
+  // R:R conviction
+  if (rrRatio >= 5.0) { multiplier *= 1.4; signals.push('RR-ELITE'); }
+  else if (rrRatio >= 4.0) { multiplier *= 1.25; signals.push('RR-GREAT'); }
+  else if (rrRatio >= 3.0) { multiplier *= 1.1; signals.push('RR-SOLID'); }
+
+  // Predator Engine positive confirmation
+  if (predatorScore >= 20) { multiplier *= 1.2; signals.push('PRED-CLEAR'); }
+  else if (predatorScore >= 10) { multiplier *= 1.1; signals.push('PRED-OK'); }
+
+  // Catalyst confirmation (Jhunjhunwala: trade only with catalysts)
+  if (hasCatalyst) { multiplier *= 1.1; signals.push('CATALYST+'); }
+
+  // Cap at 2.5x (aggressive but not reckless)
+  if (multiplier > 2.5) multiplier = 2.5;
+  if (multiplier < 0.5) multiplier = 0.5;
+
+  return {
+    multiplier: Math.round(multiplier * 100) / 100,
+    signals: signals,
+    isHighConviction: multiplier >= 1.5,
+    isMaxConviction: multiplier >= 2.0
+  };
+}
+
+// ④ LEGENDS COMPOSITE SCORE — Unified Quality Gate
+function getLegendsCompositeScore(ticker, price, prevClose, high52, low52, volume, changePct, dayHigh, dayLow, predatorScore, hasCatalyst) {
+  var totalScore = 0;
+  var signals = [];
+  var blocked = false;
+  var blockReason = '';
+
+  // System 1: Minervini Trend Template
+  var trend = getMinerviniTrendTemplate(ticker, price, prevClose, high52, low52, volume, changePct, dayHigh, dayLow);
+
+  if (trend.blocked) {
+    return { totalScore: -30, signals: ['200MA-BLOCK'], blocked: true, blockReason: trend.blockReason,
+      trendTemplate: trend, rewardRisk: null, conviction: null, sizeMultiplier: 0.5 };
+  }
+
+  // Trend template score (scaled: 8pts → 0-25 score range)
+  var trendBonus = 0;
+  if (trend.score >= 8) { trendBonus = 25; signals.push('TREND-8/8'); }
+  else if (trend.score >= 7) { trendBonus = 18; signals.push('TREND-7/8'); }
+  else if (trend.score >= 6) { trendBonus = 12; signals.push('TREND-6/8'); }
+  else if (trend.score >= 5) { trendBonus = 6; signals.push('TREND-5/8'); }
+  else { trendBonus = -10; signals.push('TREND-WEAK'); }
+  totalScore += trendBonus;
+
+  // System 2+3: Reward:Risk Ratio
+  var rr = calculateRewardRisk(price, high52, low52, prevClose, dayHigh, dayLow, 0.008);
+
+  if (rr.blocked) {
+    return { totalScore: totalScore - 15, signals: signals.concat(rr.signals), blocked: true, blockReason: rr.blockReason,
+      trendTemplate: trend, rewardRisk: rr, conviction: null, sizeMultiplier: 0.5 };
+  }
+  totalScore += rr.score;
+  signals = signals.concat(rr.signals);
+
+  // System 4: Conviction Sizing
+  predatorScore = predatorScore || 0;
+  var conviction = getConvictionMultiplier(trend.score, rr.ratio, predatorScore, hasCatalyst);
+  signals = signals.concat(conviction.signals);
+
+  // Livermore bonus: Near 52wk high with controlled advance = best setup
+  if (trend.pos52 >= 0.85 && changePct >= 0 && changePct <= 3) {
+    totalScore += 8; signals.push('LIVERMORE-SETUP');
+  }
+
+  // Darvas Box bonus: New high territory with volume
+  if (trend.pos52 >= 0.95 && volume >= 100000) {
+    totalScore += 5; signals.push('DARVAS-BREAKOUT');
+  }
+
+  // Kedia SMILE bonus: Strong trend + good R:R + catalyst = quality setup
+  if (trend.score >= 6 && rr.ratio >= 3.0 && hasCatalyst) {
+    totalScore += 5; signals.push('KEDIA-SMILE');
+  }
+
+  if (totalScore > 50) totalScore = 50;
+  if (totalScore < -30) totalScore = -30;
+
+  return {
+    totalScore: totalScore, signals: signals, blocked: blocked, blockReason: blockReason,
+    trendTemplate: trend, rewardRisk: rr, conviction: conviction,
+    sizeMultiplier: conviction.multiplier
+  };
+}
+
+// ⑤ UPDATE LEGENDS DASHBOARD UI
+function updateLegendsDashboard(legendsResults) {
+  var trendEl = document.getElementById('legendsTrend');
+  var rrEl = document.getElementById('legendsRR');
+  var convEl = document.getElementById('legendsConviction');
+  var blockEl = document.getElementById('legendsBlocked');
+  if (!trendEl) return;
+
+  if (!legendsResults || legendsResults.length === 0) {
+    trendEl.textContent = '--'; rrEl.textContent = '--';
+    convEl.textContent = '--'; blockEl.textContent = '0';
+    return;
+  }
+
+  var totalTrend = 0, totalRR = 0, totalConv = 0, blockedCount = 0, passCount = 0;
+  legendsResults.forEach(function(r) {
+    if (r.blocked) { blockedCount++; return; }
+    if (r.trendTemplate) totalTrend += r.trendTemplate.score;
+    if (r.rewardRisk) totalRR += r.rewardRisk.ratio;
+    if (r.conviction) totalConv += r.conviction.multiplier;
+    passCount++;
+  });
+
+  var avgTrend = passCount > 0 ? (totalTrend / passCount).toFixed(1) : '0';
+  var avgRR = passCount > 0 ? (totalRR / passCount).toFixed(1) : '0';
+  var avgConv = passCount > 0 ? (totalConv / passCount).toFixed(1) + 'x' : '1.0x';
+
+  trendEl.textContent = avgTrend + '/8';
+  trendEl.style.color = parseFloat(avgTrend) >= 6 ? '#22c55e' : parseFloat(avgTrend) >= 4 ? '#f59e0b' : '#ef4444';
+  rrEl.textContent = avgRR + ':1';
+  rrEl.style.color = parseFloat(avgRR) >= 3 ? '#22c55e' : parseFloat(avgRR) >= 2 ? '#f59e0b' : '#ef4444';
+  convEl.textContent = avgConv;
+  convEl.style.color = parseFloat(avgConv) >= 1.5 ? '#22c55e' : '#60a5fa';
+  blockEl.textContent = blockedCount;
+  blockEl.style.color = blockedCount > 0 ? '#ef4444' : '#22c55e';
+
+  var detailEl = document.getElementById('legendsTrendDetail');
+  if (detailEl) detailEl.textContent = passCount + ' passed / ' + legendsResults.length + ' scanned';
+}
+
 // ---------------------------------------------------------------
 //  Day Trade Scoring v4.0 — NEWS-POWERED MOMENTUM ENGINE
 //  CHANGES from v3: Added Factor 6: News Catalyst (0-20+15 catalyst bonus)
@@ -13731,6 +14019,52 @@ async function runDayTradeAI() {
     // Log predator overlay summary
     console.log('[DT-v13.5] Predator overlay applied. FII=' + _predatorFIIDII.flowRegime + ' Sentiment=' + _retailSentiment.level + ' Blocked=' + predatorBlocked.length);
 
+    // ══════════════════════════════════════════════════════════
+    //  STEP 3F: v13.6 LEGENDS ENGINE OVERLAY
+    //  Apply Minervini Trend Template + PTJ 200-day MA Defense
+    //  + Reward:Risk Ratio + Conviction Sizing to every candidate.
+    //  Source: 14 legendary traders' proven principles.
+    // ══════════════════════════════════════════════════════════
+    var legendsBlocked = [];
+    var legendsResults = [];
+    scored.forEach(function(s) {
+      var legends = getLegendsCompositeScore(
+        s.ticker, s.price, s.prevClose, s.high52, s.low52,
+        s.volume, s.changePct, s.dayHigh || 0, s.dayLow || 0,
+        s.predatorScore || 0, s.hasCatalyst
+      );
+
+      s.legendsScore = legends.totalScore;
+      s.legendsSignals = legends.signals;
+      s.legendsBlocked = legends.blocked;
+      s.legendsBlockReason = legends.blockReason;
+      s.legendsSizeMultiplier = legends.sizeMultiplier;
+      s.trendTemplate = legends.trendTemplate;
+      s.rewardRisk = legends.rewardRisk;
+      s.conviction = legends.conviction;
+      s.dtScore += legends.totalScore;
+
+      legendsResults.push(legends);
+
+      if (legends.blocked) {
+        legendsBlocked.push(s.ticker + '(' + (legends.blockReason || '').substring(0, 35) + ')');
+      }
+      if (legends.signals.length > 0) {
+        s.signals = s.signals.concat(legends.signals);
+      }
+    });
+
+    // Remove legends-blocked candidates (below 200MA or bad R:R)
+    if (legendsBlocked.length > 0) {
+      console.log('[DT-v13.6] LEGENDS BLOCKED: ' + legendsBlocked.join(', '));
+      scored = scored.filter(function(s) { return !s.legendsBlocked; });
+    }
+
+    // Update Legends Dashboard
+    updateLegendsDashboard(legendsResults);
+
+    console.log('[DT-v13.6] Legends Engine applied. Template pass=' + scored.length + ' Blocked=' + legendsBlocked.length);
+
     // Final sort
     scored.sort(function(a, b) { return b.dtScore - a.dtScore; });
 
@@ -13802,7 +14136,7 @@ async function runDayTradeAI() {
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       if (statusBadge) {
         statusBadge.style.background = '#06b6d422'; statusBadge.style.color = '#06b6d4'; statusBadge.style.borderColor = '#06b6d444';
-        statusBadge.innerHTML = '&#128161; v13.5 DISCIPLINE: No catalyst setups today | FII: ' + _predatorFIIDII.flowRegime + ' | Sentiment: ' + _retailSentiment.level + ' | Sitting out = predator-aware capital preservation.';
+        statusBadge.innerHTML = '&#128161; v13.6 DISCIPLINE: No catalyst setups today | FII: ' + _predatorFIIDII.flowRegime + ' | Sentiment: ' + _retailSentiment.level + ' | Legends Engine: sitting out = capital preservation.';
       }
       return;
     }
@@ -13843,6 +14177,15 @@ async function runDayTradeAI() {
         pickSizeMultiplier *= picks[p].predatorSizeMultiplier;
       }
 
+      // v13.6: CONVICTION-BASED SIZING (Druckenmiller "be a pig" principle)
+      // When all legends signals align, size UP aggressively
+      if (picks[p].legendsSizeMultiplier && picks[p].legendsSizeMultiplier > 1.0) {
+        pickSizeMultiplier *= picks[p].legendsSizeMultiplier;
+        console.log('[DT-v13.6] CONVICTION SIZE-UP: ' + picks[p].ticker + ' x' + picks[p].legendsSizeMultiplier.toFixed(2) +
+          ' (Trend=' + (picks[p].trendTemplate ? picks[p].trendTemplate.score + '/8' : '?') +
+          ' RR=' + (picks[p].rewardRisk ? picks[p].rewardRisk.ratio + ':1' : '?') + ')');
+      }
+
       var sizing = getRiskBasedPositionSize(totalCash, picks[p].price, 0.008, pickSizeMultiplier);
       if (sizing.value >= minPerTrade && sizing.qty > 0) {
         allocations.push({
@@ -13853,7 +14196,11 @@ async function runDayTradeAI() {
           riskPct: sizing.riskPct,
           allocPct: sizing.allocPct,
           predatorScore: picks[p].predatorScore || 0,
-          predatorSignals: picks[p].predatorSignals || []
+          predatorSignals: picks[p].predatorSignals || [],
+          legendsScore: picks[p].legendsScore || 0,
+          trendTemplate: picks[p].trendTemplate || null,
+          rewardRisk: picks[p].rewardRisk || null,
+          conviction: picks[p].conviction || null
         });
       }
     }
@@ -13908,7 +14255,7 @@ async function runDayTradeAI() {
         qty: qty, price: pick.price, dtScore: pick.dtScore,
         predatorScore: a.predatorScore || 0,
         predatorSignals: a.predatorSignals || [],
-        reason: '🎯 v13.5 Score ' + pick.dtScore + '/200 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '%' + riskInfo + sizeInfo + predatorInfo + predatorSigStr + ' | SL:-0.8% | ' + pick.source + (pick.hasCatalyst ? ' | CATALYST' : ' | NO-CAT') + ' | ' + _predatorFIIDII.flowRegime,
+        reason: '🎯 v13.6 Score ' + pick.dtScore + '/200 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '%' + riskInfo + sizeInfo + predatorInfo + predatorSigStr + (a.trendTemplate ? ' | T:' + a.trendTemplate.score + '/8' : '') + (a.rewardRisk ? ' | RR:' + a.rewardRisk.ratio + ':1' : '') + (a.conviction && a.conviction.multiplier > 1.0 ? ' | Conv:' + a.conviction.multiplier + 'x' : '') + ' | SL:-0.8% | ' + pick.source + (pick.hasCatalyst ? ' | CATALYST' : ' | NO-CAT') + ' | ' + _predatorFIIDII.flowRegime,
         source: 'daytrade', time: new Date().toISOString()
       });
 
