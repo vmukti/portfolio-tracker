@@ -1564,7 +1564,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v13.6 &mdash; AI Wealth Fund Manager + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v13.7 &mdash; AI Wealth Fund Manager + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Auto-Trade Reliability Fix + Daily P&amp;L History Fix + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -1627,7 +1627,16 @@ const stocks = [
 // ============================================================
 //  ALERTS SYSTEM
 // ============================================================
-let alerts = [];
+let alerts = [
+  // ── Seeded by AI Research Agent 2026-07-16 ──
+  {type:'research', stock:'MARICO', title:'FMCG rule conflict', time:'2026-07-16', desc:'Marico is FMCG — violates NO-FMCG portfolio mandate. At 52wk high (Jul 2), review keep-vs-exit.', key:'MARICO-research-FMCG rule conflict', read:false},
+  {type:'research', stock:'DIAMONDYD', title:'FMCG rule conflict', time:'2026-07-16', desc:'Prataap Snacks is FMCG food — violates NO-FMCG portfolio mandate. Flagged for review.', key:'DIAMONDYD-research-FMCG rule conflict', read:false},
+  {type:'research', stock:'ALLCARGO', title:'Near 52-week low — thesis check', time:'2026-07-16', desc:'~Rs 7.9 (Jul 14), near 52wk low. Buying extra 25% of Allcargo Group Services (eff Jul 1) should aid margins, but re-rating thesis not playing out yet.', key:'ALLCARGO-research-Near 52-week low — thesis check', read:false},
+  {type:'research', stock:'MARKET', title:'FII flipped to seller Jul 15', time:'2026-07-16', desc:'FII -736 Cr cash + ~2.6L net short index futures (hedged). DII +705 Cr. Regime: SIDEWAYS. Big-4 private bank Q1 results Jul 18.', key:'MARKET-research-FII flipped to seller Jul 15', read:false},
+  {type:'research', stock:'NESCO', title:'New candidate — score 75', time:'2026-07-16', desc:'Debt-free, ROCE 22.4%, promoter 68.5% zero pledge, MICE structural growth. MEDIUM-HIGH conviction research candidate.', key:'NESCO-research-New candidate — score 75', read:false},
+  {type:'research', stock:'SGMART', title:'ADIA bulk deal — score 66', time:'2026-07-16', desc:'ADIA + PSP bought 21.2L shares via bulk deal Jul 14. Thin-margin B2B trading model, promoter 36.3%. MEDIUM conviction watch.', key:'SGMART-research-ADIA bulk deal — score 66', read:false},
+  {type:'research', stock:'CYIENT', title:'Stale catalyst — buyback window closed', time:'2026-07-16', desc:'Buyback tender window (Jun 23-30) has passed. Refresh thesis/catalyst for this position.', key:'CYIENT-research-Stale catalyst — buyback window closed', read:false}
+];
 let alertCount = 0;
 let customPriceAlerts = JSON.parse(localStorage.getItem('customAlerts') || '[]');
 let notificationsEnabled = false;
@@ -2613,7 +2622,9 @@ const MOVER_UNIVERSE = [
   {t:'STARCEMENT',n:'Star Cement',s:'Cement',c:'S',pe:0,ro:0,mc:0},{t:'SAGCEM',n:'Sagar Cements',s:'Cement',c:'S',pe:0,ro:0,mc:0},
   {t:'ORIENTCEM',n:'Orient Cement',s:'Cement',c:'S',pe:0,ro:0,mc:0},{t:'NUVOCO',n:'Nuvoco Vistas',s:'Cement',c:'M',pe:0,ro:0,mc:0},
   {t:'PRSMJOHNSN',n:'Prism Johnson',s:'Building Materials',c:'S',pe:0,ro:0,mc:0},{t:'HIL',n:'HIL Ltd',s:'Building Materials',c:'S',pe:0,ro:0,mc:0},
-  {t:'MAHSEAMLES',n:'Maharashtra Seamless',s:'Steel Pipes',c:'S',pe:0,ro:0,mc:0},{t:'MANINFRA',n:'Man Infraconstruction',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},
+  {t:'MAHSEAMLES',n:'Maharashtra Seamless',s:'Steel Pipes',c:'S',pe:0,ro:23,mc:0},{t:'MANINFRA',n:'Man Infraconstruction',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},
+  // ---- AI RESEARCH ADDS 2026-07-16 ----
+  {t:'NESCO',n:'Nesco',s:'Exhibitions/Realty',c:'S',pe:0,ro:22,mc:0},{t:'SGMART',n:'SG Mart',s:'B2B Building Materials',c:'S',pe:0,ro:0,mc:0},
   {t:'GPIL',n:'Godawari Power & Ispat',s:'Steel/Power',c:'S',pe:0,ro:0,mc:0},{t:'JSWHL',n:'JSW Holdings',s:'Holding Company',c:'S',pe:0,ro:0,mc:0},
   {t:'JPASSOCIAT',n:'Jaiprakash Associates',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},
   // ---- NEW: POWER / ENERGY / UTILITIES (20) ----
@@ -3007,7 +3018,7 @@ async function predictDailyMovers() {
 
 // ── Global Market Cues (updated via web research + can be auto-refreshed) ──
 var PRE_MARKET_GLOBAL = {
-  lastUpdated: '2026-07-10',
+  lastUpdated: '2026-07-16',
   giftNifty: { value: 23987, changePct: -0.10, signal: 'FLAT' },
   dow: { value: 52348, changePct: 0.12, signal: 'MILDLY_BULLISH' },
   sp500: { value: 7483, changePct: 0.08, signal: 'MILDLY_BULLISH' },
@@ -3015,14 +3026,17 @@ var PRE_MARKET_GLOBAL = {
   nikkei: { value: 67856, changePct: 0.45, signal: 'BULLISH' },
   brentCrude: { value: 78.5, changePct: 1.2, signal: 'RISING' },
   indiaVix: { value: 13.27, signal: 'LOW_VOL' },
-  fiiFlow: { value: 1963, label: '+1,963 Cr (Jul 8)', signal: 'INFLOW' },
-  diiFlow: { value: 2100, label: '+2,100 Cr (Jul 8)', signal: 'INFLOW' },
+  fiiFlow: { value: -736, label: '-736 Cr cash (Jul 15) + net short futures', signal: 'OUTFLOW' },
+  diiFlow: { value: 705, label: '+705 Cr cash (Jul 15)', signal: 'INFLOW' },
   usdInr: { value: 85.55, signal: 'STABLE' },
   niftySupport: 23925,
   niftyResistance: 24200,
-  regime: 'CAUTIOUS_BULLISH',
-  keyThemes: ['Q1 FY27 earnings season kickoff', 'US-Iran conflict — crude volatility', 'TCS Q1 results reaction', 'India-UK FTA effective Jul 15', 'FII inflows consecutive']
+  regime: 'SIDEWAYS',
+  keyThemes: ['Nifty stuck 23,900-24,200 band', 'FII cash selling + hedged futures shorts, DII absorbing', 'Big-4 private bank Q1 results Jul 18', 'India-UK FTA live Jul 15 — textiles margin play', 'PSU banks + cement gaining; metals/IT/realty losing', 'US-Iran crude volatility']
 };
+
+// ── AI Research Agent — last automated scan ──
+var AI_RESEARCH_LAST_UPDATE = '2026-07-16 (daily scan: FII flipped to seller Jul 15; Nesco 75 & SG Mart 66 new candidates; Marico/Prataap FMCG rule conflicts flagged; Allcargo near 52wk low; full report in research-reports/2026-07-16-daily-scan.md)';
 
 // ── Earnings Calendar (stocks reporting today/tomorrow) ──
 var EARNINGS_CALENDAR = [
@@ -13262,8 +13276,65 @@ async function fetchDayTradeNews() {
 // ---------------------------------------------------------------
 //  Load & Render Day Trade Tab
 // ---------------------------------------------------------------
+// v13.7: Rebuild daily P&L history from trade records
+// When smart exits closed all positions without recording daily summary,
+// this function reconstructs the history from individual trade records.
+function rebuildDailyHistory(w) {
+  if (!w.trades || w.trades.length === 0) return;
+
+  // Group SELL trades by date
+  var byDate = {};
+  w.trades.forEach(function(t) {
+    if (t.type !== 'SELL' || !t.time) return;
+    var d = t.time.slice(0, 10);
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(t);
+  });
+
+  // Build daily history entries
+  var dates = Object.keys(byDate).sort();
+  dates.forEach(function(dateStr) {
+    var trades = byDate[dateStr];
+    // Skip if already in history
+    for (var i = 0; i < w.dailyHistory.length; i++) {
+      if (w.dailyHistory[i].date === dateStr) return;
+    }
+    var gross = 0, wins = 0, losses = 0;
+    var best = -Infinity, worst = Infinity, bestName = '--', worstName = '--';
+    trades.forEach(function(t) {
+      var p = t.pnl || 0;
+      gross += p;
+      if (p > 0) wins++; else losses++;
+      if (p > best) { best = p; bestName = t.ticker + ' ' + (p >= 0 ? '+' : '-') + '₹' + Math.abs(p).toLocaleString('en-IN', {maximumFractionDigits: 0}); }
+      if (p < worst) { worst = p; worstName = t.ticker + ' ' + (p >= 0 ? '+' : '-') + '₹' + Math.abs(p).toLocaleString('en-IN', {maximumFractionDigits: 0}); }
+    });
+    w.dailyHistory.push({
+      date: dateStr,
+      trades: trades.length,
+      grossPnl: Math.round(gross),
+      netPnl: Math.round(gross),
+      winners: wins,
+      losers: losses,
+      bestTrade: bestName,
+      worstTrade: worstName
+    });
+  });
+
+  if (dates.length > 0) {
+    console.log('[DT-HISTORY] Rebuilt ' + dates.length + ' days of P&L history from ' + w.trades.length + ' trade records');
+    saveDT(w);
+  }
+}
+
 function loadDayTrade() {
   var w = getDT();
+
+  // v13.7 FIX: Rebuild daily P&L history from trade records if history is empty
+  // This recovers lost history when smart exits closed positions without recording
+  if (w.dailyHistory.length === 0 && w.trades.length > 0) {
+    rebuildDailyHistory(w);
+  }
+
   updateDTDisplay(w);
   // Auto-refresh day trade prices every 30 seconds during market hours
   if (!window._dtPriceInterval) {
@@ -14433,6 +14504,46 @@ async function runDayTradeSmartExits() {
   }
 
   if (exitCount > 0) {
+    // v13.7 FIX: If ALL positions are now closed, auto-record daily P&L history
+    // This was the bug — smart exits removed positions one-by-one but never created
+    // a daily summary, so Daily P&L History always showed "0 days"
+    if (w.positions.length === 0) {
+      var todayStrSE = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'})).toISOString().slice(0, 10);
+      // Check if we already have an entry for today (avoid duplicates)
+      var alreadyRecorded = false;
+      for (var hi = 0; hi < w.dailyHistory.length; hi++) {
+        if (w.dailyHistory[hi].date === todayStrSE) { alreadyRecorded = true; break; }
+      }
+      if (!alreadyRecorded) {
+        // Calculate today's P&L from all trades made today
+        var todayTrades = w.trades.filter(function(t) {
+          return t.time && t.time.slice(0, 10) === todayStrSE && t.type === 'SELL';
+        });
+        if (todayTrades.length > 0) {
+          var dayGross = 0, dayWins = 0, dayLosses = 0;
+          var dayBest = -Infinity, dayWorst = Infinity, dayBestName = '--', dayWorstName = '--';
+          todayTrades.forEach(function(t) {
+            var tp = t.pnl || 0;
+            dayGross += tp;
+            if (tp > 0) dayWins++; else dayLosses++;
+            if (tp > dayBest) { dayBest = tp; dayBestName = t.ticker + ' +₹' + Math.abs(tp).toLocaleString('en-IN', {maximumFractionDigits: 0}); }
+            if (tp < dayWorst) { dayWorst = tp; dayWorstName = t.ticker + ' ' + (tp >= 0 ? '+' : '-') + '₹' + Math.abs(tp).toLocaleString('en-IN', {maximumFractionDigits: 0}); }
+          });
+          w.dailyHistory.push({
+            date: todayStrSE,
+            trades: todayTrades.length,
+            grossPnl: Math.round(dayGross),
+            netPnl: Math.round(dayGross),
+            winners: dayWins,
+            losers: dayLosses,
+            bestTrade: dayBestName,
+            worstTrade: dayWorstName
+          });
+          console.log('[DT-HISTORY] Auto-recorded daily summary: ' + todayStrSE + ' | P&L: ' + Math.round(dayGross) + ' | Trades: ' + todayTrades.length);
+        }
+      }
+    }
+
     saveDT(w);
     updateDTDisplay(w);
 
@@ -14514,37 +14625,59 @@ function checkDayTradeAutoTrigger() {
     return;
   }
 
-  // ── T0: PRE-MARKET SHORTLIST BUILD — 9:25 to 9:30 AM [v6.0 NEW] ──
+  // ── T0: PRE-MARKET SHORTLIST BUILD — 9:20 to 9:44 AM [v13.7 — widened from 9:25-9:35] ──
   // Build catalyst shortlist BEFORE market opens
-  if (!autoState.t0_prep && hhmm >= 925 && hhmm <= 935) {
+  // v13.7 FIX: Window widened so opening page at any time in this range catches up
+  if (!autoState.t0_prep && hhmm >= 920 && hhmm <= 944) {
     autoState.t0_prep = true;
     saveDTAutoState(autoState);
-    console.log('[DT-AUTO] T0 PRE-MARKET PREP: 9:25 AM — Building catalyst shortlist + Predator init...');
+    console.log('[DT-AUTO] T0 PRE-MARKET PREP: Building catalyst shortlist + Predator init...');
     updateDTAutoStatus('T0: Predator Engine + catalyst shortlist...', '#06b6d4');
     // v13.5: Initialize predator engine AND fetch news + build shortlist
     Promise.all([initPredatorEngine(), fetchDayTradeNews()]).then(function() { buildDayTradeShortlist(); });
     return;
   }
 
-  // ── T1: POST-ORB SCAN — 9:45 to 9:55 AM [v6.0 — delayed from 9:35] ──
+  // ── T1: POST-ORB SCAN — 9:45 to 11:44 AM [v13.7 — widened from 9:45-9:55] ──
   // Wait for 30-min Opening Range to form. Professional ORB timing.
-  // Fixes Mistake #6: buying in opening chaos
-  if (!autoState.t1_morning && hhmm >= 945 && hhmm <= 955 && w.positions.length === 0) {
+  // v13.7 FIX: If user opens page at 10:30 AM and T1 hasn't fired, fire it now.
+  // The AI engine itself decides whether market conditions are tradeable.
+  if (!autoState.t1_morning && hhmm >= 945 && hhmm <= 1144 && w.positions.length === 0) {
+    // Auto-run T0 prep first if it was missed
+    if (!autoState.t0_prep) {
+      autoState.t0_prep = true;
+      saveDTAutoState(autoState);
+      console.log('[DT-AUTO] T0 catch-up: Running prep before T1...');
+      Promise.all([initPredatorEngine(), fetchDayTradeNews()]).then(function() {
+        buildDayTradeShortlist();
+        // Now fire T1 after prep completes
+        setTimeout(function() {
+          var as2 = getDTAutoState();
+          as2.t1_morning = true;
+          saveDTAutoState(as2);
+          console.log('[DT-AUTO] T1 POST-ORB TRIGGER: Scanning catalyst stocks...');
+          updateDTAutoStatus('T1: Post-ORB scan (catch-up)...', '#22c55e');
+          runDayTradeAI();
+        }, 5000);
+      });
+      return;
+    }
     autoState.t1_morning = true;
     saveDTAutoState(autoState);
-    console.log('[DT-AUTO] T1 POST-ORB TRIGGER: 9:45 AM — Opening range formed, scanning catalyst stocks...');
+    console.log('[DT-AUTO] T1 POST-ORB TRIGGER: Scanning catalyst stocks...');
     updateDTAutoStatus('T1: Post-ORB scan (opening range settled)...', '#22c55e');
     runDayTradeAI();
     return;
   }
 
-  // ── T2: MID-MORNING RE-SCAN — 10:45 to 10:55 AM [v6.0 — earlier] ──
-  // If morning scan found nothing, try once more before noon cutoff
-  if (!autoState.t2_midday && hhmm >= 1045 && hhmm <= 1055 && w.positions.length === 0) {
+  // ── T2: MID-MORNING RE-SCAN — 11:45 to 13:30 [v13.7 — widened from 10:45-10:55] ──
+  // If morning scan found nothing, try once more before afternoon
+  // v13.7 FIX: Extended window so opening page late still gets a scan
+  if (!autoState.t2_midday && hhmm >= 1145 && hhmm <= 1330 && w.positions.length === 0) {
     autoState.t2_midday = true;
     saveDTAutoState(autoState);
-    console.log('[DT-AUTO] T2 MID-MORNING TRIGGER: 10:45 AM — Re-scanning catalyst stocks...');
-    updateDTAutoStatus('T2: Mid-morning catalyst re-scan...', '#f59e0b');
+    console.log('[DT-AUTO] T2 MID-DAY TRIGGER: Re-scanning catalyst stocks...');
+    updateDTAutoStatus('T2: Mid-day catalyst re-scan...', '#f59e0b');
     runDayTradeAI();
     return;
   }
@@ -14622,6 +14755,24 @@ function startDayTradeExitMonitor() {
 // Start monitor on page load
 if (typeof window !== 'undefined') {
   setTimeout(startDayTradeExitMonitor, 5000);
+
+  // v13.7 FIX: Also check auto-trigger when user returns to tab
+  // This is the KEY fix — when user opens browser in the morning,
+  // or switches back to this tab, immediately check if any triggers should fire.
+  // Without this, the auto-trade only runs if the tab was open during the
+  // narrow 10-minute trigger window.
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      console.log('[DT-AUTO] Tab became visible — checking auto-triggers...');
+      setTimeout(function() { checkDayTradeAutoTrigger(); }, 3000);
+    }
+  });
+
+  // Also run on window focus (covers more cases)
+  window.addEventListener('focus', function() {
+    console.log('[DT-AUTO] Window focused — checking auto-triggers...');
+    setTimeout(function() { checkDayTradeAutoTrigger(); }, 3000);
+  });
 }
 
 // ---------------------------------------------------------------
