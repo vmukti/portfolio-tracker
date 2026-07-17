@@ -6784,6 +6784,8 @@ async function runAIAutoTrade() {
     document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' ' + tradeBreakdown + ' | ' + regime.mode + ' | ⏰' + timing.window + universeTag + intelTag + ' | Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0}) + ' | 🧠 360° v8.4';
   }
   console.log('[AI-ENGINE v8.4 360°] Intel:' + intelSources.join(',') + ' | ' + aiLog.join(' | ') + ' | Trades: ' + tradesMade);
+  // Force full UI refresh so positions table renders immediately
+  loadPaperTrade();
 }
 
 // Check if mover scan data is fresh (same trading day, < 4 hours old)
