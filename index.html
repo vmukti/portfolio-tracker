@@ -446,6 +446,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
   <span class="subtab" onclick="switchTab('newsint',this)">News Intel</span>
   <span class="subtab" onclick="switchTab('sentiment',this)">Sentiment</span>
   <span class="subtab" onclick="switchTab('news',this)">News Feed</span>
+  <span class="subtab" onclick="switchTab('surveillance',this)">&#128225; Surveillance</span>
 </div>
 <div id="subtabs-scanner" class="subtab-row" style="display:none;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
   <span class="subtab active" onclick="switchTab('scorer',this)">Stock Scorer</span>
@@ -798,6 +799,193 @@ tbody tr.flash-down{animation:flashRed .8s ease}
         </tbody>
       </table>
     </div>
+  </div>
+
+  <!-- ======== BLOOMBERG SURVEILLANCE DESK ======== -->
+  <div id="tab-surveillance" style="display:none">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div>
+        <h2 style="font-size:18px;font-weight:600;margin:0">&#128225; Bloomberg Surveillance Desk</h2>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Real-time market regime, risk, and cross-asset intelligence</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="survLastUpdated" style="font-size:11px;color:var(--muted)"></span>
+        <button class="btn btn-outline btn-sm" onclick="survLoaded=false;loadSurveillance()">&#10227; Refresh</button>
+      </div>
+    </div>
+
+    <!-- A. Market Regime Command Center -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px">
+      <div id="survRegimeCard" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:6px">MARKET REGIME</div>
+        <div id="survRegimeVal" style="font-size:22px;font-weight:700;color:var(--green)">--</div>
+        <div id="survRegimeSub" style="font-size:11px;color:var(--muted);margin-top:4px">Analyzing...</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:6px">NIFTY 50</div>
+        <div id="survNiftyVal" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
+        <div id="survNiftyChg" style="font-size:12px;color:var(--muted);margin-top:4px">--</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:6px">BANK NIFTY</div>
+        <div id="survBankNiftyVal" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
+        <div id="survBankNiftyChg" style="font-size:12px;color:var(--muted);margin-top:4px">--</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:6px">INDIA VIX</div>
+        <div id="survVixVal" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
+        <div id="survVixTag" style="font-size:11px;margin-top:4px;padding:2px 8px;border-radius:4px;display:inline-block;background:var(--card2);color:var(--muted)">--</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:6px">USD/INR</div>
+        <div id="survUsdinrVal" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
+        <div id="survUsdinrChg" style="font-size:12px;color:var(--muted);margin-top:4px">--</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:6px">CRUDE OIL</div>
+        <div id="survCrudeVal" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
+        <div id="survCrudeChg" style="font-size:12px;color:var(--muted);margin-top:4px">--</div>
+      </div>
+    </div>
+
+    <!-- B. Risk Thermometer -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">&#127777; Risk Thermometer</div>
+        <div id="survRiskLabel" style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--green)">CALCULATING...</div>
+      </div>
+      <div style="position:relative;height:22px;background:linear-gradient(to right,#22c55e,#84cc16,#eab308,#f97316,#ef4444);border-radius:11px;overflow:visible;margin-bottom:6px">
+        <div id="survRiskNeedle" style="position:absolute;top:-4px;left:0%;width:4px;height:30px;background:#fff;border-radius:2px;transition:left 0.6s ease;box-shadow:0 0 6px rgba(0,0,0,0.5)"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">
+        <span>0 - LOW RISK</span><span>25</span><span>50</span><span>75</span><span>100 - EXTREME</span>
+      </div>
+      <div id="survRiskBreakdown" style="margin-top:10px;font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:12px"></div>
+    </div>
+
+    <!-- C. Global Overnight Radar -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px">&#127760; Global Overnight Radar</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px" id="survGlobalGrid">
+        <div class="global-card" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-size:11px;color:var(--muted)">S&P 500</div><div id="survSP500Val" style="font-size:16px;font-weight:600">--</div></div>
+            <div style="text-align:right"><div id="survSP500Chg" style="font-size:13px;font-weight:600">--</div><div id="survSP500Signal" style="font-size:10px;padding:2px 6px;border-radius:3px;margin-top:4px;display:inline-block;background:var(--card2);color:var(--muted)">--</div></div>
+          </div>
+        </div>
+        <div class="global-card" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-size:11px;color:var(--muted)">NASDAQ</div><div id="survNasdaqVal" style="font-size:16px;font-weight:600">--</div></div>
+            <div style="text-align:right"><div id="survNasdaqChg" style="font-size:13px;font-weight:600">--</div><div id="survNasdaqSignal" style="font-size:10px;padding:2px 6px;border-radius:3px;margin-top:4px;display:inline-block;background:var(--card2);color:var(--muted)">--</div></div>
+          </div>
+        </div>
+        <div class="global-card" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-size:11px;color:var(--muted)">Dow Jones</div><div id="survDowVal" style="font-size:16px;font-weight:600">--</div></div>
+            <div style="text-align:right"><div id="survDowChg" style="font-size:13px;font-weight:600">--</div><div id="survDowSignal" style="font-size:10px;padding:2px 6px;border-radius:3px;margin-top:4px;display:inline-block;background:var(--card2);color:var(--muted)">--</div></div>
+          </div>
+        </div>
+        <div class="global-card" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-size:11px;color:var(--muted)">FTSE 100</div><div id="survFTSEVal" style="font-size:16px;font-weight:600">--</div></div>
+            <div style="text-align:right"><div id="survFTSEChg" style="font-size:13px;font-weight:600">--</div><div id="survFTSESignal" style="font-size:10px;padding:2px 6px;border-radius:3px;margin-top:4px;display:inline-block;background:var(--card2);color:var(--muted)">--</div></div>
+          </div>
+        </div>
+        <div class="global-card" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-size:11px;color:var(--muted)">Nikkei 225</div><div id="survNikkeiVal" style="font-size:16px;font-weight:600">--</div></div>
+            <div style="text-align:right"><div id="survNikkeiChg" style="font-size:13px;font-weight:600">--</div><div id="survNikkeiSignal" style="font-size:10px;padding:2px 6px;border-radius:3px;margin-top:4px;display:inline-block;background:var(--card2);color:var(--muted)">--</div></div>
+          </div>
+        </div>
+        <div class="global-card" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-size:11px;color:var(--muted)">Hang Seng</div><div id="survHSIVal" style="font-size:16px;font-weight:600">--</div></div>
+            <div style="text-align:right"><div id="survHSIChg" style="font-size:13px;font-weight:600">--</div><div id="survHSISignal" style="font-size:10px;padding:2px 6px;border-radius:3px;margin-top:4px;display:inline-block;background:var(--card2);color:var(--muted)">--</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- D. Cross-Asset Correlation Matrix -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px">&#128279; Cross-Asset Correlation Matrix</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px" id="survCrossAssetGrid">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:600">&#129351; Gold</div>
+            <div id="survGoldChg" style="font-size:12px;font-weight:600">--</div>
+          </div>
+          <div id="survGoldVal" style="font-size:18px;font-weight:700;margin-bottom:6px">--</div>
+          <div id="survGoldImpact" style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--card2);color:var(--muted);display:inline-block">IMPACT: --</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:600">&#128738; Crude Oil</div>
+            <div id="survCrudeXChg" style="font-size:12px;font-weight:600">--</div>
+          </div>
+          <div id="survCrudeXVal" style="font-size:18px;font-weight:700;margin-bottom:6px">--</div>
+          <div id="survCrudeXImpact" style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--card2);color:var(--muted);display:inline-block">IMPACT: --</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:600">&#128177; USD/INR</div>
+            <div id="survUsdinrXChg" style="font-size:12px;font-weight:600">--</div>
+          </div>
+          <div id="survUsdinrXVal" style="font-size:18px;font-weight:700;margin-bottom:6px">--</div>
+          <div id="survUsdinrXImpact" style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--card2);color:var(--muted);display:inline-block">IMPACT: --</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:600">&#128200; US 10Y Yield</div>
+            <div id="survUS10YChg" style="font-size:12px;font-weight:600">--</div>
+          </div>
+          <div id="survUS10YVal" style="font-size:18px;font-weight:700;margin-bottom:6px">--</div>
+          <div id="survUS10YImpact" style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--card2);color:var(--muted);display:inline-block">IMPACT: --</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- E. Sector Heat Map -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px">&#128293; Sector Heat Map</div>
+      <div id="survSectorHeatMap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
+        <div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1">Loading sector data...</div>
+      </div>
+    </div>
+
+    <!-- F. Anomaly Radar -->
+    <div style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:14px;font-weight:600;color:var(--text)">&#128680; Anomaly Radar</div>
+        <button class="btn btn-outline btn-sm" onclick="runAnomalyScan()">&#128269; Run Scan</button>
+      </div>
+      <div id="survAnomalyTable" style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:var(--card2)">
+              <th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Stock</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Anomaly</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Value</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Significance</th>
+            </tr>
+          </thead>
+          <tbody id="survAnomalyBody">
+            <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted);font-size:12px">Click "Run Scan" to detect anomalies in portfolio stocks</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- G. Today's Key Events -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px">&#128197; Today's Key Events</div>
+      <div id="survKeyEvents" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px">
+        <div style="text-align:center;color:var(--muted);font-size:12px">Scanning portfolio catalysts...</div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ======== NEWS INTELLIGENCE ======== -->
@@ -1564,7 +1752,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v13.7.1 &mdash; AI Wealth Fund Manager + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Live Daily P&amp;L Sync + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v13.8 &mdash; AI Wealth Fund Manager + Bloomberg Surveillance Desk + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Live Daily P&amp;L Sync + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -1579,7 +1767,7 @@ const stocks = [
 
   // ===== IMMEDIATE — 1-2 Week Catalysts (10 stocks) =====
   {name:"Cyient",ticker:"CYIENT",scanStatus:"STRENGTHENING",yf:"CYIENT.NS",layer:"Immediate",sector:"AI/Semi Design",cmp:0,prevClose:0,change:0,changePct:0,mcap:10225,pe:24,roce:20,low52:750,high52:1376,score:8.5,thesis:"Buyback tender at ₹1,125 (32.8% premium to CMP). Window Jun 23-30. Azimuth AI ASIC stake.",catalyst:"BUYBACK TENDER Jun 23-30 @ ₹1,125",catalystDate:"2026-06-30",vol:0,avgVol:0,loaded:false},
-  {name:"Dixon Technologies",ticker:"DIXON",scanStatus:"STRENGTHENING",yf:"DIXON.NS",layer:"Immediate",sector:"EMS/Technology",cmp:0,prevClose:0,change:0,changePct:0,mcap:87000,pe:95,roce:28,low52:10000,high52:19400,score:8.0,thesis:"Govt approval of Dixon-Vivo JV imminent. ~22M handsets/yr shift. India #1 EMS.",catalyst:"GOVT JV APPROVAL imminent",catalystDate:"2026-06-30",vol:0,avgVol:0,loaded:false},
+  {name:"Dixon Technologies",ticker:"DIXON",scanStatus:"STRENGTHENING",yf:"DIXON.NS",layer:"Immediate",sector:"EMS/Technology",cmp:0,prevClose:0,change:0,changePct:0,mcap:87000,pe:95,roce:28,low52:10000,high52:19400,score:8.0,thesis:"Dixon-Vivo JV APPROVED Jul 10, 2026 (Dixon 51%). ~22M handsets/yr; revenue ramp from Dec qtr. India #1 EMS.",catalyst:"JV APPROVED Jul 10 — execution ramp",catalystDate:"2026-07-10",vol:0,avgVol:0,loaded:false},
   {name:"Welspun Living",ticker:"WELSPUNLIV",scanStatus:"STRENGTHENING",yf:"WELSPUNLIV.NS",layer:"Immediate",sector:"Textiles/Trade",cmp:0,prevClose:0,change:0,changePct:0,mcap:8500,pe:22,roce:18,low52:110,high52:195,score:7.5,thesis:"India-UK FTA effective Jul 15. Eliminates ~12% textile tariffs. Direct margin uplift.",catalyst:"INDIA-UK FTA effective Jul 15",catalystDate:"2026-07-15",vol:0,avgVol:0,loaded:false},
   {name:"Tata Power",ticker:"TATAPOWER",scanStatus:"INTACT",yf:"TATAPOWER.NS",layer:"Immediate",sector:"Power/BESS",cmp:0,prevClose:0,change:0,changePct:0,mcap:123000,pe:35,roce:10,low52:340,high52:490,score:7.2,thesis:"Ex-dividend Jun 23 (₹2.50). Singapore investor meetings Jun 25. ₹521 Cr Ryapte LOI.",catalyst:"EX-DIVIDEND Jun 23 + Investor meets",catalystDate:"2026-06-25",vol:0,avgVol:0,loaded:false},
   {name:"Ather Energy",ticker:"ATHERENERGY",scanStatus:"STRENGTHENING",yf:"ATHERENERGY.NS",layer:"Immediate",sector:"EV/Electric",cmp:0,prevClose:0,change:0,changePct:0,mcap:16000,pe:-15,roce:-10,low52:300,high52:1200,score:7.0,thesis:"PM E-Drive subsidy expiry Jul 31 driving pre-buy rush. Medium-prob MSCI India inclusion (Aug 12).",catalyst:"PM E-DRIVE RUSH + MSCI candidate",catalystDate:"2026-07-31",vol:0,avgVol:0,loaded:false},
@@ -1628,6 +1816,12 @@ const stocks = [
 //  ALERTS SYSTEM
 // ============================================================
 let alerts = [
+  // ── Seeded by AI Research Agent 2026-07-17 ──
+  {type:'research', stock:'JIOFIN', title:'Q1 FY27 blowout — thesis strengthening', time:'2026-07-17', desc:'PAT Rs 830 Cr (+156% YoY), revenue 3.3x to Rs 2,004 Cr. Jio Credit AUM Rs 30,667 Cr (2.6x). Jio-Allianz JV incorporated. HIGH conviction thesis intact.', key:'JIOFIN-research-Q1 FY27 blowout', read:false},
+  {type:'research', stock:'DIXON', title:'CATALYST FIRED — Vivo JV approved Jul 10', time:'2026-07-17', desc:'Govt cleared Dixon-Vivo JV (Dixon 51%). ~22M handsets/yr; revenue impact from Dec qtr. Brokers upgraded. Update thesis to execution-watch; much may be priced at ~95x PE.', key:'DIXON-research-Vivo JV approved', read:false},
+  {type:'research', stock:'ATHERENERGY', title:'Rs 1,200 Cr preferential issue + Hero top-up', time:'2026-07-17', desc:'Record high. India-Japan Fund equity @1,230; promoter warrants @1,260 (premium = confidence, but warrants only 25% upfront). Hero MotoCorp adding up to Rs 1,000 Cr. Watch dilution.', key:'ATHERENERGY-research-Preferential issue', read:false},
+  {type:'research', stock:'JYOTIRES', title:'New candidate — score 78', time:'2026-07-17', desc:'Jyoti Resins (Euro 7000): ROCE 50%, debt-free, PAT 56% CAGR FY20-25, promoter 54.4%. Pidilite challenger. MEDIUM-HIGH conviction; verify valuation — Q1 FY27 (Aug) is proof quarter.', key:'JYOTIRES-research-New candidate — score 78', read:false},
+  {type:'research', stock:'MARKET', title:'FII seller streak; big-4 bank Q1 Jul 18', time:'2026-07-17', desc:'FII -736 Cr cash Jul 15 (Jul 16 unverified), DII absorbing. Nifty 24,072, stuck 23,900-24,200. IT/consumer durables gaining, realty/banks losing. Regime SIDEWAYS.', key:'MARKET-research-FII seller streak Jul 17', read:false},
   // ── Seeded by AI Research Agent 2026-07-16 ──
   {type:'research', stock:'MARICO', title:'FMCG rule conflict', time:'2026-07-16', desc:'Marico is FMCG — violates NO-FMCG portfolio mandate. At 52wk high (Jul 2), review keep-vs-exit.', key:'MARICO-research-FMCG rule conflict', read:false},
   {type:'research', stock:'DIAMONDYD', title:'FMCG rule conflict', time:'2026-07-16', desc:'Prataap Snacks is FMCG food — violates NO-FMCG portfolio mandate. Flagged for review.', key:'DIAMONDYD-research-FMCG rule conflict', read:false},
@@ -2167,8 +2361,9 @@ function switchTab(tab, el) {
   if (tab === 'discovery') runDiscoveryEngine();
   if (tab === 'signals') runSignalEngine();
   if (tab === 'fundmgr') loadFundManager();
+  if (tab === 'surveillance') loadSurveillance();
   // hide all tab content divs, show only selected
-  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','daytrade','predictor','config','fundmgr','discovery','signals'].forEach(t => {
+  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','daytrade','predictor','config','fundmgr','discovery','signals','surveillance'].forEach(t => {
     var d = document.getElementById('tab-'+t);
     if(d) d.style.display = t===tab ? 'block' : 'none';
   });
@@ -2627,6 +2822,8 @@ const MOVER_UNIVERSE = [
   {t:'NESCO',n:'Nesco',s:'Exhibitions/Realty',c:'S',pe:0,ro:22,mc:0},{t:'SGMART',n:'SG Mart',s:'B2B Building Materials',c:'S',pe:0,ro:0,mc:0},
   {t:'GPIL',n:'Godawari Power & Ispat',s:'Steel/Power',c:'S',pe:0,ro:0,mc:0},{t:'JSWHL',n:'JSW Holdings',s:'Holding Company',c:'S',pe:0,ro:0,mc:0},
   {t:'JPASSOCIAT',n:'Jaiprakash Associates',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},
+  // ---- AI RESEARCH ADDS 2026-07-17 ----
+  {t:'JYOTIRES',n:'Jyoti Resins & Adhesives',s:'Adhesives',c:'S',pe:0,ro:50,mc:0},
   // ---- NEW: POWER / ENERGY / UTILITIES (20) ----
   {t:'TORNTPHARM',n:'Torrent Power',s:'Power',c:'L',pe:0,ro:0,mc:0},
   {t:'GIPCL',n:'Gujarat Industries Power',s:'Power',c:'S',pe:0,ro:0,mc:0},
@@ -3018,25 +3215,25 @@ async function predictDailyMovers() {
 
 // ── Global Market Cues (updated via web research + can be auto-refreshed) ──
 var PRE_MARKET_GLOBAL = {
-  lastUpdated: '2026-07-16',
-  giftNifty: { value: 23987, changePct: -0.10, signal: 'FLAT' },
+  lastUpdated: '2026-07-17',
+  giftNifty: { value: 24088, changePct: -0.03, signal: 'FLAT' },
   dow: { value: 52348, changePct: 0.12, signal: 'MILDLY_BULLISH' },
   sp500: { value: 7483, changePct: 0.08, signal: 'MILDLY_BULLISH' },
   nasdaq: { value: 25871, changePct: 0.15, signal: 'MILDLY_BULLISH' },
   nikkei: { value: 67856, changePct: 0.45, signal: 'BULLISH' },
   brentCrude: { value: 78.5, changePct: 1.2, signal: 'RISING' },
   indiaVix: { value: 13.27, signal: 'LOW_VOL' },
-  fiiFlow: { value: -736, label: '-736 Cr cash (Jul 15) + net short futures', signal: 'OUTFLOW' },
+  fiiFlow: { value: -736, label: '-736 Cr cash (Jul 15; Jul 16 unverified) + net short futures', signal: 'OUTFLOW' },
   diiFlow: { value: 705, label: '+705 Cr cash (Jul 15)', signal: 'INFLOW' },
   usdInr: { value: 85.55, signal: 'STABLE' },
-  niftySupport: 23925,
-  niftyResistance: 24200,
+  niftySupport: 24050,
+  niftyResistance: 24130,
   regime: 'SIDEWAYS',
-  keyThemes: ['Nifty stuck 23,900-24,200 band', 'FII cash selling + hedged futures shorts, DII absorbing', 'Big-4 private bank Q1 results Jul 18', 'India-UK FTA live Jul 15 — textiles margin play', 'PSU banks + cement gaining; metals/IT/realty losing', 'US-Iran crude volatility']
+  keyThemes: ['Nifty 24,072 — flat 3rd session, 23,900-24,200 band', 'Q1 earnings season = stock-specific market; big-4 private bank results Jul 18', 'IT leadership rotation (HCL top gainer) but Wipro margin at 15-qtr low', 'Dixon-Vivo JV approved Jul 10 — EMS/PLI momentum', 'Consumer durables + chemicals gaining; realty/banks/financials losing', 'US-Iran crude volatility']
 };
 
 // ── AI Research Agent — last automated scan ──
-var AI_RESEARCH_LAST_UPDATE = '2026-07-16 (daily scan: FII flipped to seller Jul 15; Nesco 75 & SG Mart 66 new candidates; Marico/Prataap FMCG rule conflicts flagged; Allcargo near 52wk low; full report in research-reports/2026-07-16-daily-scan.md)';
+var AI_RESEARCH_LAST_UPDATE = '2026-07-17 (daily scan: JIOFIN Q1 blowout +156% PAT; Dixon-Vivo JV catalyst FIRED Jul 10; Ather Rs 1,200 Cr pref issue + Hero top-up; Jyoti Resins new candidate score 78; regime SIDEWAYS, FII still seller; full report in research-reports/2026-07-17-daily-scan.md)';
 
 // ── Earnings Calendar (stocks reporting today/tomorrow) ──
 var EARNINGS_CALENDAR = [
@@ -13335,6 +13532,469 @@ function rebuildDailyHistory(w) {
     console.log('[DT-HISTORY] Synced ' + dates.length + ' days of P&L history from ' + w.trades.length + ' trade records');
     saveDT(w);
   }
+}
+
+// ============================================================
+//  BLOOMBERG SURVEILLANCE DESK
+// ============================================================
+let survLoaded = false;
+let survData = {}; // cached index/commodity data
+
+async function loadSurveillance() {
+  if (survLoaded) return;
+  survLoaded = true;
+
+  document.getElementById('survLastUpdated').textContent = 'Loading...';
+
+  // 1. Fetch all indices/commodities in one batch via Apps Script proxy
+  const survSymbols = '^NSEI,^NSEBANK,^BSESN,USDINR=X,GC=F,CL=F,^VIX,^GSPC,^IXIC,^DJI,^FTSE,^N225,^HSI,^CNXIT,^TNX,BZ=F';
+  try {
+    if (appsScriptUrl) {
+      const resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(survSymbols) + '&mode=all', {signal: AbortSignal.timeout(20000)});
+      if (resp.ok) {
+        const json = await resp.json();
+        if (json.success && json.data && json.data.stocks) {
+          survData = json.data.stocks;
+        }
+      }
+    }
+  } catch(e) { console.log('[SURV] Apps Script fetch error:', e); }
+
+  // Fallback: try CORS proxy for any missing data
+  if (Object.keys(survData).length === 0) {
+    const syms = survSymbols.split(',');
+    for (const sym of syms) {
+      try {
+        const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?interval=1d&range=2d';
+        for (const proxy of CORS_PROXIES) {
+          try {
+            const r = await fetch(proxy + encodeURIComponent(url), {signal: AbortSignal.timeout(8000)});
+            if (!r.ok) continue;
+            const d = await r.json();
+            const meta = d.chart?.result?.[0]?.meta;
+            if (meta) {
+              const prev = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPrice;
+              survData[sym] = {
+                price: meta.regularMarketPrice,
+                prevClose: prev,
+                change: meta.regularMarketPrice - prev,
+                changePct: prev ? ((meta.regularMarketPrice - prev) / prev * 100) : 0
+              };
+              break;
+            }
+          } catch(e2) { continue; }
+        }
+      } catch(e) {}
+    }
+  }
+
+  // Helper to get data
+  function g(sym) {
+    var d = survData[sym];
+    if (!d) return {price:0, prevClose:0, change:0, changePct:0};
+    var price = d.price || d.regularMarketPrice || 0;
+    var prev = d.prevClose || d.previousClose || d.chartPreviousClose || price;
+    var chg = d.change !== undefined ? d.change : (price - prev);
+    var chgPct = d.changePct !== undefined ? d.changePct : (d.changePercent !== undefined ? d.changePercent : (prev ? ((price - prev) / prev * 100) : 0));
+    return {price: price, prevClose: prev, change: chg, changePct: chgPct};
+  }
+
+  function fmtChg(pct) {
+    return (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+  }
+  function chgColor(pct) {
+    return pct >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  // 2. Populate Market Regime Command Center
+  var nifty = g('^NSEI');
+  var bankNifty = g('^NSEBANK');
+  var vix = g('^VIX');
+  var usdinr = g('USDINR=X');
+  var crude = g('CL=F');
+  var brent = g('BZ=F');
+  var crudePrice = brent.price > 0 ? brent : crude;
+
+  // Nifty
+  var el = document.getElementById('survNiftyVal');
+  if (el) el.textContent = nifty.price > 0 ? nifty.price.toLocaleString('en-IN',{maximumFractionDigits:0}) : '--';
+  el = document.getElementById('survNiftyChg');
+  if (el) { el.textContent = nifty.price > 0 ? fmtChg(nifty.changePct) : '--'; el.style.color = chgColor(nifty.changePct); }
+
+  // Bank Nifty
+  el = document.getElementById('survBankNiftyVal');
+  if (el) el.textContent = bankNifty.price > 0 ? bankNifty.price.toLocaleString('en-IN',{maximumFractionDigits:0}) : '--';
+  el = document.getElementById('survBankNiftyChg');
+  if (el) { el.textContent = bankNifty.price > 0 ? fmtChg(bankNifty.changePct) : '--'; el.style.color = chgColor(bankNifty.changePct); }
+
+  // VIX
+  el = document.getElementById('survVixVal');
+  if (el) el.textContent = vix.price > 0 ? vix.price.toFixed(2) : '--';
+  var vixTag = document.getElementById('survVixTag');
+  if (vixTag && vix.price > 0) {
+    if (vix.price > 25) { vixTag.textContent = 'EXTREME FEAR'; vixTag.style.background = 'var(--red)'; vixTag.style.color = '#fff'; }
+    else if (vix.price > 20) { vixTag.textContent = 'FEAR'; vixTag.style.background = '#f97316'; vixTag.style.color = '#fff'; }
+    else if (vix.price > 15) { vixTag.textContent = 'NEUTRAL'; vixTag.style.background = 'var(--amber)'; vixTag.style.color = '#000'; }
+    else if (vix.price > 12) { vixTag.textContent = 'GREED'; vixTag.style.background = '#84cc16'; vixTag.style.color = '#000'; }
+    else { vixTag.textContent = 'EXTREME GREED'; vixTag.style.background = 'var(--green)'; vixTag.style.color = '#fff'; }
+  }
+
+  // USD/INR
+  el = document.getElementById('survUsdinrVal');
+  if (el) el.textContent = usdinr.price > 0 ? usdinr.price.toFixed(2) : '--';
+  el = document.getElementById('survUsdinrChg');
+  if (el) { el.textContent = usdinr.price > 0 ? fmtChg(usdinr.changePct) : '--'; el.style.color = chgColor(-usdinr.changePct); } // inverted: rising INR is bad
+
+  // Crude
+  el = document.getElementById('survCrudeVal');
+  if (el) el.textContent = crudePrice.price > 0 ? ('$' + crudePrice.price.toFixed(2)) : '--';
+  el = document.getElementById('survCrudeChg');
+  if (el) { el.textContent = crudePrice.price > 0 ? fmtChg(crudePrice.changePct) : '--'; el.style.color = chgColor(-crudePrice.changePct); }
+
+  // Market Regime determination
+  var regimeEl = document.getElementById('survRegimeVal');
+  var regimeSub = document.getElementById('survRegimeSub');
+  var regimeCard = document.getElementById('survRegimeCard');
+  if (nifty.price > 0) {
+    var nChg = nifty.changePct;
+    var regime = 'SIDEWAYS';
+    var regimeColor = 'var(--amber)';
+    var regimeDesc = 'Range-bound market';
+    if (nChg > 0.8 && vix.price < 18) { regime = 'BULL'; regimeColor = 'var(--green)'; regimeDesc = 'Strong uptrend, low volatility'; }
+    else if (nChg > 0.3) { regime = 'BULL'; regimeColor = 'var(--green)'; regimeDesc = 'Positive bias'; }
+    else if (nChg < -0.8 && vix.price > 20) { regime = 'BEAR'; regimeColor = 'var(--red)'; regimeDesc = 'Downtrend with rising fear'; }
+    else if (nChg < -0.3) { regime = 'BEAR'; regimeColor = 'var(--red)'; regimeDesc = 'Negative bias'; }
+    if (regimeEl) { regimeEl.textContent = regime; regimeEl.style.color = regimeColor; }
+    if (regimeSub) regimeSub.textContent = regimeDesc;
+    if (regimeCard) regimeCard.style.borderTop = '3px solid ' + regimeColor;
+  }
+
+  // 3. Risk Thermometer
+  var riskScore = 0;
+  var riskParts = [];
+  // VIX component
+  if (vix.price > 25) { riskScore += 30; riskParts.push('VIX>25: +30'); }
+  else if (vix.price > 18) { riskScore += 15; riskParts.push('VIX 18-25: +15'); }
+  else { riskParts.push('VIX<18: +0'); }
+  // US markets
+  var sp500 = g('^GSPC');
+  var nasdaq = g('^IXIC');
+  var usNeg = (sp500.changePct < -0.5 || nasdaq.changePct < -0.5);
+  if (usNeg) { riskScore += 15; riskParts.push('US negative: +15'); }
+  else { riskParts.push('US positive: +0'); }
+  // Crude
+  if (crudePrice.price > 85) { riskScore += 10; riskParts.push('Crude>$85: +10'); }
+  else { riskParts.push('Crude<$85: +0'); }
+  // USD/INR rising
+  if (usdinr.changePct > 0.2) { riskScore += 10; riskParts.push('INR weakening: +10'); }
+  else { riskParts.push('INR stable: +0'); }
+  // Multiple global markets negative
+  var dow = g('^DJI');
+  var nikkei = g('^N225');
+  var hsi = g('^HSI');
+  var globalNegCount = [sp500,nasdaq,dow,nikkei,hsi].filter(function(x){return x.changePct < -0.3;}).length;
+  if (globalNegCount >= 3) { riskScore += 15; riskParts.push('3+ global markets down: +15'); }
+  else if (globalNegCount >= 2) { riskScore += 8; riskParts.push('2 global markets down: +8'); }
+  else { riskParts.push('Global OK: +0'); }
+  // Nifty change itself
+  if (nifty.changePct < -1) { riskScore += 10; riskParts.push('Nifty -1%+: +10'); }
+  // Cap at 100
+  riskScore = Math.min(100, Math.max(0, riskScore));
+
+  var needleEl = document.getElementById('survRiskNeedle');
+  if (needleEl) needleEl.style.left = riskScore + '%';
+  var riskLabel = document.getElementById('survRiskLabel');
+  if (riskLabel) {
+    if (riskScore <= 25) { riskLabel.textContent = 'LOW RISK — GO AGGRESSIVE'; riskLabel.style.color = 'var(--green)'; }
+    else if (riskScore <= 50) { riskLabel.textContent = 'MODERATE — SELECTIVE'; riskLabel.style.color = 'var(--amber)'; }
+    else if (riskScore <= 75) { riskLabel.textContent = 'HIGH RISK — DEFEND'; riskLabel.style.color = '#f97316'; }
+    else { riskLabel.textContent = 'EXTREME — CASH IS KING'; riskLabel.style.color = 'var(--red)'; }
+  }
+  var breakdownEl = document.getElementById('survRiskBreakdown');
+  if (breakdownEl) {
+    breakdownEl.innerHTML = riskParts.map(function(p) {
+      var isPlus = p.indexOf('+0') === -1;
+      return '<span style="padding:2px 6px;border-radius:3px;background:' + (isPlus ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)') + ';color:' + (isPlus ? 'var(--red)' : 'var(--green)') + '">' + p + '</span>';
+    }).join('');
+  }
+
+  // 4. Global Overnight Radar
+  var globalIndices = [
+    {sym:'^GSPC', name:'S&P 500', valId:'survSP500Val', chgId:'survSP500Chg', sigId:'survSP500Signal'},
+    {sym:'^IXIC', name:'NASDAQ', valId:'survNasdaqVal', chgId:'survNasdaqChg', sigId:'survNasdaqSignal'},
+    {sym:'^DJI', name:'Dow Jones', valId:'survDowVal', chgId:'survDowChg', sigId:'survDowSignal'},
+    {sym:'^FTSE', name:'FTSE 100', valId:'survFTSEVal', chgId:'survFTSEChg', sigId:'survFTSESignal'},
+    {sym:'^N225', name:'Nikkei 225', valId:'survNikkeiVal', chgId:'survNikkeiChg', sigId:'survNikkeiSignal'},
+    {sym:'^HSI', name:'Hang Seng', valId:'survHSIVal', chgId:'survHSIChg', sigId:'survHSISignal'}
+  ];
+
+  globalIndices.forEach(function(idx) {
+    var d = g(idx.sym);
+    var valEl = document.getElementById(idx.valId);
+    var chgEl = document.getElementById(idx.chgId);
+    var sigEl = document.getElementById(idx.sigId);
+    if (valEl) valEl.textContent = d.price > 0 ? d.price.toLocaleString('en-US',{maximumFractionDigits:0}) : '--';
+    if (chgEl) { chgEl.textContent = d.price > 0 ? fmtChg(d.changePct) : '--'; chgEl.style.color = chgColor(d.changePct); }
+    if (sigEl && d.price > 0) {
+      var signal = 'NEUTRAL';
+      var sigBg = 'var(--card2)';
+      var sigColor = 'var(--muted)';
+      if (d.changePct > 0.5) { signal = 'POSITIVE FOR INDIA'; sigBg = 'rgba(34,197,94,0.15)'; sigColor = 'var(--green)'; }
+      else if (d.changePct < -0.5) { signal = 'NEGATIVE FOR INDIA'; sigBg = 'rgba(239,68,68,0.15)'; sigColor = 'var(--red)'; }
+      else { signal = 'NEUTRAL'; sigBg = 'rgba(234,179,8,0.15)'; sigColor = 'var(--amber)'; }
+      sigEl.textContent = signal;
+      sigEl.style.background = sigBg;
+      sigEl.style.color = sigColor;
+    }
+  });
+
+  // 5. Cross-Asset Correlation Matrix
+  var gold = g('GC=F');
+  // Gold
+  el = document.getElementById('survGoldVal');
+  if (el) el.textContent = gold.price > 0 ? ('$' + gold.price.toLocaleString('en-US',{maximumFractionDigits:0})) : '--';
+  el = document.getElementById('survGoldChg');
+  if (el) { el.textContent = gold.price > 0 ? fmtChg(gold.changePct) : '--'; el.style.color = chgColor(gold.changePct); }
+  var goldImpact = document.getElementById('survGoldImpact');
+  if (goldImpact && gold.price > 0) {
+    if (gold.changePct > 1) { goldImpact.textContent = 'Rising gold = Risk-off, mixed for India'; goldImpact.style.background = 'rgba(234,179,8,0.15)'; goldImpact.style.color = 'var(--amber)'; }
+    else if (gold.changePct < -1) { goldImpact.textContent = 'Falling gold = Risk-on, positive for India'; goldImpact.style.background = 'rgba(34,197,94,0.15)'; goldImpact.style.color = 'var(--green)'; }
+    else { goldImpact.textContent = 'Gold stable = Neutral'; goldImpact.style.background = 'var(--card2)'; goldImpact.style.color = 'var(--muted)'; }
+  }
+  // Crude Oil (cross-asset)
+  el = document.getElementById('survCrudeXVal');
+  if (el) el.textContent = crudePrice.price > 0 ? ('$' + crudePrice.price.toFixed(2)) : '--';
+  el = document.getElementById('survCrudeXChg');
+  if (el) { el.textContent = crudePrice.price > 0 ? fmtChg(crudePrice.changePct) : '--'; el.style.color = chgColor(crudePrice.changePct); }
+  var crudeImpact = document.getElementById('survCrudeXImpact');
+  if (crudeImpact && crudePrice.price > 0) {
+    if (crudePrice.changePct > 1) { crudeImpact.textContent = 'Rising crude = NEGATIVE for India (import cost)'; crudeImpact.style.background = 'rgba(239,68,68,0.15)'; crudeImpact.style.color = 'var(--red)'; }
+    else if (crudePrice.changePct < -1) { crudeImpact.textContent = 'Falling crude = POSITIVE for India'; crudeImpact.style.background = 'rgba(34,197,94,0.15)'; crudeImpact.style.color = 'var(--green)'; }
+    else { crudeImpact.textContent = 'Crude stable = Neutral'; crudeImpact.style.background = 'var(--card2)'; crudeImpact.style.color = 'var(--muted)'; }
+  }
+  // USD/INR (cross-asset)
+  el = document.getElementById('survUsdinrXVal');
+  if (el) el.textContent = usdinr.price > 0 ? usdinr.price.toFixed(2) : '--';
+  el = document.getElementById('survUsdinrXChg');
+  if (el) { el.textContent = usdinr.price > 0 ? fmtChg(usdinr.changePct) : '--'; el.style.color = chgColor(-usdinr.changePct); }
+  var usdinrImpact = document.getElementById('survUsdinrXImpact');
+  if (usdinrImpact && usdinr.price > 0) {
+    if (usdinr.changePct > 0.3) { usdinrImpact.textContent = 'INR weakening = Negative (FII outflow risk)'; usdinrImpact.style.background = 'rgba(239,68,68,0.15)'; usdinrImpact.style.color = 'var(--red)'; }
+    else if (usdinr.changePct < -0.3) { usdinrImpact.textContent = 'INR strengthening = Positive (FII confidence)'; usdinrImpact.style.background = 'rgba(34,197,94,0.15)'; usdinrImpact.style.color = 'var(--green)'; }
+    else { usdinrImpact.textContent = 'INR stable = Neutral'; usdinrImpact.style.background = 'var(--card2)'; usdinrImpact.style.color = 'var(--muted)'; }
+  }
+  // US 10Y Yield
+  var us10y = g('^TNX');
+  el = document.getElementById('survUS10YVal');
+  if (el) el.textContent = us10y.price > 0 ? (us10y.price.toFixed(2) + '%') : '--';
+  el = document.getElementById('survUS10YChg');
+  if (el) { el.textContent = us10y.price > 0 ? fmtChg(us10y.changePct) : '--'; el.style.color = chgColor(-us10y.changePct); }
+  var us10yImpact = document.getElementById('survUS10YImpact');
+  if (us10yImpact && us10y.price > 0) {
+    if (us10y.price > 4.5) { us10yImpact.textContent = 'High yields = NEGATIVE (FII outflow to US)'; us10yImpact.style.background = 'rgba(239,68,68,0.15)'; us10yImpact.style.color = 'var(--red)'; }
+    else if (us10y.changePct > 1) { us10yImpact.textContent = 'Rising yields = Caution for EMs'; us10yImpact.style.background = 'rgba(234,179,8,0.15)'; us10yImpact.style.color = 'var(--amber)'; }
+    else if (us10y.changePct < -1) { us10yImpact.textContent = 'Falling yields = POSITIVE for India'; us10yImpact.style.background = 'rgba(34,197,94,0.15)'; us10yImpact.style.color = 'var(--green)'; }
+    else { us10yImpact.textContent = 'Yields stable = Neutral'; us10yImpact.style.background = 'var(--card2)'; us10yImpact.style.color = 'var(--muted)'; }
+  }
+
+  // 6. Sector Heat Map — group portfolio stocks by sector
+  var sectorMap = {};
+  stocks.forEach(function(s) {
+    if (!s.sector) return;
+    var sec = s.sector;
+    if (!sectorMap[sec]) sectorMap[sec] = {stocks:[], totalChg:0, count:0};
+    sectorMap[sec].stocks.push(s);
+    if (s.loaded && s.changePct !== undefined) {
+      sectorMap[sec].totalChg += s.changePct;
+      sectorMap[sec].count++;
+    }
+  });
+
+  // Also add sector indices if available
+  var sectorIndices = [
+    {sym:'^CNXIT', name:'Nifty IT'},
+    {sym:'^NSEBANK', name:'Bank Nifty'}
+  ];
+  sectorIndices.forEach(function(si) {
+    var d = g(si.sym);
+    if (d.price > 0) {
+      if (!sectorMap[si.name]) sectorMap[si.name] = {stocks:[], totalChg:0, count:0};
+      sectorMap[si.name].totalChg = d.changePct;
+      sectorMap[si.name].count = 1;
+    }
+  });
+
+  var hmEl = document.getElementById('survSectorHeatMap');
+  if (hmEl) {
+    var html = '';
+    var sectors = Object.keys(sectorMap).sort();
+    sectors.forEach(function(sec) {
+      var sm = sectorMap[sec];
+      var avgChg = sm.count > 0 ? (sm.totalChg / sm.count) : 0;
+      var bg, txtColor;
+      if (avgChg >= 2) { bg = '#166534'; txtColor = '#fff'; }
+      else if (avgChg >= 0.5) { bg = 'rgba(34,197,94,0.25)'; txtColor = 'var(--green)'; }
+      else if (avgChg > -0.5) { bg = 'var(--card2)'; txtColor = 'var(--muted)'; }
+      else if (avgChg > -2) { bg = 'rgba(239,68,68,0.2)'; txtColor = 'var(--red)'; }
+      else { bg = '#7f1d1d'; txtColor = '#fff'; }
+      html += '<div style="background:' + bg + ';border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">';
+      html += '<div style="font-size:11px;font-weight:600;color:' + txtColor + ';margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + sec + '">' + sec + '</div>';
+      html += '<div style="font-size:16px;font-weight:700;color:' + txtColor + '">' + (sm.count > 0 ? fmtChg(avgChg) : 'N/A') + '</div>';
+      html += '<div style="font-size:10px;color:' + txtColor + ';opacity:0.7">' + sm.stocks.length + ' stock' + (sm.stocks.length !== 1 ? 's' : '') + '</div>';
+      html += '</div>';
+    });
+    if (html === '') html = '<div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1">No sector data available. Load portfolio prices first.</div>';
+    hmEl.innerHTML = html;
+  }
+
+  // 7. Today's Key Events
+  var eventsEl = document.getElementById('survKeyEvents');
+  if (eventsEl) {
+    var today = new Date();
+    var todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    var thisMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2,'0');
+    var events = [];
+
+    stocks.forEach(function(s) {
+      if (!s.catalystDate) return;
+      // Exact date match
+      if (s.catalystDate === todayStr) {
+        events.push({stock: s.ticker, event: s.catalyst, date: s.catalystDate, type: 'TODAY', color: 'var(--red)'});
+      }
+      // Within next 7 days
+      else {
+        var catDate = new Date(s.catalystDate);
+        var diff = Math.floor((catDate - today) / (1000*60*60*24));
+        if (diff >= 0 && diff <= 7) {
+          events.push({stock: s.ticker, event: s.catalyst, date: s.catalystDate, type: 'THIS WEEK', color: 'var(--amber)'});
+        }
+        // This month
+        else if (s.catalystDate.startsWith(thisMonth) && diff > 7) {
+          events.push({stock: s.ticker, event: s.catalyst, date: s.catalystDate, type: 'THIS MONTH', color: 'var(--accent)'});
+        }
+      }
+    });
+
+    // Add standing market events
+    var dayOfWeek = today.getDay();
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      events.unshift({stock: 'MARKET', event: 'NSE/BSE Trading Session 9:15 AM - 3:30 PM', date: todayStr, type: 'DAILY', color: 'var(--muted)'});
+    }
+
+    // Sort: TODAY first, then THIS WEEK, then THIS MONTH
+    var typeOrder = {'TODAY':0, 'THIS WEEK':1, 'THIS MONTH':2, 'DAILY':3};
+    events.sort(function(a,b) { return (typeOrder[a.type]||9) - (typeOrder[b.type]||9); });
+
+    if (events.length === 0) {
+      eventsEl.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:8px">No key events detected for today or this week</div>';
+    } else {
+      var evHtml = '';
+      events.forEach(function(ev) {
+        evHtml += '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">';
+        evHtml += '<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:' + ev.color + ';color:#fff;font-weight:700;white-space:nowrap">' + ev.type + '</span>';
+        evHtml += '<span style="font-size:12px;font-weight:600;color:var(--accent);min-width:80px">' + ev.stock + '</span>';
+        evHtml += '<span style="font-size:12px;color:var(--text);flex:1">' + ev.event + '</span>';
+        evHtml += '<span style="font-size:11px;color:var(--muted);white-space:nowrap">' + ev.date + '</span>';
+        evHtml += '</div>';
+      });
+      eventsEl.innerHTML = evHtml;
+    }
+  }
+
+  // Update timestamp
+  document.getElementById('survLastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString('en-IN');
+}
+
+// Anomaly Radar scan function
+function runAnomalyScan() {
+  var body = document.getElementById('survAnomalyBody');
+  if (!body) return;
+
+  var anomalies = [];
+
+  stocks.forEach(function(s) {
+    if (!s.loaded || s.cmp <= 0) return;
+
+    // Volume spike: > 2x average
+    if (s.vol > 0 && s.avgVol > 0 && s.vol > 2 * s.avgVol) {
+      var ratio = (s.vol / s.avgVol).toFixed(1);
+      anomalies.push({
+        stock: s.ticker,
+        name: s.name,
+        type: 'VOLUME SPIKE',
+        value: ratio + 'x avg volume',
+        significance: ratio >= 5 ? 'CRITICAL' : ratio >= 3 ? 'HIGH' : 'MODERATE',
+        color: ratio >= 5 ? 'var(--red)' : ratio >= 3 ? '#f97316' : 'var(--amber)'
+      });
+    }
+
+    // Gap up/down > 3%
+    if (s.prevClose > 0) {
+      var gapPct = Math.abs(s.changePct);
+      if (gapPct > 3) {
+        anomalies.push({
+          stock: s.ticker,
+          name: s.name,
+          type: s.changePct > 0 ? 'GAP UP' : 'GAP DOWN',
+          value: (s.changePct > 0 ? '+' : '') + s.changePct.toFixed(2) + '%',
+          significance: gapPct > 5 ? 'CRITICAL' : 'HIGH',
+          color: s.changePct > 0 ? 'var(--green)' : 'var(--red)'
+        });
+      }
+    }
+
+    // Near 52-week high (within 5%)
+    if (s.high52 > 0 && s.cmp > 0) {
+      var pctFromHigh = ((s.high52 - s.cmp) / s.high52) * 100;
+      if (pctFromHigh <= 5) {
+        anomalies.push({
+          stock: s.ticker,
+          name: s.name,
+          type: 'NEAR 52W HIGH',
+          value: s.cmp.toFixed(0) + ' (high: ' + s.high52.toFixed(0) + ')',
+          significance: pctFromHigh <= 2 ? 'HIGH' : 'MODERATE',
+          color: 'var(--green)'
+        });
+      }
+    }
+
+    // Near 52-week low (within 5%)
+    if (s.low52 > 0 && s.cmp > 0) {
+      var pctFromLow = ((s.cmp - s.low52) / s.low52) * 100;
+      if (pctFromLow <= 5) {
+        anomalies.push({
+          stock: s.ticker,
+          name: s.name,
+          type: 'NEAR 52W LOW',
+          value: s.cmp.toFixed(0) + ' (low: ' + s.low52.toFixed(0) + ')',
+          significance: pctFromLow <= 2 ? 'CRITICAL' : 'HIGH',
+          color: 'var(--red)'
+        });
+      }
+    }
+  });
+
+  // Sort by significance
+  var sigOrder = {'CRITICAL':0,'HIGH':1,'MODERATE':2};
+  anomalies.sort(function(a,b) { return (sigOrder[a.significance]||9) - (sigOrder[b.significance]||9); });
+
+  if (anomalies.length === 0) {
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted);font-size:12px">No anomalies detected. All portfolio stocks within normal ranges.</td></tr>';
+    return;
+  }
+
+  var html = '';
+  anomalies.forEach(function(a) {
+    var sigBg = a.significance === 'CRITICAL' ? 'rgba(239,68,68,0.2)' : a.significance === 'HIGH' ? 'rgba(249,115,22,0.2)' : 'rgba(234,179,8,0.2)';
+    var sigColor = a.significance === 'CRITICAL' ? 'var(--red)' : a.significance === 'HIGH' ? '#f97316' : 'var(--amber)';
+    html += '<tr style="border-bottom:1px solid var(--border)">';
+    html += '<td style="padding:10px 12px"><div style="font-size:12px;font-weight:600;color:var(--text)">' + a.stock + '</div><div style="font-size:10px;color:var(--muted)">' + a.name + '</div></td>';
+    html += '<td style="padding:10px 12px"><span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + (a.type.indexOf('UP')>=0||a.type.indexOf('HIGH')>=0 ? 'rgba(34,197,94,0.15)' : a.type.indexOf('DOWN')>=0||a.type.indexOf('LOW')>=0 ? 'rgba(239,68,68,0.15)' : 'rgba(234,179,8,0.15)') + ';color:' + a.color + ';font-weight:600">' + a.type + '</span></td>';
+    html += '<td style="padding:10px 12px;text-align:right;font-size:12px;color:var(--text)">' + a.value + '</td>';
+    html += '<td style="padding:10px 12px;text-align:center"><span style="font-size:10px;padding:2px 8px;border-radius:4px;background:' + sigBg + ';color:' + sigColor + ';font-weight:700">' + a.significance + '</span></td>';
+    html += '</tr>';
+  });
+  body.innerHTML = html;
 }
 
 function loadDayTrade() {
