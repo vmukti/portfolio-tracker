@@ -1752,7 +1752,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v13.8 &mdash; AI Wealth Fund Manager + Bloomberg Surveillance Desk + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Live Daily P&amp;L Sync + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v13.8.1 &mdash; AI Wealth Fund Manager + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Live Daily P&amp;L Sync + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -2453,60 +2453,106 @@ let liveNewsLoaded = false;
 async function fetchLiveNews() {
   if (liveNewsLoaded) return;
   const queries = [
-    'Jyoti+Resins+stock','Dixon+Technologies+India','HAL+Hindustan+Aeronautics',
-    'India+BESS+battery+energy+storage','Waaree+Energies+solar',
-    'Exide+Industries+lithium','specialty+chemicals+India+stock',
-    'India+defence+stock+order','Himadri+Speciality+battery','Bondada+Engineering'
+    'Indian+stock+market+today','Dixon+Technologies+India','Waaree+Energies+solar',
+    'India+battery+energy+storage','Himadri+Speciality+battery',
+    'specialty+chemicals+India+stock','India+semiconductor+stock',
+    'Suzlon+wind+energy','Kaynes+Technology+semiconductor','India+EV+electric+vehicle'
   ];
   const liveNewsContainer = document.getElementById('liveNewsFeed');
   if (!liveNewsContainer) return;
-  liveNewsContainer.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)"><span class="spinner"></span> Fetching latest news from Google News...</div>';
+  liveNewsContainer.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)"><span class="spinner"></span> Fetching latest news (multi-proxy)...</div>';
 
+  // v13.8.1: Use multi-proxy approach like News Intel — race all proxies in parallel
   let allItems = [];
-  for (const q of queries.slice(0, 5)) { // Limit to 5 queries to avoid rate limits
+  const fetchPromises = queries.slice(0, 5).map(async (q) => {
+    const rssUrl = 'https://news.google.com/rss/search?q=' + q + '&hl=en-IN&gl=IN&ceid=IN:en';
+    // Race: rss2json API + all CORS proxies in parallel
+    const fetchers = [];
+    // rss2json API (most reliable)
+    fetchers.push(
+      fetch(RSS2JSON + encodeURIComponent(rssUrl), {signal: AbortSignal.timeout(12000)})
+      .then(r => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
+      .then(data => {
+        if (data.status === 'ok' && data.items && data.items.length > 0) {
+          return data.items.slice(0,4).map(item => ({
+            title: item.title || '', pubDate: new Date(item.pubDate || ''),
+            link: item.link || '#', source: item.author || extractSource(item.title || ''),
+            query: q.replace(/\+/g,' ')
+          }));
+        }
+        throw new Error('No items');
+      })
+      .catch(() => null)
+    );
+    // CORS proxies (parse raw XML)
+    CORS_PROXIES.forEach(proxy => {
+      fetchers.push(
+        fetch(proxy + encodeURIComponent(rssUrl), {signal: AbortSignal.timeout(12000)})
+        .then(r => r.ok ? r.text() : Promise.reject(''))
+        .then(xml => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(xml, 'text/xml');
+          const items = doc.querySelectorAll('item');
+          const results = [];
+          items.forEach((item, idx) => {
+            if (idx >= 4) return;
+            results.push({
+              title: item.querySelector('title')?.textContent || '',
+              pubDate: new Date(item.querySelector('pubDate')?.textContent || ''),
+              link: item.querySelector('link')?.textContent || '',
+              source: item.querySelector('source')?.textContent || 'Google News',
+              query: q.replace(/\+/g,' ')
+            });
+          });
+          if (results.length === 0) throw new Error('No items');
+          return results;
+        })
+        .catch(() => null)
+      );
+    });
     try {
-      const rssUrl = `https://news.google.com/rss/search?q=${q}&hl=en-IN&gl=IN&ceid=IN:en`;
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
-      const resp = await fetch(proxyUrl, {signal: AbortSignal.timeout(8000)});
-      if (!resp.ok) continue;
-      const text = await resp.text();
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(text, 'text/xml');
-      const items = xml.querySelectorAll('item');
-      items.forEach((item, idx) => {
-        if (idx >= 3) return; // Max 3 per query
-        const title = item.querySelector('title')?.textContent || '';
-        const pubDate = item.querySelector('pubDate')?.textContent || '';
-        const link = item.querySelector('link')?.textContent || '';
-        const source = item.querySelector('source')?.textContent || 'Google News';
-        // Score impact based on keywords
-        let impact = 1;
-        const titleLow = title.toLowerCase();
-        if (/surge|jump|soar|rally|record|beat|upgrade|buy/i.test(titleLow)) impact = 3;
-        else if (/fall|drop|plunge|crash|downgrade|sell|warning|risk/i.test(titleLow)) impact = 3;
-        else if (/result|quarter|revenue|profit|order|expand|launch|approve/i.test(titleLow)) impact = 2;
-        // Match to portfolio stocks
-        const matchedStocks = [];
-        stocks.forEach(s => {
-          if (titleLow.includes(s.name.toLowerCase().split(' ')[0].toLowerCase()) || titleLow.includes(s.ticker.toLowerCase())) {
-            matchedStocks.push(s.ticker);
-          }
-        });
-        let signal = 'INFO';
-        if (/buy|upgrade|surge|rally|beat/i.test(titleLow)) signal = 'BUY';
-        else if (/sell|downgrade|fall|plunge|crash|risk/i.test(titleLow)) signal = 'RISK';
-        else if (/watch|monitor|eye|track/i.test(titleLow)) signal = 'WATCH';
+      const results = await Promise.all(fetchers);
+      for (const r of results) { if (r && r.length > 0) return r; }
+    } catch(e) {}
+    return [];
+  });
 
-        allItems.push({title, pubDate: new Date(pubDate), link, source, impact, signal, matchedStocks, query: q.replace(/\+/g,' ')});
-      });
-    } catch(e) { continue; }
-  }
+  const batchResults = await Promise.all(fetchPromises);
+  batchResults.forEach(batch => { if (batch) allItems.push(...batch); });
+
+  // Score and enrich each item
+  allItems = allItems.map(item => {
+    const titleLow = (item.title || '').toLowerCase();
+    let impact = 1;
+    if (/surge|jump|soar|rally|record|beat|upgrade|buy/i.test(titleLow)) impact = 3;
+    else if (/fall|drop|plunge|crash|downgrade|sell|warning|risk/i.test(titleLow)) impact = 3;
+    else if (/result|quarter|revenue|profit|order|expand|launch|approve/i.test(titleLow)) impact = 2;
+    const matchedStocks = [];
+    stocks.forEach(s => {
+      if (titleLow.includes(s.name.toLowerCase().split(' ')[0].toLowerCase()) || titleLow.includes(s.ticker.toLowerCase())) {
+        matchedStocks.push(s.ticker);
+      }
+    });
+    let signal = 'INFO';
+    if (/buy|upgrade|surge|rally|beat/i.test(titleLow)) signal = 'BUY';
+    else if (/sell|downgrade|fall|plunge|crash|risk/i.test(titleLow)) signal = 'RISK';
+    else if (/watch|monitor|eye|track/i.test(titleLow)) signal = 'WATCH';
+    return {...item, impact, signal, matchedStocks};
+  });
+
+  // Deduplicate by title similarity
+  const seen = new Set();
+  allItems = allItems.filter(item => {
+    const key = item.title.toLowerCase().substring(0, 50);
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
 
   // Sort by date and impact
   allItems.sort((a,b) => b.pubDate - a.pubDate || b.impact - a.impact);
 
   if (allItems.length === 0) {
-    liveNewsContainer.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Could not fetch live news. CORS proxy may be rate-limited. Try refreshing in a minute.</div>';
+    liveNewsContainer.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Could not fetch live news. All proxies timed out. Try refreshing in a minute.</div>';
     return;
   }
 
@@ -3761,7 +3807,7 @@ function _buildPreMarketPanel(pmDiv) {
 // ============================================================
 
 // ── Ethical exclusion filters (MUST PRESERVE) ──
-const EXCLUDED_SECTORS = ['defence','defense','pharma','pharmaceutical','non-veg','meat','poultry','seafood','leather','fmcg','tobacco','liquor','alcohol','brewery'];
+const EXCLUDED_SECTORS = ['defence','defense','pharma','pharmaceutical','non-veg','meat','poultry','seafood','leather','footwear','shoe','fmcg','tobacco','liquor','alcohol','brewery'];
 function isEthicallyExcluded(sectorOrName) {
   const t = (sectorOrName || '').toLowerCase();
   return EXCLUDED_SECTORS.some(ex => t.includes(ex));
@@ -15407,6 +15453,97 @@ if (typeof window !== 'undefined') {
   window.addEventListener('focus', function() {
     console.log('[DT-AUTO] Window focused — checking auto-triggers...');
     setTimeout(function() { checkDayTradeAutoTrigger(); }, 3000);
+  });
+}
+
+// ===============================================================
+//  v13.8.1: PAPER TRADE AUTO-TRIGGER SYSTEM
+//  Runs AI Auto-Trade automatically during market hours
+//  - Once at page load (30s delay for prices to load)
+//  - Every 30 minutes during market hours (9:30-15:30)
+//  - On tab visibility change
+// ===============================================================
+var PT_AUTO_KEY = 'ptAutoTrigger_v1';
+var _ptAutoInterval = null;
+
+function checkPaperTradeAutoTrigger() {
+  var now = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
+  var hrs = now.getHours();
+  var mins = now.getMinutes();
+  var hhmm = hrs * 100 + mins;
+  var day = now.getDay();
+  var todayStr = now.toISOString().split('T')[0];
+
+  // Only on weekdays during market hours (9:30 - 15:30)
+  if (day === 0 || day === 6) return;
+  if (hhmm < 930 || hhmm > 1530) return;
+
+  // Check if prices are loaded
+  var pricesLoaded = stocks.filter(s => s.cmp > 0).length;
+  if (pricesLoaded < 10) {
+    console.log('[PT-AUTO] Waiting for prices... only ' + pricesLoaded + ' loaded');
+    return;
+  }
+
+  // Load auto state for today
+  var autoState = {};
+  try { autoState = JSON.parse(localStorage.getItem(PT_AUTO_KEY) || '{}'); } catch(e) {}
+  if (autoState.date !== todayStr) {
+    autoState = { date: todayStr, runs: 0, lastRun: '' };
+  }
+
+  // Run max 3 times per day (9:30-10:00, 12:00-12:30, 14:30-15:00)
+  var shouldRun = false;
+  var triggerName = '';
+
+  if (hhmm >= 930 && hhmm <= 1015 && !autoState.t1_morning) {
+    shouldRun = true;
+    triggerName = 'Morning Scan';
+    autoState.t1_morning = true;
+  } else if (hhmm >= 1200 && hhmm <= 1245 && !autoState.t2_midday) {
+    shouldRun = true;
+    triggerName = 'Mid-Day Rebalance';
+    autoState.t2_midday = true;
+  } else if (hhmm >= 1430 && hhmm <= 1500 && !autoState.t3_afternoon) {
+    shouldRun = true;
+    triggerName = 'Afternoon Review';
+    autoState.t3_afternoon = true;
+  }
+
+  if (!shouldRun) return;
+
+  console.log('[PT-AUTO] ' + triggerName + ' TRIGGER firing at ' + hrs + ':' + String(mins).padStart(2,'0'));
+  autoState.runs++;
+  autoState.lastRun = triggerName + ' @ ' + hrs + ':' + String(mins).padStart(2,'0');
+  localStorage.setItem(PT_AUTO_KEY, JSON.stringify(autoState));
+
+  // Run the AI auto-trade
+  runAIAutoTrade();
+}
+
+function startPaperTradeAutoMonitor() {
+  if (_ptAutoInterval) clearInterval(_ptAutoInterval);
+  // Check every 15 minutes
+  _ptAutoInterval = setInterval(function() {
+    checkPaperTradeAutoTrigger();
+  }, 900000); // 15 minutes
+
+  // Run once at startup with delay for prices
+  setTimeout(function() { checkPaperTradeAutoTrigger(); }, 30000);
+}
+
+// Start Paper Trade auto-monitor on page load
+if (typeof window !== 'undefined') {
+  setTimeout(startPaperTradeAutoMonitor, 8000);
+
+  // Also check on tab visibility and focus
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      setTimeout(function() { checkPaperTradeAutoTrigger(); }, 5000);
+    }
+  });
+  window.addEventListener('focus', function() {
+    setTimeout(function() { checkPaperTradeAutoTrigger(); }, 5000);
   });
 }
 
