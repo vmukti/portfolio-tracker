@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Multibagger Portfolio Tracker &mdash; Live</title>
+<title>Jain PMS &mdash; AI Wealth Fund</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
 </script>
 <style>
@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Multibagger Portfolio <span>v13 &mdash; Fund Manager</span></h1>
+  <h1>Jain PMS <span>v14 &mdash; AI Wealth Fund</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -485,7 +485,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
       <span style="color:#64b5f6;cursor:pointer" onclick="document.getElementById('scanFilter').value='INTACT';filterTable()">&#10003; INTACT: <span id="scanIntact">0</span></span>
       <span style="color:#ffb74d;cursor:pointer" onclick="document.getElementById('scanFilter').value='WEAKENING';filterTable()">&#8595; WEAK: <span id="scanWeak">0</span></span>
       <span style="color:var(--muted);cursor:pointer" onclick="document.getElementById('scanFilter').value='all';filterTable()">TOTAL: <span id="scanTotal">0</span></span>
-      <span style="color:var(--muted);font-weight:400;font-size:11px;margin-left:8px">Primary Research Portfolio &mdash; Jun 2026</span>
+      <span style="color:var(--muted);font-weight:400;font-size:11px;margin-left:8px">Jain PMS &mdash; Ahimsa Compliant Portfolio &mdash; Jul 2026</span>
     </div>
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Search by name, ticker, or sector..." oninput="filterTable()">
@@ -1752,7 +1752,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v13.8.1 &mdash; AI Wealth Fund Manager + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Live Daily P&amp;L Sync + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v14.0 &mdash; AI Wealth Fund (₹1 Cr) + Jainism Compliance Filter + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Live Daily P&amp;L Sync + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -1798,7 +1798,6 @@ const stocks = [
   {name:"Pidilite Industries",ticker:"PIDILITIND",scanStatus:"INTACT",yf:"PIDILITIND.NS",layer:"Long-Term",sector:"Specialty Materials",cmp:0,prevClose:0,change:0,changePct:0,mcap:160000,pe:85,roce:30,low52:2500,high52:3400,score:8.5,thesis:"Adhesives monopoly (Fevicol, Dr. Fixit). 30% ROCE (10yr avg 33%). Near-zero debt. 69.3% promoter.",catalyst:"MONOPOLY — structural pricing power",catalystDate:"",vol:0,avgVol:0,loaded:false},
   {name:"Grindwell Norton",ticker:"GRINDWELL",scanStatus:"INTACT",yf:"GRINDWELL.NS",layer:"Long-Term",sector:"Industrial Niche",cmp:0,prevClose:0,change:0,changePct:0,mcap:22000,pe:55,roce:23,low52:1500,high52:2400,score:8.0,thesis:"Industrial abrasives niche leader. 23% ROCE (never below 20% in 10yr). Zero debt. 58% promoter (Saint-Gobain).",catalyst:"NICHE MONOPOLY — steady compounder",catalystDate:"",vol:0,avgVol:0,loaded:false},
   {name:"INOX India",ticker:"INOXINDIA",scanStatus:"INTACT",yf:"INOXINDIA.NS",layer:"Long-Term",sector:"Cryogenic/LNG",cmp:0,prevClose:0,change:0,changePct:0,mcap:18000,pe:45,roce:38,low52:800,high52:1500,score:8.5,thesis:"Cryogenic equipment monopoly (70-75% domestic share). 38.2% ROCE. Zero debt. 75% promoter. ₹1,514 Cr order book.",catalyst:"CRYOGENIC MONOPOLY — LNG/space/aero",catalystDate:"",vol:0,avgVol:0,loaded:false},
-  {name:"PI Industries",ticker:"PIIND",scanStatus:"INTACT",yf:"PIIND.NS",layer:"Long-Term",sector:"Specialty Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:63000,pe:35,roce:22,low52:3200,high52:5000,score:8.0,thesis:"Custom synthesis leader for global agrochem innovators. EBITDA >22%. CSM order book $1.8B. China+1.",catalyst:"CSM $1.8B ORDER BOOK",catalystDate:"",vol:0,avgVol:0,loaded:false},
   {name:"Vinati Organics",ticker:"VINATIORGA",scanStatus:"INTACT",yf:"VINATIORGA.NS",layer:"Long-Term",sector:"Specialty Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:19000,pe:50,roce:20,low52:1400,high52:2200,score:8.0,thesis:"Global monopoly in IBB and ATBS monomers. EBITDA ~30%. Near-zero debt. 74.3% promoter. Extreme pricing power.",catalyst:"MONOMER MONOPOLY — pricing power",catalystDate:"",vol:0,avgVol:0,loaded:false},
   {name:"Suzlon Energy",ticker:"SUZLON",scanStatus:"STRENGTHENING",yf:"SUZLON.NS",layer:"Long-Term",sector:"Wind Energy",cmp:0,prevClose:0,change:0,changePct:0,mcap:80771,pe:19,roce:33,low52:38,high52:68,score:7.8,thesis:"India's #1 wind energy. FY26 rev +54%, PAT +53%. Debt-free turnaround complete. 6.4 GW order book. 25% CAGR guide.",catalyst:"WIND TURNAROUND — debt-free",catalystDate:"",vol:0,avgVol:0,loaded:false},
   {name:"Tata Communications",ticker:"TATACOMM",scanStatus:"INTACT",yf:"TATACOMM.NS",layer:"Long-Term",sector:"Data Center/Fiber",cmp:0,prevClose:0,change:0,changePct:0,mcap:56684,pe:32,roce:15,low52:1400,high52:2200,score:7.5,thesis:"Global fiber + data center infra across 190 countries. Rev ₹23,239 Cr. 58.9% promoter. AI/cloud compute demand.",catalyst:"DATA CENTER SUPERCYCLE",catalystDate:"",vol:0,avgVol:0,loaded:false},
@@ -1810,6 +1809,26 @@ const stocks = [
   {name:"Jayant Agro Organics",ticker:"JAYAGROGN",scanStatus:"STRENGTHENING",yf:"JAYAGROGN.BO",layer:"Long-Term",sector:"Castor/Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:1200,pe:15,roce:12,low52:150,high52:300,score:6.5,thesis:"Global castor derivatives leader. 67.1% promoter, zero pledge. PAT surged 155% QoQ in Q4 FY26. China+1 beneficiary.",catalyst:"CASTOR MONOPOLY — China+1",catalystDate:"",vol:0,avgVol:0,loaded:false},
   {name:"CDSL",ticker:"CDSL",scanStatus:"INTACT",yf:"CDSL.NS",layer:"Long-Term",sector:"Capital Markets",cmp:0,prevClose:0,change:0,changePct:0,mcap:31500,pe:55,roce:40,low52:1050,high52:1900,score:8.5,thesis:"Depository duopoly. 85 Cr+ demat accounts. Asset-light, 50%+ margins. Structural India financialization play.",catalyst:"DEMAT MONOPOLY — financialization",catalystDate:"",vol:0,avgVol:0,loaded:false},
   {name:"Polycab India",ticker:"POLYCAB",scanStatus:"STRENGTHENING",yf:"POLYCAB.NS",layer:"Long-Term",sector:"Electrical/Cables",cmp:0,prevClose:0,change:0,changePct:0,mcap:149500,pe:56,roce:33,low52:5787,high52:9988,score:8.2,thesis:"FY26 revenue +28%, PAT +31%. Power grid + data center supercycle. Near debt-free, 33% ROCE. Cables/wires leader.",catalyst:"POWER GRID + DATA CENTER build",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Tata Elxsi",ticker:"TATAELXSI",scanStatus:"INTACT",yf:"TATAELXSI.NS",layer:"Long-Term",sector:"IT/Design",cmp:0,prevClose:0,change:0,changePct:0,mcap:35000,pe:50,roce:40,low52:4500,high52:8500,score:8.0,thesis:"Design + embedded software leader. 40% ROCE. Auto/media/healthcare verticals. Zero debt. Premium compounder.",catalyst:"DESIGN-LED DIGITAL — auto + AI",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Persistent Systems",ticker:"PERSISTENT",scanStatus:"INTACT",yf:"PERSISTENT.NS",layer:"Long-Term",sector:"IT/AI",cmp:0,prevClose:0,change:0,changePct:0,mcap:70000,pe:55,roce:28,low52:3800,high52:7000,score:8.0,thesis:"Product engineering + AI/ML services. 28% ROCE. Revenue CAGR 25%+. IBM/Salesforce ecosystem play.",catalyst:"AI SERVICES BOOM",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"KPIT Technologies",ticker:"KPITTECH",scanStatus:"STRENGTHENING",yf:"KPITTECH.NS",layer:"Long-Term",sector:"IT/Auto Tech",cmp:0,prevClose:0,change:0,changePct:0,mcap:40000,pe:65,roce:30,low52:1100,high52:2000,score:7.8,thesis:"Auto software for EV/ADAS. BMW, Honda, GM clients. India's only pure-play auto-tech. 30% ROCE.",catalyst:"EV SOFTWARE — global OEM wins",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Coforge",ticker:"COFORGE",scanStatus:"INTACT",yf:"COFORGE.NS",layer:"Long-Term",sector:"IT/Travel",cmp:0,prevClose:0,change:0,changePct:0,mcap:45000,pe:40,roce:25,low52:5000,high52:9500,score:7.5,thesis:"BFS + travel + insurance IT. Strong deal wins. Revenue CAGR 18%. Niit Technologies turnaround complete.",catalyst:"DEAL WINS — BFS + insurance",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"L&T Technology Services",ticker:"LTTS",scanStatus:"INTACT",yf:"LTTS.NS",layer:"Long-Term",sector:"IT/Engineering",cmp:0,prevClose:0,change:0,changePct:0,mcap:55000,pe:40,roce:28,low52:3800,high52:6000,score:7.5,thesis:"Engineering R&D services. Auto, medical devices, telecom. 28% ROCE. L&T parentage. Digital twin + AI.",catalyst:"ER&D SPENDING UPCYCLE",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"ABB India",ticker:"ABB",scanStatus:"INTACT",yf:"ABB.NS",layer:"Long-Term",sector:"Electrical/Automation",cmp:0,prevClose:0,change:0,changePct:0,mcap:160000,pe:85,roce:30,low52:5500,high52:9500,score:8.0,thesis:"Industrial automation + electrification leader. Data center + EV charging infra. 30% ROCE. MNC quality.",catalyst:"DATA CENTER + EV INFRA boom",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Siemens India",ticker:"SIEMENS",scanStatus:"INTACT",yf:"SIEMENS.NS",layer:"Long-Term",sector:"Electrical/Automation",cmp:0,prevClose:0,change:0,changePct:0,mcap:225000,pe:90,roce:18,low52:4500,high52:7800,score:7.5,thesis:"Industrial automation + smart infra. Power grid, factory automation, digital twin. German engineering quality.",catalyst:"SMART GRID + FACTORY 4.0",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Havells India",ticker:"HAVELLS",scanStatus:"INTACT",yf:"HAVELLS.NS",layer:"Long-Term",sector:"Consumer Electrical",cmp:0,prevClose:0,change:0,changePct:0,mcap:100000,pe:55,roce:25,low52:1400,high52:2200,score:7.8,thesis:"Consumer electricals (wires, fans, lighting, Lloyd ACs). 25% ROCE. Brand moat. Zero debt. Housing-linked.",catalyst:"HOUSING BOOM — electrical demand",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Crompton Greaves CE",ticker:"CROMPTON",scanStatus:"INTACT",yf:"CROMPTON.NS",layer:"Long-Term",sector:"Consumer Electrical",cmp:0,prevClose:0,change:0,changePct:0,mcap:25000,pe:35,roce:22,low52:300,high52:500,score:7.0,thesis:"Fans, pumps, lighting. Butterfly Gandhimathi acquisition. 22% ROCE. Distribution strength in Tier-2/3.",catalyst:"RURAL ELECTRIFICATION",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Asian Paints",ticker:"ASIANPAINT",scanStatus:"INTACT",yf:"ASIANPAINT.NS",layer:"Long-Term",sector:"Paints/Consumer",cmp:0,prevClose:0,change:0,changePct:0,mcap:250000,pe:50,roce:30,low52:2200,high52:3400,score:8.5,thesis:"Paint monopoly with 55% market share. 30% ROCE. Brand + distribution moat. Home improvement + waterproofing.",catalyst:"PAINT MONOPOLY — pricing power",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"HDFC Bank",ticker:"HDFCBANK",scanStatus:"INTACT",yf:"HDFCBANK.NS",layer:"Long-Term",sector:"Banking/Finance",cmp:0,prevClose:0,change:0,changePct:0,mcap:1400000,pe:20,roce:16,low52:1450,high52:1950,score:8.0,thesis:"India's largest private bank. Post-merger integration complete. CASA ratio recovering. Credit quality pristine.",catalyst:"POST-MERGER RE-RATING",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"ICICI Bank",ticker:"ICICIBANK",scanStatus:"INTACT",yf:"ICICIBANK.NS",layer:"Long-Term",sector:"Banking/Finance",cmp:0,prevClose:0,change:0,changePct:0,mcap:900000,pe:18,roce:17,low52:1100,high52:1400,score:8.0,thesis:"India's #2 private bank. ROE 17%+. Subsidiaries (ICICI Pru, ICICI Lombard) value unlocking. Clean book.",catalyst:"ROE EXPANSION + subsidiaries",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Kotak Mahindra Bank",ticker:"KOTAKBANK",scanStatus:"INTACT",yf:"KOTAKBANK.NS",layer:"Long-Term",sector:"Banking/Finance",cmp:0,prevClose:0,change:0,changePct:0,mcap:400000,pe:22,roce:14,low52:1600,high52:2100,score:7.5,thesis:"Premium private bank. Conservative underwriting. High CASA. Wealth management moat. Post-RBI-ban recovery.",catalyst:"DIGITAL BANKING + wealth",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Bajaj Finance",ticker:"BAJFINANCE",scanStatus:"INTACT",yf:"BAJFINANCE.NS",layer:"Long-Term",sector:"NBFC/Finance",cmp:0,prevClose:0,change:0,changePct:0,mcap:550000,pe:30,roce:22,low52:6200,high52:9200,score:8.0,thesis:"India's #1 NBFC. 22% ROCE. AUM ₹4L Cr+. Consumer lending king. Bajaj Finserv ecosystem. Digital-first.",catalyst:"CONSUMER LENDING BOOM",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Bharti Airtel",ticker:"BHARTIARTL",scanStatus:"INTACT",yf:"BHARTIARTL.NS",layer:"Long-Term",sector:"Telecom/Digital",cmp:0,prevClose:0,change:0,changePct:0,mcap:950000,pe:35,roce:15,low52:1350,high52:1800,score:8.0,thesis:"India's #1 telecom. ARPU rising. 5G rollout. Africa growth. Airtel Payments Bank. Data + digital.",catalyst:"ARPU UPCYCLE — 5G monetization",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"IREDA",ticker:"IREDA",scanStatus:"STRENGTHENING",yf:"IREDA.NS",layer:"1-Month",sector:"Green Finance",cmp:0,prevClose:0,change:0,changePct:0,mcap:45000,pe:25,roce:15,low52:120,high52:310,score:7.5,thesis:"India's only dedicated renewable energy NBFC. Govt-backed. Loan book ₹69K Cr. Green bond pipeline. Modi's net-zero push.",catalyst:"GREEN ENERGY LENDING BOOM",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Adani Green Energy",ticker:"ADANIGREEN",scanStatus:"STRENGTHENING",yf:"ADANIGREEN.NS",layer:"Long-Term",sector:"Solar/Wind",cmp:0,prevClose:0,change:0,changePct:0,mcap:170000,pe:120,roce:8,low52:900,high52:2100,score:7.0,thesis:"India's largest renewable energy company. 11.2 GW operational. Target 45 GW by 2030. Long-term PPA contracts.",catalyst:"RENEWABLE CAPACITY RAMP",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"NHPC",ticker:"NHPC",scanStatus:"INTACT",yf:"NHPC.NS",layer:"Long-Term",sector:"Hydro/Clean Energy",cmp:0,prevClose:0,change:0,changePct:0,mcap:90000,pe:20,roce:8,low52:65,high52:115,score:7.0,thesis:"India's largest hydro power generator. 7 GW+. Govt-owned. Clean energy. High dividend yield ~3%. Pumped storage pipeline.",catalyst:"HYDRO + PUMPED STORAGE",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Blue Star",ticker:"BLUESTARCO",scanStatus:"INTACT",yf:"BLUESTARCO.NS",layer:"Long-Term",sector:"Consumer Durables",cmp:0,prevClose:0,change:0,changePct:0,mcap:35000,pe:55,roce:22,low52:1300,high52:2300,score:7.5,thesis:"India's #2 AC brand. B2B + B2C cooling. MEP projects. Climate change = structural tailwind. 22% ROCE.",catalyst:"COOLING DEMAND — climate change",catalystDate:"",vol:0,avgVol:0,loaded:false},
+  {name:"Deepak Nitrite",ticker:"DEEPAKNTR",scanStatus:"INTACT",yf:"DEEPAKNTR.NS",layer:"Long-Term",sector:"Specialty Chemicals",cmp:0,prevClose:0,change:0,changePct:0,mcap:30000,pe:35,roce:20,low52:1800,high52:3100,score:7.5,thesis:"Specialty chemicals — phenolics, fine chemicals. 20% ROCE. Downstream integration. China+1 beneficiary. Zero debt.",catalyst:"SPECIALTY CHEM — China+1",catalystDate:"",vol:0,avgVol:0,loaded:false},
 ];
 
 // ============================================================
@@ -3807,7 +3826,7 @@ function _buildPreMarketPanel(pmDiv) {
 // ============================================================
 
 // ── Ethical exclusion filters (MUST PRESERVE) ──
-const EXCLUDED_SECTORS = ['defence','defense','pharma','pharmaceutical','non-veg','meat','poultry','seafood','leather','footwear','shoe','fmcg','tobacco','liquor','alcohol','brewery'];
+const EXCLUDED_SECTORS = ['defence','defense','pharma','pharmaceutical','non-veg','meat','poultry','seafood','leather','footwear','shoe','fmcg','tobacco','liquor','alcohol','brewery','pesticide','insecticide','agrochemical','agri chem','animal feed','slaughter'];
 function isEthicallyExcluded(sectorOrName) {
   const t = (sectorOrName || '').toLowerCase();
   return EXCLUDED_SECTORS.some(ex => t.includes(ex));
@@ -4647,7 +4666,7 @@ function aiSwapStock(removeTicker, addTicker, addName, addSector, addPE, addROCE
 //  PAPER TRADING SIMULATOR v2.0 — AI QUANT ENGINE
 // ============================================================
 const PT_KEY = 'paperTradeWallet_v2';
-const PT_START = 100000;
+const PT_START = 10000000;
 
 function getPT() {
   try {
@@ -4659,7 +4678,7 @@ function getPT() {
 function savePT(w) { localStorage.setItem(PT_KEY, JSON.stringify(w)); }
 
 function resetPaperWallet() {
-  if (!confirm('Reset paper wallet to ₹1,00,000? All positions & trade history will be cleared.')) return;
+  if (!confirm('Reset Jain PMS wallet to ₹1,00,00,000 (₹1 Crore)? All positions & trade history will be cleared.')) return;
   localStorage.removeItem(PT_KEY);
   loadPaperTrade();
 }
@@ -11854,7 +11873,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //  DAY TRADE SIMULATOR v1.0 — INTRADAY AI ENGINE
 // ============================================================
 var DT_KEY = 'dayTradeWallet_v1';
-var DT_START = 200000;
+var DT_START = 2000000;
 var _dtEquityChart = null;
 
 function getDT() {
