@@ -1564,7 +1564,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Multibagger Portfolio Tracker v13.7 &mdash; AI Wealth Fund Manager + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Auto-Trade Reliability Fix + Daily P&amp;L History Fix + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Multibagger Portfolio Tracker v13.7.1 &mdash; AI Wealth Fund Manager + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Live Daily P&amp;L Sync + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -13291,14 +13291,18 @@ function rebuildDailyHistory(w) {
     byDate[d].push(t);
   });
 
-  // Build daily history entries
+  // Build daily history entries — UPDATE existing records if trade count changed
   var dates = Object.keys(byDate).sort();
+  var changed = false;
   dates.forEach(function(dateStr) {
     var trades = byDate[dateStr];
-    // Skip if already in history
+    // Check if entry already exists
+    var existingIdx = -1;
     for (var i = 0; i < w.dailyHistory.length; i++) {
-      if (w.dailyHistory[i].date === dateStr) return;
+      if (w.dailyHistory[i].date === dateStr) { existingIdx = i; break; }
     }
+    // If existing entry has same trade count, no update needed
+    if (existingIdx >= 0 && w.dailyHistory[existingIdx].trades === trades.length) return;
     var gross = 0, wins = 0, losses = 0;
     var best = -Infinity, worst = Infinity, bestName = '--', worstName = '--';
     trades.forEach(function(t) {
@@ -13308,7 +13312,7 @@ function rebuildDailyHistory(w) {
       if (p > best) { best = p; bestName = t.ticker + ' ' + (p >= 0 ? '+' : '-') + '₹' + Math.abs(p).toLocaleString('en-IN', {maximumFractionDigits: 0}); }
       if (p < worst) { worst = p; worstName = t.ticker + ' ' + (p >= 0 ? '+' : '-') + '₹' + Math.abs(p).toLocaleString('en-IN', {maximumFractionDigits: 0}); }
     });
-    w.dailyHistory.push({
+    var entry = {
       date: dateStr,
       trades: trades.length,
       grossPnl: Math.round(gross),
@@ -13317,11 +13321,18 @@ function rebuildDailyHistory(w) {
       losers: losses,
       bestTrade: bestName,
       worstTrade: worstName
-    });
+    };
+    if (existingIdx >= 0) {
+      w.dailyHistory[existingIdx] = entry; // UPDATE existing
+      changed = true;
+    } else {
+      w.dailyHistory.push(entry); // CREATE new
+      changed = true;
+    }
   });
 
-  if (dates.length > 0) {
-    console.log('[DT-HISTORY] Rebuilt ' + dates.length + ' days of P&L history from ' + w.trades.length + ' trade records');
+  if (changed) {
+    console.log('[DT-HISTORY] Synced ' + dates.length + ' days of P&L history from ' + w.trades.length + ' trade records');
     saveDT(w);
   }
 }
@@ -13329,9 +13340,9 @@ function rebuildDailyHistory(w) {
 function loadDayTrade() {
   var w = getDT();
 
-  // v13.7 FIX: Rebuild daily P&L history from trade records if history is empty
-  // This recovers lost history when smart exits closed positions without recording
-  if (w.dailyHistory.length === 0 && w.trades.length > 0) {
+  // v13.7.1 FIX: Always sync daily P&L history from trade records on load
+  // Catches any missing days AND updates today's record as sells happen
+  if (w.trades.length > 0) {
     rebuildDailyHistory(w);
   }
 
@@ -14504,45 +14515,9 @@ async function runDayTradeSmartExits() {
   }
 
   if (exitCount > 0) {
-    // v13.7 FIX: If ALL positions are now closed, auto-record daily P&L history
-    // This was the bug — smart exits removed positions one-by-one but never created
-    // a daily summary, so Daily P&L History always showed "0 days"
-    if (w.positions.length === 0) {
-      var todayStrSE = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'})).toISOString().slice(0, 10);
-      // Check if we already have an entry for today (avoid duplicates)
-      var alreadyRecorded = false;
-      for (var hi = 0; hi < w.dailyHistory.length; hi++) {
-        if (w.dailyHistory[hi].date === todayStrSE) { alreadyRecorded = true; break; }
-      }
-      if (!alreadyRecorded) {
-        // Calculate today's P&L from all trades made today
-        var todayTrades = w.trades.filter(function(t) {
-          return t.time && t.time.slice(0, 10) === todayStrSE && t.type === 'SELL';
-        });
-        if (todayTrades.length > 0) {
-          var dayGross = 0, dayWins = 0, dayLosses = 0;
-          var dayBest = -Infinity, dayWorst = Infinity, dayBestName = '--', dayWorstName = '--';
-          todayTrades.forEach(function(t) {
-            var tp = t.pnl || 0;
-            dayGross += tp;
-            if (tp > 0) dayWins++; else dayLosses++;
-            if (tp > dayBest) { dayBest = tp; dayBestName = t.ticker + ' +₹' + Math.abs(tp).toLocaleString('en-IN', {maximumFractionDigits: 0}); }
-            if (tp < dayWorst) { dayWorst = tp; dayWorstName = t.ticker + ' ' + (tp >= 0 ? '+' : '-') + '₹' + Math.abs(tp).toLocaleString('en-IN', {maximumFractionDigits: 0}); }
-          });
-          w.dailyHistory.push({
-            date: todayStrSE,
-            trades: todayTrades.length,
-            grossPnl: Math.round(dayGross),
-            netPnl: Math.round(dayGross),
-            winners: dayWins,
-            losers: dayLosses,
-            bestTrade: dayBestName,
-            worstTrade: dayWorstName
-          });
-          console.log('[DT-HISTORY] Auto-recorded daily summary: ' + todayStrSE + ' | P&L: ' + Math.round(dayGross) + ' | Trades: ' + todayTrades.length);
-        }
-      }
-    }
+    // v13.7.1 FIX: Record daily P&L after ANY sells, not just when all positions closed
+    // Uses rebuildDailyHistory which creates/updates records from trade data
+    rebuildDailyHistory(w);
 
     saveDT(w);
     updateDTDisplay(w);
@@ -14860,19 +14835,13 @@ async function squareOffAll() {
 
   var totalTrades = w.positions.length;
   var netPnl = dayGrossPnl;
-  w.dailyHistory.push({
-    date: todayStr,
-    trades: totalTrades,
-    grossPnl: Math.round(dayGrossPnl),
-    netPnl: Math.round(netPnl),
-    winners: winners,
-    losers: losers,
-    bestTrade: bestTrade,
-    worstTrade: worstTrade
-  });
 
   w.positions = [];
   w.todayDate = todayStr;
+
+  // v13.7.1: Use rebuildDailyHistory instead of manual push to avoid duplicates
+  // (smart exits may have already created/updated today's record)
+  rebuildDailyHistory(w);
   saveDT(w);
 
   var lastAction = document.getElementById('dtLastAction');
