@@ -1752,7 +1752,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v14.0 &mdash; AI Wealth Fund (₹1 Cr) + Jainism Compliance Filter + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine (Minervini Trend Template + PTJ 200MA Defense + Reward:Risk Ratio + Conviction Sizing) + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Live Daily P&amp;L Sync + 10% Monthly Mandate (570+ stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v14.2 &mdash; AI Wealth Fund (₹1 Cr) + Full Universe Day Trade Scanner (694 stocks) + Stealth Catalyst Detection + Jainism Compliance Filter + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Live Daily P&amp;L Sync + 10% Monthly Mandate (694 stocks) &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -1835,6 +1835,13 @@ const stocks = [
 //  ALERTS SYSTEM
 // ============================================================
 let alerts = [
+  // ── Seeded by AI Research Agent 2026-07-20 ──
+  {type:'research', stock:'ICICIBANK', title:'Q1 FY27 BEAT — PAT +15.9%', time:'2026-07-20', desc:'PAT Rs 14,804 Cr (+15.9% YoY), GNPA 1.38% (from 1.67%). Reported Jul 18. Thesis strengthening. HIGH conviction. Kotak also beat: standalone PAT +26%, GNPA 1.18%.', key:'ICICIBANK-research-Q1 FY27 beat Jul 18', read:false},
+  {type:'research', stock:'HDFCBANK', title:'Q1 mixed — NIM 3.26% record low', time:'2026-07-20', desc:'PAT +5% to Rs 19,060 Cr, NII +7%, advances +15.4%, but NIM 3.26% lowest on record (3.38% in Mar qtr). Growth intact, margin compression is the watch item. Set 2-quarter NIM-recovery checkpoint.', key:'HDFCBANK-research-NIM record low Q1', read:false},
+  {type:'research', stock:'JIOFIN', title:'+6% post-Q1; Reliance promoters bought ~Rs 9,000 Cr', time:'2026-07-20', desc:'Among Nifty top gainers Jul 17. Parent signal: Reliance promoter stake up 0.5pp to 50.48% via open-market creeping acquisition in Q1 (~Rs 8,500-9,000 Cr). Ecosystem insider-confidence read-through. HIGH conviction.', key:'JIOFIN-research-Reliance promoter buying', read:false},
+  {type:'research', stock:'CYIENT', title:'Catalyst refreshed — Q1 results Jul 23', time:'2026-07-20', desc:'Stale-buyback flag resolved: Cyient reports Q1 FY27 on Jul 23 alongside INFY and Mphasis. IT tape is selective (TechM/HCL strong, Wipro weak) — results are the near-term catalyst.', key:'CYIENT-research-Q1 Jul 23 catalyst', read:false},
+  {type:'research', stock:'IONEXCHANG', title:'Candidate promoted — score 72', time:'2026-07-20', desc:'Ion Exchange: water treatment franchise, debt-light, quality-screen fit. Complements WABAG water-infra thesis. MEDIUM-HIGH conviction; verify ROCE/order book on Screener.in. Also: MahSeamless 68, Gulf Oil 67, Garuda 66 (new adds).', key:'IONEXCHANG-research-Candidate score 72', read:false},
+  {type:'research', stock:'MARKET', title:'Regime → BULL (early); FII selling fading', time:'2026-07-20', desc:'Nifty 24,334 (+1.09% Jul 17) broke 23,900-24,200 band. FII -376 Cr (vs -4,205 Cr Jul 16), DII +1,018 Cr. Confirm above 24,367; below 24,200 reverts to SIDEWAYS. Rotation: banks/industrials/metals gaining, IT selective.', key:'MARKET-research-Regime BULL early Jul 20', read:false},
   // ── Seeded by AI Research Agent 2026-07-17 ──
   {type:'research', stock:'JIOFIN', title:'Q1 FY27 blowout — thesis strengthening', time:'2026-07-17', desc:'PAT Rs 830 Cr (+156% YoY), revenue 3.3x to Rs 2,004 Cr. Jio Credit AUM Rs 30,667 Cr (2.6x). Jio-Allianz JV incorporated. HIGH conviction thesis intact.', key:'JIOFIN-research-Q1 FY27 blowout', read:false},
   {type:'research', stock:'DIXON', title:'CATALYST FIRED — Vivo JV approved Jul 10', time:'2026-07-17', desc:'Govt cleared Dixon-Vivo JV (Dixon 51%). ~22M handsets/yr; revenue impact from Dec qtr. Brokers upgraded. Update thesis to execution-watch; much may be priced at ~95x PE.', key:'DIXON-research-Vivo JV approved', read:false},
@@ -2889,6 +2896,9 @@ const MOVER_UNIVERSE = [
   {t:'JPASSOCIAT',n:'Jaiprakash Associates',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},
   // ---- AI RESEARCH ADDS 2026-07-17 ----
   {t:'JYOTIRES',n:'Jyoti Resins & Adhesives',s:'Adhesives',c:'S',pe:0,ro:50,mc:0},
+  // ---- AI RESEARCH ADDS 2026-07-20 ----
+  {t:'GULFOILLUB',n:'Gulf Oil Lubricants',s:'Lubricants',c:'S',pe:0,ro:27,mc:0},
+  {t:'GARUDACONS',n:'Garuda Construction & Engg',s:'Construction',c:'S',pe:0,ro:30,mc:0},
   // ---- NEW: POWER / ENERGY / UTILITIES (20) ----
   {t:'TORNTPHARM',n:'Torrent Power',s:'Power',c:'L',pe:0,ro:0,mc:0},
   {t:'GIPCL',n:'Gujarat Industries Power',s:'Power',c:'S',pe:0,ro:0,mc:0},
@@ -3428,33 +3438,38 @@ async function predictDailyMovers() {
 
 // ── Global Market Cues (updated via web research + can be auto-refreshed) ──
 var PRE_MARKET_GLOBAL = {
-  lastUpdated: '2026-07-17',
-  giftNifty: { value: 24088, changePct: -0.03, signal: 'FLAT' },
+  lastUpdated: '2026-07-20',
+  giftNifty: { value: 24285, changePct: -0.15, signal: 'FLAT' },
   dow: { value: 52348, changePct: 0.12, signal: 'MILDLY_BULLISH' },
   sp500: { value: 7483, changePct: 0.08, signal: 'MILDLY_BULLISH' },
   nasdaq: { value: 25871, changePct: 0.15, signal: 'MILDLY_BULLISH' },
   nikkei: { value: 67856, changePct: 0.45, signal: 'BULLISH' },
   brentCrude: { value: 78.5, changePct: 1.2, signal: 'RISING' },
   indiaVix: { value: 13.27, signal: 'LOW_VOL' },
-  fiiFlow: { value: -736, label: '-736 Cr cash (Jul 15; Jul 16 unverified) + net short futures', signal: 'OUTFLOW' },
-  diiFlow: { value: 705, label: '+705 Cr cash (Jul 15)', signal: 'INFLOW' },
+  fiiFlow: { value: -376, label: '-376 Cr cash (Jul 17) — selling collapsed from -4,205 Cr Jul 16; streak fading', signal: 'OUTFLOW' },
+  diiFlow: { value: 1018, label: '+1,018 Cr cash (Jul 17) — steady absorber', signal: 'INFLOW' },
   usdInr: { value: 85.55, signal: 'STABLE' },
-  niftySupport: 24050,
-  niftyResistance: 24130,
-  regime: 'SIDEWAYS',
-  keyThemes: ['Nifty 24,072 — flat 3rd session, 23,900-24,200 band', 'Q1 earnings season = stock-specific market; big-4 private bank results Jul 18', 'IT leadership rotation (HCL top gainer) but Wipro margin at 15-qtr low', 'Dixon-Vivo JV approved Jul 10 — EMS/PLI momentum', 'Consumer durables + chemicals gaining; realty/banks/financials losing', 'US-Iran crude volatility']
+  niftySupport: 24200,
+  niftyResistance: 24367,
+  regime: 'BULL',
+  keyThemes: ['Nifty 24,334 (+1.09% Jul 17) — broke 23,900-24,200 band; BULL unconfirmed until close >24,367', 'Bank Q1 trio Jul 18: ICICI +15.9%, Kotak +26% (beats); HDFC Bank NIM 3.26% record low (mixed)', 'JIOFIN +6% post-Q1; Reliance promoters raised stake to 50.48% (~9,000 Cr creeping buy)', 'Jul 23 pivot: INFY + CYIENT + Mphasis results; Shriram Fin Jul 24', 'Rotation: banking/industrials/metals/auto gaining; IT selective (Wipro weak)', 'EMS rally on ECMS-PLI (Dixon, Kaynes +7% Jul 16)']
 };
 
 // ── AI Research Agent — last automated scan ──
-var AI_RESEARCH_LAST_UPDATE = '2026-07-17 (daily scan: JIOFIN Q1 blowout +156% PAT; Dixon-Vivo JV catalyst FIRED Jul 10; Ather Rs 1,200 Cr pref issue + Hero top-up; Jyoti Resins new candidate score 78; regime SIDEWAYS, FII still seller; full report in research-reports/2026-07-17-daily-scan.md)';
+var AI_RESEARCH_LAST_UPDATE = '2026-07-20 (daily scan: regime upgraded to BULL-early — Nifty 24,334 breakout; bank Q1 Jul 18: ICICI/Kotak beat, HDFC Bank NIM 3.26% record low; JIOFIN +6%, Reliance promoter stake 50.48%; CYIENT catalyst refreshed to Q1 Jul 23 with INFY; new candidates Ion Exchange 72, MahSeamless 68, Gulf Oil 67, Garuda 66; FII selling fading -376 Cr; full report in research-reports/2026-07-20-daily-scan.md)';
+// Previous: '2026-07-17 (daily scan: JIOFIN Q1 blowout +156% PAT; Dixon-Vivo JV catalyst FIRED Jul 10; Ather Rs 1,200 Cr pref issue + Hero top-up; Jyoti Resins new candidate score 78; regime SIDEWAYS, FII still seller; full report in research-reports/2026-07-17-daily-scan.md)';
 
 // ── Earnings Calendar (stocks reporting today/tomorrow) ──
 var EARNINGS_CALENDAR = [
-  {ticker:'TCS', name:'Tata Consultancy Services', date:'2026-07-09', status:'REPORTED', result:'BEAT', patGrowth:5, revenueGrowth:14, keyNote:'AI biz $2.6B run rate. $9.5B order book.'},
-  {ticker:'IREDA', name:'IREDA', date:'2026-07-10', status:'EXPECTED', keyNote:'Green energy financing growth'},
-  {ticker:'ANGELONE', name:'Angel One', date:'2026-07-10', status:'EXPECTED', keyNote:'Broking volumes + fintech'},
-  {ticker:'LTTS', name:'L&T Technology', date:'2026-07-11', status:'UPCOMING', keyNote:'ER&D spending outlook'},
-  {ticker:'HCLTECH', name:'HCL Technologies', date:'2026-07-11', status:'UPCOMING', keyNote:'IT sector follow-through'}
+  {ticker:'HDFCBANK', name:'HDFC Bank', date:'2026-07-18', status:'REPORTED', result:'MIXED', patGrowth:5, keyNote:'NIM 3.26% record low; advances +15.4%'},
+  {ticker:'ICICIBANK', name:'ICICI Bank', date:'2026-07-18', status:'REPORTED', result:'BEAT', patGrowth:16, keyNote:'GNPA 1.38%; clean quarter'},
+  {ticker:'KOTAKBANK', name:'Kotak Mahindra Bank', date:'2026-07-18', status:'REPORTED', result:'BEAT', patGrowth:26, keyNote:'Standalone PAT +26%; NIM 4.53%'},
+  {ticker:'BAJAJ-AUTO', name:'Bajaj Auto', date:'2026-07-21', status:'UPCOMING', keyNote:'Auto momentum post GST cut'},
+  {ticker:'INFY', name:'Infosys', date:'2026-07-23', status:'UPCOMING', keyNote:'HOLDING — large-deal TCV + AI commentary'},
+  {ticker:'CYIENT', name:'Cyient', date:'2026-07-23', status:'UPCOMING', keyNote:'HOLDING — refreshed catalyst'},
+  {ticker:'MPHASIS', name:'Mphasis', date:'2026-07-23', status:'UPCOMING', keyNote:'IT tape read-through'},
+  {ticker:'SHRIRAMFIN', name:'Shriram Finance', date:'2026-07-24', status:'UPCOMING', keyNote:'AAA-upgrade thesis check'},
+  {ticker:'NTPC', name:'NTPC', date:'2026-07-24', status:'UPCOMING', keyNote:'Power capex cycle'}
 ];
 
 function runPreMarketIntel() {
@@ -13358,11 +13373,24 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
     }
   }
 
-  // ═══ v6.0 CATALYST PENALTY — NO catalyst = HEAVY penalty ═══
-  // Fixes Mistake #2: Never trade without a reason
+  // ═══ v14.2 CATALYST PENALTY — Smarter: price action IS a catalyst ═══
+  // OLD v6.0: Flat -25 penalty killed universe-discovered movers
+  // NEW v14.2: If stock is up 2%+ with high volume, PRICE ACTION = catalyst
+  // Research: When big money moves a stock 2-3%, there IS a catalyst — we just don't know it yet
   if (!hasCatalyst) {
-    score -= 25;
-    signals.push('NO-CATALYST');
+    if (changePct >= 3 && volume > 3000000) {
+      // Strong move + monster volume = INSTITUTIONAL CATALYST (we just can't read the news yet)
+      score += 5;
+      signals.push('STEALTH-CAT');
+    } else if (changePct >= 2 && volume > 1500000) {
+      // Good move + strong volume = likely catalyst, mild penalty only
+      score -= 5;
+      signals.push('WEAK-CAT');
+    } else {
+      // No catalyst + weak action = genuine no-catalyst penalty
+      score -= 25;
+      signals.push('NO-CATALYST');
+    }
   }
 
   // ═══ v6.0 JOURNAL-BASED SIGNAL ADJUSTMENT — Fixes Mistake #15 ═══
@@ -14776,71 +14804,79 @@ async function runDayTradeAI() {
       }
     });
 
-    // Also add stocks from recent hot sectors (max 30 more)
+    // ═══ v14.2: FULL UNIVERSE SCAN — scan ALL 694 MOVER_UNIVERSE stocks ═══
+    // OLD: Only 30 stocks from catalyst sectors (missed 600+ potential movers)
+    // NEW: Fetch live prices for ENTIRE universe to find the REAL movers of the day
+    // This is the same upgrade Paper Trade got with Phase 2.4
     if (typeof MOVER_UNIVERSE !== 'undefined') {
-      // Find sectors with news/catalyst activity
-      var catalystSectors = {};
-      _dtShortlist.forEach(function(s) {
-        if (s.sector) {
-          if (!catalystSectors[s.sector]) catalystSectors[s.sector] = 0;
-          catalystSectors[s.sector]++;
-        }
-      });
-      // Add top stocks from catalyst sectors (max 30)
-      var sectorAdds = 0;
+      var universeAdds = 0;
       MOVER_UNIVERSE.forEach(function(m) {
-        if (sectorAdds >= 30) return;
         if (isEthicallyExcluded(m.s || '') || isEthicallyExcluded(m.n || '')) return;
         if (candidates[m.t] || tickersToFetch.indexOf(m.t) >= 0) return;
-        if (catalystSectors[m.s || ''] >= 1) {
-          tickersToFetch.push(m.t);
-          sectorAdds++;
-        }
+        tickersToFetch.push(m.t);
+        universeAdds++;
       });
+      console.log('[DT-v14.2] Full universe scan queued: ' + universeAdds + ' additional stocks from MOVER_UNIVERSE');
     }
 
-    console.log('[DT-v6] Fast scan: ' + tickersToFetch.length + ' stocks to fetch (vs 570+ in v5)');
+    console.log('[DT-v14.2] Total scan: ' + tickersToFetch.length + ' stocks (was ~30 in v6, now full universe)');
 
-    // Fetch in 1-2 batches (MUCH faster than 12 batches)
+    // ═══ v14.2: PARALLEL BATCH FETCH — fetch all universe prices ═══
+    // Fetch in parallel batches of 50 for speed (was sequential)
     var batchSize = 50;
+    var totalBatches = Math.ceil(tickersToFetch.length / batchSize);
+    var batchesDone = 0;
+    var fetchPromises = [];
+
     for (var i = 0; i < tickersToFetch.length; i += batchSize) {
       var batch = tickersToFetch.slice(i, i + batchSize);
       var symbolStr = batch.map(function(tk) { return tk + '.NS'; }).join(',');
-      try {
-        var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbolStr) + '&mode=all', {signal: AbortSignal.timeout(20000)});
-        var json = await resp.json();
-        if (json && json.success && json.data && json.data.stocks) {
-          Object.entries(json.data.stocks).forEach(function(entry) {
-            var sym = entry[0]; var d = entry[1];
-            var tk = sym.replace('.NS', '').replace('.BO', '');
-            if (d.price > 0) {
-              var changePct2 = d.prevClose > 0 ? ((d.price - d.prevClose) / d.prevClose * 100) : 0;
-              if (changePct2 < 0.2) return; // Allow slightly lower for catalyst stocks
-              var uvEntry = null;
-              if (typeof MOVER_UNIVERSE !== 'undefined') {
-                uvEntry = MOVER_UNIVERSE.find(function(m) { return m.t === tk; });
-              }
-              var slEntry = _dtShortlist.find(function(s) { return s.ticker === tk; });
-              candidates[tk] = {
-                ticker: tk,
-                name: (slEntry && slEntry.name) || (uvEntry ? uvEntry.n : tk),
-                sector: (slEntry && slEntry.sector) || (uvEntry ? uvEntry.s : ''),
-                price: d.price, prevClose: d.prevClose || d.price,
-                high52: d.high52 || 0, low52: d.low52 || 0,
-                volume: d.volume || 0,
-                dayHigh: d.dayHigh || d.high || 0, dayLow: d.dayLow || d.low || 0,
-                source: slEntry ? 'catalyst' : 'sector-add',
-                extraData: uvEntry || null
-              };
+      // Fire all batches in parallel
+      fetchPromises.push(
+        fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbolStr) + '&mode=all', {signal: AbortSignal.timeout(25000)})
+          .then(function(resp) { return resp.json(); })
+          .then(function(json) {
+            batchesDone++;
+            if (statusBadge) statusBadge.innerHTML = '&#128269; v14.2: Scanning universe... batch ' + batchesDone + '/' + totalBatches + ' (' + Object.keys(candidates).length + ' candidates)';
+            if (json && json.success && json.data && json.data.stocks) {
+              Object.entries(json.data.stocks).forEach(function(entry) {
+                var sym = entry[0]; var d = entry[1];
+                var tk = sym.replace('.NS', '').replace('.BO', '');
+                if (d.price > 0) {
+                  var changePct2 = d.prevClose > 0 ? ((d.price - d.prevClose) / d.prevClose * 100) : 0;
+                  if (changePct2 < 0.2) return;
+                  var uvEntry = null;
+                  if (typeof MOVER_UNIVERSE !== 'undefined') {
+                    uvEntry = MOVER_UNIVERSE.find(function(m) { return m.t === tk; });
+                  }
+                  var slEntry = _dtShortlist.find(function(s) { return s.ticker === tk; });
+                  candidates[tk] = {
+                    ticker: tk,
+                    name: (slEntry && slEntry.name) || (uvEntry ? uvEntry.n : tk),
+                    sector: (slEntry && slEntry.sector) || (uvEntry ? uvEntry.s : ''),
+                    price: d.price, prevClose: d.prevClose || d.price,
+                    high52: d.high52 || 0, low52: d.low52 || 0,
+                    volume: d.volume || 0,
+                    dayHigh: d.dayHigh || d.high || 0, dayLow: d.dayLow || d.low || 0,
+                    source: slEntry ? 'catalyst' : (uvEntry ? 'universe' : 'sector-add'),
+                    extraData: uvEntry || null
+                  };
+                }
+              });
             }
-          });
-        }
-      } catch(e) {
-        console.log('[DT-v6] Batch fetch error:', e.message || e);
-      }
+          })
+          .catch(function(e) {
+            batchesDone++;
+            console.log('[DT-v14.2] Batch fetch error:', e.message || e);
+          })
+      );
     }
 
-    if (statusBadge) statusBadge.innerHTML = '&#9889; v6.0: ' + Object.keys(candidates).length + ' candidates | Scoring with catalyst gate...';
+    // Wait for ALL parallel fetches to complete
+    await Promise.all(fetchPromises);
+    console.log('[DT-v14.2] Universe scan complete: ' + Object.keys(candidates).length + ' candidates with live prices from ' + totalBatches + ' batches');
+
+    if (statusBadge) statusBadge.innerHTML = '&#9889; v14.2: ' + Object.keys(candidates).length + ' candidates from full universe | Scoring...';
 
     // ══════════════════════════════════════════════════════════
     //  STEP 1C: MARKET QUALITY GATE — Fixes Mistake #10
@@ -15065,9 +15101,9 @@ async function runDayTradeAI() {
     // Final sort
     scored.sort(function(a, b) { return b.dtScore - a.dtScore; });
 
-    console.log('[DT-v6] Scored ' + scored.length + ' candidates. Top 10:');
-    scored.slice(0, 10).forEach(function(s, idx) {
-      console.log('  ' + (idx + 1) + '. ' + s.ticker + ' score=' + s.dtScore + ' chg=' + s.changePct.toFixed(2) + '% catalyst=' + s.hasCatalyst + ' [' + s.signals.join(', ') + ']');
+    console.log('[DT-v14.2] Scored ' + scored.length + ' candidates from full universe scan. Top 15:');
+    scored.slice(0, 15).forEach(function(s, idx) {
+      console.log('  ' + (idx + 1) + '. ' + s.ticker + ' score=' + s.dtScore + ' chg=' + s.changePct.toFixed(2) + '% vol=' + (s.volume/100000).toFixed(1) + 'L catalyst=' + s.hasCatalyst + ' src=' + s.source + ' [' + s.signals.slice(0, 6).join(', ') + ']');
     });
 
     // ══════════════════════════════════════════════════════════
