@@ -1752,7 +1752,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v15.1 &mdash; AI Wealth Fund (₹1 Cr) + Catalyst-Aware Day Trade Engine (VWAP + Pullback + Catalyst-Momentum) + Full Universe Scanner (694 stocks) + Stealth Catalyst Detection + Jainism Compliance Filter + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine + Predator Detection Engine + Institutional Risk Controls + Live Daily P&amp;L Sync + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v15.2 &mdash; AI Wealth Fund (₹1 Cr) + Smart Exit Engine (ATR-Scaled + 3-Tier Booking + Time Decay + Vol Fade + VWAP Recross) + Catalyst-Aware Entry + Full Universe Scanner (694 stocks) + Stealth Catalyst Detection + Jainism Compliance Filter + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine + Predator Detection Engine + Institutional Risk Controls + Live Daily P&amp;L Sync + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -15374,7 +15374,13 @@ async function runDayTradeAI() {
         dtScore: pick.dtScore, momentum: pick.momentum,
         signals: pick.signals, source: pick.source,
         hasCatalyst: pick.hasCatalyst, entryQuality: pick.entryQuality || 'UNKNOWN',
-        allocPct: allocPct, buyTime: new Date().toISOString()
+        allocPct: allocPct, buyTime: new Date().toISOString(),
+        // v15.2: Entry context for Smart Exit Engine
+        entryVolume: pick.volume || 0,
+        entryDayHigh: pick.dayHigh || pick.price,
+        entryDayLow: pick.dayLow || pick.price,
+        entryVWAP: (pick.dayHigh && pick.dayLow) ? (pick.dayHigh + pick.dayLow + pick.price) / 3 : pick.price,
+        entryTimeMin: hrs * 60 + mins
       });
 
       var riskInfo = a.riskPct ? ' | Risk ' + a.riskPct + '%' : '';
@@ -15387,7 +15393,7 @@ async function runDayTradeAI() {
         qty: qty, price: pick.price, dtScore: pick.dtScore,
         predatorScore: a.predatorScore || 0,
         predatorSignals: a.predatorSignals || [],
-        reason: '🎯 v15.1 Score ' + pick.dtScore + '/200 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Entry:' + (pick.entryQuality || 'N/A') + ' | Alloc ' + allocPct + '%' + riskInfo + sizeInfo + predatorInfo + predatorSigStr + (a.trendTemplate ? ' | T:' + a.trendTemplate.score + '/8' : '') + (a.rewardRisk ? ' | RR:' + a.rewardRisk.ratio + ':1' : '') + (a.conviction && a.conviction.multiplier > 1.0 ? ' | Conv:' + a.conviction.multiplier + 'x' : '') + ' | SL:' + (pick.hasCatalyst ? '-1.2%' : '-1.0%') + ' | ' + pick.source + (pick.hasCatalyst ? ' | CATALYST' : ' | NO-CAT') + ' | ' + _predatorFIIDII.flowRegime,
+        reason: '🎯 v15.2 Score ' + pick.dtScore + '/200 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Entry:' + (pick.entryQuality || 'N/A') + ' | Alloc ' + allocPct + '%' + riskInfo + sizeInfo + predatorInfo + predatorSigStr + (a.trendTemplate ? ' | T:' + a.trendTemplate.score + '/8' : '') + (a.rewardRisk ? ' | RR:' + a.rewardRisk.ratio + ':1' : '') + (a.conviction && a.conviction.multiplier > 1.0 ? ' | Conv:' + a.conviction.multiplier + 'x' : '') + ' | ATR-SL+3Tier | ' + pick.source + (pick.hasCatalyst ? ' | CATALYST' : ' | NO-CAT') + ' | ' + _predatorFIIDII.flowRegime,
         source: 'daytrade', time: new Date().toISOString()
       });
 
@@ -15414,7 +15420,7 @@ async function runDayTradeAI() {
       statusBadge.style.background = '#22c55e22'; statusBadge.style.color = '#22c55e'; statusBadge.style.borderColor = '#22c55e44';
       var catPct = Math.round(picks.filter(function(p) { return p.hasCatalyst; }).length / picks.length * 100);
       var riskLabel = sizeMultiplier < 1.0 ? ' | RISK-ADJUSTED ×' + sizeMultiplier.toFixed(2) : ' | 1% RISK/TRADE';
-      statusBadge.innerHTML = '&#128737; v15.1 CATALYST-AWARE ENGINE: ' + buyCount + ' picks (CAT:SL-1.2% / NO-CAT:SL-1.0%)' + riskLabel + ' | ' + catPct + '% catalysts | ' + topSignals.join(', ');
+      statusBadge.innerHTML = '&#128737; v15.2 SMART EXIT: ' + buyCount + ' picks (ATR-SL + 3-Tier + TimeFade + VolFade + VWAP)' + riskLabel + ' | ' + catPct + '% catalysts | ' + topSignals.join(', ');
     }
 
     console.log('[DT-v13.4] Bought ' + buyCount + ' stocks. Cash: ' + w.cash.toLocaleString('en-IN'));
@@ -15448,7 +15454,15 @@ async function runDayTradeSmartExits() {
 
   // Fetch fresh prices for all positions
   var tickers = w.positions.map(function(p) { return p.ticker + '.NS'; });
-  var freshPrices = {};
+  // ═══════════════════════════════════════════════════════════════════
+  //  v15.2 SMART EXIT ENGINE — 5 Institutional-Grade Exit Systems
+  //  1. ATR-Scaled Dynamic Stop-Loss (volatility-adjusted, not fixed %)
+  //  2. 3-Tier Profit Booking (30% T1 + 30% T2 + trail 40%)
+  //  3. Time Decay (tighten everything as day progresses)
+  //  4. Volume Fade / Stagnation Exit (dead money detection)
+  //  5. VWAP Recross Exit (momentum death signal)
+  // ═══════════════════════════════════════════════════════════════════
+  var freshData = {};
   try {
     var batchSz = 10;
     for (var bi = 0; bi < tickers.length; bi += batchSz) {
@@ -15459,7 +15473,11 @@ async function runDayTradeSmartExits() {
         Object.entries(json.data.stocks).forEach(function(entry) {
           var sym = entry[0]; var d = entry[1];
           var tk = sym.replace('.NS', '').replace('.BO', '');
-          if (d.price > 0) freshPrices[tk] = d.price;
+          if (d.price > 0) freshData[tk] = {
+            price: d.price, dayHigh: d.dayHigh || d.price,
+            dayLow: d.dayLow || d.price, volume: d.volume || 0,
+            prevClose: d.prevClose || 0
+          };
         });
       }
       if (bi + batchSz < tickers.length) await new Promise(function(r) { setTimeout(r, 300); });
@@ -15472,72 +15490,178 @@ async function runDayTradeSmartExits() {
   // Check each position for exit signals
   for (var i = w.positions.length - 1; i >= 0; i--) {
     var pos = w.positions[i];
-    var livePrice = freshPrices[pos.ticker] || pos.currentPrice || pos.buyPrice;
+    var fd = freshData[pos.ticker] || {};
+    var livePrice = fd.price || pos.currentPrice || pos.buyPrice;
     var returnPct = pos.buyPrice > 0 ? ((livePrice - pos.buyPrice) / pos.buyPrice * 100) : 0;
     var shouldExit = false;
     var exitReason = '';
 
     // Update peak price tracking
     if (!pos.peakPrice || livePrice > pos.peakPrice) pos.peakPrice = livePrice;
+    var peakReturn = pos.peakPrice > pos.buyPrice ? ((pos.peakPrice - pos.buyPrice) / pos.buyPrice * 100) : 0;
 
-    // EXIT 1: v15.1 CATALYST-AWARE STOP-LOSS
-    // Catalyst = support floor, wider stop (-1.2%). No catalyst = no floor, tighter stop (-1.0%)
-    var stopLimit = pos.hasCatalyst ? -1.2 : -1.0;
-    // -1.2% gives pullback room while still preserving capital (max 1.2% risk per trade)
-    if (returnPct <= stopLimit) {
+    // ═══ v15.2: COMPUTE LIVE ATR, VWAP & TIME CONTEXT ═══
+    var liveDayHigh = fd.dayHigh || pos.entryDayHigh || livePrice;
+    var liveDayLow = fd.dayLow || pos.entryDayLow || livePrice;
+    var liveVolume = fd.volume || 0;
+    // ATR proxy = day range as % of price (minimum 0.5% floor for very tight stocks)
+    var atrPct = liveDayHigh > liveDayLow ? ((liveDayHigh - liveDayLow) / livePrice * 100) : 0.5;
+    if (atrPct < 0.5) atrPct = 0.5;
+    // VWAP = typical price approximation
+    var liveVWAP = (liveDayHigh + liveDayLow + livePrice) / 3;
+    // Hold duration in minutes
+    var holdMinutes = pos.entryTimeMin ? (timeMinutes - pos.entryTimeMin) : 60;
+    if (holdMinutes < 0) holdMinutes = 60; // safety
+
+    // ═══ v15.2 SYSTEM 3: TIME DECAY FACTOR ═══
+    // Morning = full room (1.0), afternoon = tighter, last hour = very tight
+    // Logic: less time to recover = less room to give
+    var timeFactor = 1.0;
+    if (timeMinutes >= 870) timeFactor = 0.5;       // After 2:30 PM — very tight
+    else if (timeMinutes >= 810) timeFactor = 0.7;   // After 1:30 PM — tighter
+    else if (timeMinutes >= 750) timeFactor = 0.85;  // After 12:30 PM — slightly tighter
+
+    // ═══ EXIT 1: v15.2 ATR-SCALED DYNAMIC STOP-LOSS ═══
+    // SL = 0.5× ATR, clamped [0.6%, 1.5%], catalyst gets 20% wider room
+    // Time decay tightens it as day progresses
+    // Why: A stock with 3% day range needs 1.5% SL room. A 0.8% range stock needs 0.4% SL.
+    var rawSL = atrPct * 0.5;
+    var clampedSL = Math.max(0.6, Math.min(1.5, rawSL));
+    var dynamicSL = -(clampedSL * (pos.hasCatalyst ? 1.2 : 1.0) * timeFactor);
+    if (returnPct <= dynamicSL) {
       shouldExit = true;
-      exitReason = 'STOP-LOSS: ' + returnPct.toFixed(2) + '% (limit ' + stopLimit + '%)' + (pos.hasCatalyst ? ' [CAT]' : ' [NO-CAT]');
+      exitReason = 'ATR-STOP: ' + returnPct.toFixed(2) + '% (SL ' + dynamicSL.toFixed(2) + '% | ATR ' + atrPct.toFixed(1) + '% | TF×' + timeFactor + ')' + (pos.hasCatalyst ? ' [CAT]' : '');
     }
 
-    // EXIT 2: v15.1 CATALYST-AWARE TRAILING STOP
-    // Catalyst: activate at +1.5%, trail at 50% (wide — let momentum run)
-    // No catalyst: activate at +0.7%, trail at 70% (tight — take what you can)
-    // Old: activated at +0.8%, trailed at 50% — too early, gave back too much
-    if (!shouldExit && pos.peakPrice && pos.peakPrice > pos.buyPrice) {
-      var peakReturn = (pos.peakPrice - pos.buyPrice) / pos.buyPrice * 100;
-        var trailActivate = pos.hasCatalyst ? 1.5 : 0.7;
-        var trailKeep = pos.hasCatalyst ? 0.005 : 0.007; // 50% vs 70% of peak
-        if (peakReturn >= trailActivate) {
-          var trailLevel = pos.buyPrice * (1 + peakReturn * trailKeep);
-        if (livePrice < trailLevel) {
+    // ═══ EXIT 2: v15.2 VWAP RECROSS EXIT ═══
+    // If entry was above VWAP and price dropped below VWAP → momentum is dead
+    // Only exit if not significantly profitable (< +0.5%) — don't kill winners
+    if (!shouldExit && pos.entryVWAP && pos.entryVWAP > 0) {
+      var entryAboveVWAP = pos.buyPrice >= (pos.entryVWAP * 0.998); // small tolerance
+      var nowBelowVWAP = livePrice < (liveVWAP * 0.998);
+      if (entryAboveVWAP && nowBelowVWAP && returnPct < 0.5) {
+        shouldExit = true;
+        exitReason = 'VWAP-RECROSS: Below VWAP ' + liveVWAP.toFixed(1) + ' (entry was above ' + pos.entryVWAP.toFixed(1) + ') | P&L ' + returnPct.toFixed(2) + '%';
+      }
+    }
+
+    // ═══ EXIT 3: v15.2 VOLUME FADE / STAGNATION EXIT ═══
+    // Two triggers:
+    // (a) Volume rate since entry dropped below 40% of entry rate → smart money left
+    // (b) Held > 45 min with < 0.3% return → dead money, opportunity cost killing you
+    // After 1:30 PM: reduce stagnation threshold to 30 min (less time to recover)
+    if (!shouldExit) {
+      var stagnationMinutes = timeMinutes >= 810 ? 30 : 45;
+      // Stagnation check: held long enough with no movement
+      if (holdMinutes >= stagnationMinutes && Math.abs(returnPct) < 0.3) {
+        shouldExit = true;
+        exitReason = 'STAGNATION: Held ' + holdMinutes + 'min, only ' + (returnPct >= 0 ? '+' : '') + returnPct.toFixed(2) + '% — dead money exit';
+      }
+      // Volume fade check: volume growth rate collapsed since entry
+      if (!shouldExit && pos.entryVolume > 0 && liveVolume > 0 && pos.entryTimeMin > 0) {
+        var marketOpenMin = 555; // 9:15 AM
+        var entryElapsed = Math.max(1, pos.entryTimeMin - marketOpenMin);
+        var currentElapsed = Math.max(1, timeMinutes - marketOpenMin);
+        var entryRate = pos.entryVolume / entryElapsed;
+        var currentRate = liveVolume / currentElapsed;
+        // If volume rate dropped below 40% of entry rate AND trade is flat/losing
+        if (currentRate < entryRate * 0.4 && returnPct < 0.3 && holdMinutes >= 20) {
           shouldExit = true;
-            exitReason = 'TRAIL-STOP: Peak +' + peakReturn.toFixed(1) + '%, now +' + returnPct.toFixed(1) + '% (trail at ' + (pos.hasCatalyst ? '50%' : '70%') + ' of peak)' + (pos.hasCatalyst ? ' [CAT]' : ' [NO-CAT]');
+          exitReason = 'VOL-FADE: Vol rate ' + Math.round(currentRate) + '/min vs entry ' + Math.round(entryRate) + '/min (' + Math.round(currentRate/entryRate*100) + '%) | P&L ' + returnPct.toFixed(2) + '%';
         }
       }
     }
 
-    // EXIT 3: Time-based — auto square-off at 3:10 PM
+    // ═══ EXIT 4: v15.2 ATR-BASED TRAILING STOP ═══
+    // Pre-tier booking: trail at 0.5× ATR from peak (if peak > 0.8× ATR)
+    // After tier 1: trail at 0.4× ATR from peak
+    // After tier 2: tighten to 0.25× ATR (protect remaining 40%)
+    // Time decay applies to trail distance too
+    if (!shouldExit && peakReturn > 0) {
+      var trailDist, trailLabel;
+      if (pos.tier2Booked) {
+        trailDist = atrPct * 0.25 * timeFactor;
+        trailLabel = 'T2-TIGHT';
+      } else if (pos.tier1Booked) {
+        trailDist = atrPct * 0.4 * timeFactor;
+        trailLabel = 'T1-TRAIL';
+      } else {
+        // Pre-booking: only trail if peak was significant (> 0.8× ATR)
+        if (peakReturn >= atrPct * 0.8) {
+          trailDist = atrPct * 0.5 * timeFactor;
+          trailLabel = 'PRE-TRAIL';
+        } else {
+          trailDist = 0; // Not enough peak to trail
+          trailLabel = '';
+        }
+      }
+      if (trailDist > 0) {
+        var trailLevel = peakReturn - trailDist;
+        if (trailLevel > 0 && returnPct < trailLevel) {
+          shouldExit = true;
+          exitReason = trailLabel + ': Peak +' + peakReturn.toFixed(1) + '%, now +' + returnPct.toFixed(1) + '% (trail -' + trailDist.toFixed(2) + '% from peak | ATR ' + atrPct.toFixed(1) + '%)';
+        }
+      }
+    }
+
+    // ═══ EXIT 5: TIME-BASED FORCE EXIT ═══
+    // 3:10 PM auto square-off — non-negotiable
     if (!shouldExit && timeMinutes >= 910) {
       shouldExit = true;
       exitReason = 'TIME EXIT: 3:10 PM auto square-off | P&L ' + (returnPct >= 0 ? '+' : '') + returnPct.toFixed(2) + '%';
     }
 
-    // EXIT 4: v15.1 CATALYST-AWARE PARTIAL PROFIT BOOKING
-    // Catalyst: patient exit at +3.0% (let momentum carry)
-    // No catalyst: quick exit at +1.5% (no fuel, take profits fast)
-    var partialTarget = pos.hasCatalyst ? 3.0 : 1.5;
-    if (!shouldExit && returnPct >= partialTarget && pos.qty > 1 && !pos.partialBooked) {
-      var halfQty = Math.floor(pos.qty / 2);
-      if (halfQty >= 1) {
-        var partialPnl = (livePrice - pos.buyPrice) * halfQty;
-        w.cash += livePrice * halfQty;
-        w.trades.push({
-          type: 'SELL', ticker: pos.ticker, name: pos.name || pos.ticker,
-          qty: halfQty, price: livePrice, buyPrice: pos.buyPrice,
-          pnl: Math.round(partialPnl),
-          pnlPct: returnPct.toFixed(2),
-          reason: 'PARTIAL BOOK: +' + returnPct.toFixed(1) + '% — sold 50% (' + halfQty + ' qty)' + (pos.hasCatalyst ? ' [CAT-PATIENT]' : ' [NO-CAT-QUICK]'),
-          source: 'daytrade', time: now.toISOString()
-        });
-        pos.qty -= halfQty;
-        pos.partialBooked = true;
-        exitCount++;
-        exitLog.push('PARTIAL ' + pos.ticker + ' ' + halfQty + 'qty @ +' + returnPct.toFixed(1) + '%');
-        console.log('[DT-EXIT] Partial book: ' + pos.ticker + ' ' + halfQty + 'qty at +' + returnPct.toFixed(1) + '%');
-        // v13.4: Record partial win in risk state
-        try { updateRiskStateOnExit(partialPnl, returnPct); } catch(re) {}
-      }
-      continue; // Don't fully exit — keep remaining half
+    // ═══ v15.2: 3-TIER PROFIT BOOKING ═══
+    // Tier 1: At 1.0× ATR move, book 30% — lock in baseline gain
+    // Tier 2: At 1.8× ATR move, book 30% more — secure the bulk
+    // Remaining 40%: rides with tight ATR trail (EXIT 4 handles)
+    // Catalyst gets 20% higher targets (more fuel = more patience)
+    // After 2 PM: reduce targets by 30% (less time for big moves)
+    var catMult = pos.hasCatalyst ? 1.2 : 1.0;
+    var tier1Target = Math.max(0.8, atrPct * 1.0) * catMult;
+    var tier2Target = Math.max(1.5, atrPct * 1.8) * catMult;
+    if (timeMinutes >= 840) { tier1Target *= 0.7; tier2Target *= 0.7; } // After 2 PM
+
+    // TIER 1: Book 30%
+    if (!shouldExit && !pos.tier1Booked && returnPct >= tier1Target && pos.qty > 2) {
+      var t1Qty = Math.max(1, Math.floor(pos.qty * 0.3));
+      var t1Pnl = (livePrice - pos.buyPrice) * t1Qty;
+      w.cash += livePrice * t1Qty;
+      w.trades.push({
+        type: 'SELL', ticker: pos.ticker, name: pos.name || pos.ticker,
+        qty: t1Qty, price: livePrice, buyPrice: pos.buyPrice,
+        pnl: Math.round(t1Pnl), pnlPct: returnPct.toFixed(2),
+        reason: 'TIER-1: +' + returnPct.toFixed(1) + '% (1×ATR=' + tier1Target.toFixed(1) + '%) — 30% booked (' + t1Qty + 'qty)' + (pos.hasCatalyst ? ' [CAT]' : ''),
+        source: 'daytrade', time: now.toISOString()
+      });
+      pos.qty -= t1Qty;
+      pos.tier1Booked = true;
+      exitCount++;
+      exitLog.push('TIER1 ' + pos.ticker + ' ' + t1Qty + 'qty @ +' + returnPct.toFixed(1) + '%');
+      console.log('[DT-EXIT] Tier 1: ' + pos.ticker + ' ' + t1Qty + 'qty at +' + returnPct.toFixed(1) + '% (ATR ' + atrPct.toFixed(1) + '%)');
+      try { updateRiskStateOnExit(t1Pnl, returnPct); } catch(re) {}
+      continue;
+    }
+
+    // TIER 2: Book another 30% (≈43% of remaining 70%)
+    if (!shouldExit && pos.tier1Booked && !pos.tier2Booked && returnPct >= tier2Target && pos.qty > 1) {
+      var t2Qty = Math.max(1, Math.floor(pos.qty * 0.43));
+      var t2Pnl = (livePrice - pos.buyPrice) * t2Qty;
+      w.cash += livePrice * t2Qty;
+      w.trades.push({
+        type: 'SELL', ticker: pos.ticker, name: pos.name || pos.ticker,
+        qty: t2Qty, price: livePrice, buyPrice: pos.buyPrice,
+        pnl: Math.round(t2Pnl), pnlPct: returnPct.toFixed(2),
+        reason: 'TIER-2: +' + returnPct.toFixed(1) + '% (1.8×ATR=' + tier2Target.toFixed(1) + '%) — 30% more booked (' + t2Qty + 'qty)' + (pos.hasCatalyst ? ' [CAT]' : ''),
+        source: 'daytrade', time: now.toISOString()
+      });
+      pos.qty -= t2Qty;
+      pos.tier2Booked = true;
+      exitCount++;
+      exitLog.push('TIER2 ' + pos.ticker + ' ' + t2Qty + 'qty @ +' + returnPct.toFixed(1) + '%');
+      console.log('[DT-EXIT] Tier 2: ' + pos.ticker + ' ' + t2Qty + 'qty at +' + returnPct.toFixed(1) + '% (ATR ' + atrPct.toFixed(1) + '%)');
+      try { updateRiskStateOnExit(t2Pnl, returnPct); } catch(re) {}
+      continue;
     }
 
     if (shouldExit) {
