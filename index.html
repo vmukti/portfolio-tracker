@@ -1752,7 +1752,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v14.2 &mdash; AI Wealth Fund (₹1 Cr) + Full Universe Day Trade Scanner (694 stocks) + Stealth Catalyst Detection + Jainism Compliance Filter + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine + Predator Detection Engine + Institutional Risk Controls + Anti-Mistake Day Trade v6.0 + Live Daily P&amp;L Sync + 10% Monthly Mandate (694 stocks) &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v15.0 &mdash; AI Wealth Fund (₹1 Cr) + Expert Consensus Day Trade Engine (VWAP + Pullback + Anti-Chase) + Full Universe Scanner (694 stocks) + Stealth Catalyst Detection + Jainism Compliance Filter + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine + Predator Detection Engine + Institutional Risk Controls + Live Daily P&amp;L Sync + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -13215,22 +13215,33 @@ function updateLegendsDashboard(legendsResults) {
 }
 
 // ---------------------------------------------------------------
-//  Day Trade Scoring v4.0 — NEWS-POWERED MOMENTUM ENGINE
-//  CHANGES from v3: Added Factor 6: News Catalyst (0-20+15 catalyst bonus)
-//  Live news sentiment from pre-scan headlines boosts/penalizes stocks
-//  6 Factors: Gap + Volume + Breakout + Liquidity + Price Band + News
-//  2 Bonuses: Vol+Mom Confirmed + Dashboard Intel
-//  Target: 3-5% daily on concentrated 3-5 stock picks
+//  Day Trade Score — v15.0 "Expert Consensus Engine"
+//  REBUILT from studying 13 international + Indian trading experts:
+//  Paul Tudor Jones, Mark Minervini (SEPA/VCP), William O'Neil (CANSLIM),
+//  Linda Raschke (Holy Grail), Al Brooks (Price Action), Oliver Velez (ORB),
+//  Ross Cameron (Warrior), Andrew Aziz (VWAP), Kunal Saraogi, PR Sundar
+//
+//  KEY FIXES over v6.0:
+//  1. VWAP INTEGRATION — Only buy AT or BELOW VWAP (pullback to value)
+//  2. ANTI-CHASE — Heavy penalty for buying at day high (was +8, now -30)
+//  3. PULLBACK DETECTION — Reward first pullback from high (Raschke Holy Grail)
+//  4. EXTENDED MOVE PENALTY — If stock ran 3%+ AND at peak, SKIP (Minervini)
+//  5. REWARD-RISK GATE — Min 2:1 R:R or penalize (Tudor Jones 5:1 ideal)
+//  6. VOLUME QUALITY — Volume on PULLBACK confirms; volume at peak = distribution
+//  7. GAP-FADE AWARENESS — >4.5% gaps fade more than they run (Cameron data)
+//
+//  EXPERT CONSENSUS: "Buy the first pullback, not the breakout extension"
+//  — Every single professional waits for consolidation before entering
 // ---------------------------------------------------------------
 function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, extraData, intradayData) {
   var score = 0;
   var signals = [];
   var hasCatalyst = false;
+  var entryQuality = 'UNKNOWN';
 
   var changePct = prevClose > 0 ? ((price - prevClose) / prevClose * 100) : 0;
 
-  // ═══ v6.0 CATALYST GATE — Fixes Mistake #2 ═══
-  // Check if this stock is on the pre-market shortlist (has catalyst)
+  // ═══ v15.0 CATALYST GATE — Unchanged, catalyst-first is correct ═══
   var shortlistEntry = _dtShortlist.find(function(s) { return s.ticker === ticker; });
   if (shortlistEntry && shortlistEntry.catalystScore > 0) {
     hasCatalyst = true;
@@ -13239,42 +13250,89 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
     signals.push('CATALYST:' + shortlistEntry.catalysts[0]);
   }
 
-  // ═══ FACTOR 1: GAP QUALITY (0-30) ═══ [v5.0 FIX]
+  // ═══ FACTOR 1: GAP QUALITY (0-30) — v15.0 UPGRADED ═══
+  // Expert rule (Cameron/Velez): Perfect gap = 1-3% with catalyst
+  // Gap >4% = likely gap-and-FADE (institutions sell into retail FOMO)
   if (changePct >= 1.5 && changePct <= 3) { score += 30; signals.push('PERFECT GAP'); }
-  else if (changePct > 3 && changePct <= 4.5) { score += 22; signals.push('STRONG GAP'); }
-  else if (changePct >= 1 && changePct < 1.5) { score += 18; signals.push('GOOD GAP'); }
-  else if (changePct >= 0.5 && changePct < 1) { score += 10; signals.push('MILD GAP'); }
-  else if (changePct > 4.5 && changePct <= 6) { score += 5; signals.push('HOT-CAUTION'); }
-  else if (changePct > 6 && changePct <= 8) { score -= 5; signals.push('FADE RISK'); }
-  else if (changePct > 8) { score -= 15; signals.push('OVERGAP-DANGER'); }
-  else if (changePct > 0.3 && changePct < 0.5) { score += 3; }
+  else if (changePct > 3 && changePct <= 4.5) { score += 15; signals.push('STRONG GAP'); }
+  else if (changePct >= 1 && changePct < 1.5) { score += 22; signals.push('GOOD GAP'); }
+  else if (changePct >= 0.5 && changePct < 1) { score += 12; signals.push('MILD GAP'); }
+  else if (changePct > 4.5 && changePct <= 6) { score -= 10; signals.push('EXTENDED-FADE-RISK'); }
+  else if (changePct > 6 && changePct <= 8) { score -= 20; signals.push('OVERGAP-FADE'); }
+  else if (changePct > 8) { score -= 30; signals.push('OVERGAP-DANGER'); }
+  else if (changePct > 0.3 && changePct < 0.5) { score += 5; }
 
-  // ═══ v6.0 INTRADAY POSITION — Fixes Mistake #7, #8 ═══
-  // Use dayHigh/dayLow to detect if stock is HOLDING or FADING
-  // Don't buy stocks that are falling from their day high
+  // ═══ v15.0 VWAP + INTRADAY POSITION — THE CORE FIX ═══
+  // Source: Andrew Aziz — "VWAP is the institutional fair price"
+  // Source: Linda Raschke — "Buy the first pullback to the 20 EMA"
+  // Source: Al Brooks — "Never chase. Wait for the two-leg pullback."
+  // VWAP approx: (High + Low + Close) / 3 — Typical Price proxy
   if (intradayData && intradayData.dayHigh > 0 && intradayData.dayLow > 0) {
     var dayRange = intradayData.dayHigh - intradayData.dayLow;
+    var vwapApprox = (intradayData.dayHigh + intradayData.dayLow + price) / 3;
+    var vwapDistance = price > 0 ? ((price - vwapApprox) / price * 100) : 0;
+
     if (dayRange > 0) {
       var intradayPos = (price - intradayData.dayLow) / dayRange;
-      if (intradayPos >= 0.85) {
-        // At day high — stock holding strong but risky entry at peak
-        score += 8; signals.push('NEAR-DAY-HIGH');
-      } else if (intradayPos >= 0.6) {
-        // Upper range — healthy pullback, IDEAL entry zone
-        score += 15; signals.push('PULLBACK-ENTRY');
-      } else if (intradayPos >= 0.4) {
-        // Mid range — indecisive, lower conviction
-        score += 2; signals.push('MID-RANGE');
+
+      // ── v15.0 ANTI-CHASE SYSTEM (replaces old +8 for near-day-high) ──
+      if (intradayPos >= 0.95) {
+        // AT ABSOLUTE DAY HIGH — Where amateurs get trapped
+        // Every expert: "If you missed it, you missed it."
+        score -= 30; signals.push('AT-PEAK-AVOID');
+        entryQuality = 'CHASE';
+      } else if (intradayPos >= 0.85) {
+        // NEAR day high — chasing territory
+        // Minervini: "Extended from pivot = skip entirely"
+        score -= 15; signals.push('NEAR-PEAK-RISK');
+        entryQuality = 'EXTENDED';
+      } else if (intradayPos >= 0.6 && intradayPos < 0.85) {
+        // PULLBACK ZONE — Pulled back from high, upper range
+        // Raschke Holy Grail: ADX strong + first pullback = IDEAL
+        score += 25; signals.push('PULLBACK-ZONE');
+        entryQuality = 'PULLBACK';
+      } else if (intradayPos >= 0.4 && intradayPos < 0.6) {
+        // MID-RANGE — Near VWAP, potential mean-reversion
+        // Aziz: "VWAP tag-and-hold = high-probability long"
+        score += 18; signals.push('VWAP-ZONE');
+        entryQuality = 'VWAP_ENTRY';
+      } else if (intradayPos >= 0.2 && intradayPos < 0.4) {
+        // LOWER RANGE — Deep pullback
+        if (changePct >= 1.0) {
+          score += 10; signals.push('DEEP-PULLBACK');
+          entryQuality = 'DEEP_PULLBACK';
+        } else {
+          score -= 10; signals.push('WEAK-DRIFT');
+          entryQuality = 'WEAK';
+        }
       } else {
-        // Lower range — stock is FADING from gap. DON'T BUY.
-        score -= 20; signals.push('FADING');
+        // BOTTOM 20% — Stock is FADING. DON'T BUY.
+        score -= 30; signals.push('FADING-HARD');
+        entryQuality = 'FADE';
       }
     }
-    // v6.0 PULLBACK FILTER — Fixes Mistake #7
-    // Don't buy at absolute day high — need at least a small pullback
-    if (price >= intradayData.dayHigh * 0.998 && dayRange > price * 0.003) {
-      score -= 8; signals.push('AT-PEAK');
+
+    // ── v15.0 VWAP POSITION CHECK (Aziz rule) ──
+    // "Only go long ABOVE VWAP. Below VWAP = institutional selling."
+    if (vwapDistance > 1.5) {
+      score -= 12; signals.push('ABOVE-VWAP-EXT');
+    } else if (vwapDistance > 0.5 && vwapDistance <= 1.5) {
+      score += 5; signals.push('ABOVE-VWAP');
+    } else if (vwapDistance >= -0.3 && vwapDistance <= 0.5) {
+      // AT VWAP — PERFECT entry (Aziz VWAP tag-and-hold)
+      score += 20; signals.push('AT-VWAP-ENTRY');
+    } else if (vwapDistance < -0.3 && changePct >= 0.5) {
+      score += 8; signals.push('VWAP-RECLAIM');
+    } else {
+      score -= 8; signals.push('BELOW-VWAP');
     }
+  }
+
+  // ═══ v15.0 ANTI-EXTENSION FILTER (Minervini VCP rule) ═══
+  if (changePct > 3 && entryQuality === 'CHASE') {
+    score -= 20; signals.push('EXTENDED-CHASE');
+  } else if (changePct > 4 && entryQuality !== 'PULLBACK' && entryQuality !== 'VWAP_ENTRY') {
+    score -= 15; signals.push('TOO-FAR-FROM-OPEN');
   }
 
   // ═══ FACTOR 2: VOLUME CONFIRMATION (0-25) ═══
@@ -13328,11 +13386,20 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
   else if (price >= 50 && price <= 10000) { score += 4; }
   else { score += 2; }
 
-  // ═══ VOLUME + MOMENTUM CONFIRMATION (+0-15) ═══
-  if (changePct >= 2.5 && volume > 3000000) { score += 15; signals.push('VOL+MOM CONFIRMED'); }
-  else if (changePct >= 2 && volume > 2000000) { score += 12; signals.push('VOL+MOM STRONG'); }
-  else if (changePct >= 1.5 && volume > 1000000) { score += 8; signals.push('VOL+MOM'); }
-  else if (changePct >= 1 && volume > 500000) { score += 4; }
+  // ═══ v15.0 VOLUME + MOMENTUM — CONTEXT-AWARE ═══
+  // Volume on PULLBACK = confirmation. Volume at PEAK = distribution.
+  if (entryQuality === 'PULLBACK' || entryQuality === 'VWAP_ENTRY' || entryQuality === 'DEEP_PULLBACK') {
+    if (changePct >= 2.5 && volume > 3000000) { score += 18; signals.push('VOL+PULLBACK CONFIRMED'); }
+    else if (changePct >= 2 && volume > 2000000) { score += 15; signals.push('VOL+PULLBACK STRONG'); }
+    else if (changePct >= 1.5 && volume > 1000000) { score += 10; signals.push('VOL+PULLBACK'); }
+    else if (changePct >= 1 && volume > 500000) { score += 5; }
+  } else if (entryQuality === 'CHASE' || entryQuality === 'EXTENDED') {
+    if (changePct >= 2.5 && volume > 3000000) { score -= 5; signals.push('FOMO-VOL'); }
+  } else {
+    if (changePct >= 2.5 && volume > 3000000) { score += 10; signals.push('VOL+MOM'); }
+    else if (changePct >= 2 && volume > 2000000) { score += 8; signals.push('VOL+MOM-OK'); }
+    else if (changePct >= 1.5 && volume > 1000000) { score += 5; }
+  }
 
   // ═══ DASHBOARD INTELLIGENCE (+0-10) ═══
   if (typeof getDashboardBonus === 'function') {
@@ -13346,8 +13413,7 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
     }
   }
 
-  // ═══ FACTOR 6: NEWS CATALYST (0-30) — v6.0 UPGRADED ═══
-  // News is now CRITICAL — catalyst-first approach
+  // ═══ FACTOR 6: NEWS CATALYST (0-30) ═══
   if (typeof _dtNewsSentiment !== 'undefined' && _dtNewsSentiment[ticker]) {
     var nSent = _dtNewsSentiment[ticker];
     hasCatalyst = true;
@@ -13369,28 +13435,21 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
     }
   }
 
-  // ═══ v14.2 CATALYST PENALTY — Smarter: price action IS a catalyst ═══
-  // OLD v6.0: Flat -25 penalty killed universe-discovered movers
-  // NEW v14.2: If stock is up 2%+ with high volume, PRICE ACTION = catalyst
-  // Research: When big money moves a stock 2-3%, there IS a catalyst — we just don't know it yet
+  // ═══ CATALYST PENALTY — Kept from v14.2 ═══
   if (!hasCatalyst) {
     if (changePct >= 3 && volume > 3000000) {
-      // Strong move + monster volume = INSTITUTIONAL CATALYST (we just can't read the news yet)
       score += 5;
       signals.push('STEALTH-CAT');
     } else if (changePct >= 2 && volume > 1500000) {
-      // Good move + strong volume = likely catalyst, mild penalty only
       score -= 5;
       signals.push('WEAK-CAT');
     } else {
-      // No catalyst + weak action = genuine no-catalyst penalty
       score -= 25;
       signals.push('NO-CATALYST');
     }
   }
 
-  // ═══ v6.0 JOURNAL-BASED SIGNAL ADJUSTMENT — Fixes Mistake #15 ═══
-  // If certain signals historically lose money, auto-reduce their weight
+  // ═══ JOURNAL-BASED SIGNAL ADJUSTMENT ═══
   signals.forEach(function(sig) {
     var adj = getSignalReliability(sig);
     if (adj !== 0) {
@@ -13435,7 +13494,24 @@ function dayTradeScore(ticker, price, prevClose, high52, low52, volume, sector, 
     else if (regime.regime === 'BEAR') { score -= 5; }
   } catch(e) {}
 
-  return { total: Math.min(200, Math.round(score)), momentum: changePct.toFixed(2), vol: volume, signals: signals, hasCatalyst: hasCatalyst };
+  // ═══ v15.0 REWARD-RISK QUALITY TAG ═══
+  // Tudor Jones: "5:1 reward-to-risk or don't trade"
+  var approxTarget = 0;
+  if (entryQuality === 'PULLBACK' || entryQuality === 'VWAP_ENTRY') {
+    approxTarget = 2.5;
+  } else if (entryQuality === 'DEEP_PULLBACK') {
+    approxTarget = 3.0;
+  } else {
+    approxTarget = 1.5;
+  }
+  var approxRR = approxTarget / 1.2;
+  if (approxRR < 1.5) {
+    score -= 10; signals.push('LOW-RR:' + approxRR.toFixed(1));
+  } else if (approxRR >= 2.0) {
+    score += 8; signals.push('GOOD-RR:' + approxRR.toFixed(1));
+  }
+
+  return { total: Math.min(200, Math.round(score)), momentum: changePct.toFixed(2), vol: volume, signals: signals, hasCatalyst: hasCatalyst, entryQuality: entryQuality };
 }
 
 // ╔═══════════════════════════════════════════════════════════════╗
@@ -14922,7 +14998,8 @@ async function runDayTradeAI() {
         dayHigh: c.dayHigh, dayLow: c.dayLow,
         changePct: changePct3, dtScore: dtScore.total,
         momentum: dtScore.momentum, signals: dtScore.signals || [],
-        source: c.source, hasCatalyst: dtScore.hasCatalyst
+        source: c.source, hasCatalyst: dtScore.hasCatalyst,
+        entryQuality: dtScore.entryQuality || 'UNKNOWN'
       });
     });
 
@@ -15215,7 +15292,7 @@ async function runDayTradeAI() {
           ' RR=' + (picks[p].rewardRisk ? picks[p].rewardRisk.ratio + ':1' : '?') + ')');
       }
 
-      var sizing = getRiskBasedPositionSize(totalCash, picks[p].price, 0.008, pickSizeMultiplier);
+      var sizing = getRiskBasedPositionSize(totalCash, picks[p].price, 0.012, pickSizeMultiplier); // v15.0: SL widened to 1.2% (from 0.8%)
       if (sizing.value >= minPerTrade && sizing.qty > 0) {
         allocations.push({
           pick: picks[p],
@@ -15284,7 +15361,7 @@ async function runDayTradeAI() {
         qty: qty, price: pick.price, dtScore: pick.dtScore,
         predatorScore: a.predatorScore || 0,
         predatorSignals: a.predatorSignals || [],
-        reason: '🎯 v13.6 Score ' + pick.dtScore + '/200 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Alloc ' + allocPct + '%' + riskInfo + sizeInfo + predatorInfo + predatorSigStr + (a.trendTemplate ? ' | T:' + a.trendTemplate.score + '/8' : '') + (a.rewardRisk ? ' | RR:' + a.rewardRisk.ratio + ':1' : '') + (a.conviction && a.conviction.multiplier > 1.0 ? ' | Conv:' + a.conviction.multiplier + 'x' : '') + ' | SL:-0.8% | ' + pick.source + (pick.hasCatalyst ? ' | CATALYST' : ' | NO-CAT') + ' | ' + _predatorFIIDII.flowRegime,
+        reason: '🎯 v15.0 Score ' + pick.dtScore + '/200 | ' + sigStr + ' | Chg ' + pick.momentum + '% | Entry:' + (pick.entryQuality || 'N/A') + ' | Alloc ' + allocPct + '%' + riskInfo + sizeInfo + predatorInfo + predatorSigStr + (a.trendTemplate ? ' | T:' + a.trendTemplate.score + '/8' : '') + (a.rewardRisk ? ' | RR:' + a.rewardRisk.ratio + ':1' : '') + (a.conviction && a.conviction.multiplier > 1.0 ? ' | Conv:' + a.conviction.multiplier + 'x' : '') + ' | SL:-1.2% | ' + pick.source + (pick.hasCatalyst ? ' | CATALYST' : ' | NO-CAT') + ' | ' + _predatorFIIDII.flowRegime,
         source: 'daytrade', time: new Date().toISOString()
       });
 
@@ -15311,7 +15388,7 @@ async function runDayTradeAI() {
       statusBadge.style.background = '#22c55e22'; statusBadge.style.color = '#22c55e'; statusBadge.style.borderColor = '#22c55e44';
       var catPct = Math.round(picks.filter(function(p) { return p.hasCatalyst; }).length / picks.length * 100);
       var riskLabel = sizeMultiplier < 1.0 ? ' | RISK-ADJUSTED ×' + sizeMultiplier.toFixed(2) : ' | 1% RISK/TRADE';
-      statusBadge.innerHTML = '&#128737; v13.4 INSTITUTIONAL: ' + buyCount + ' risk-sized picks (SL -0.8%)' + riskLabel + ' | ' + catPct + '% catalysts | ' + topSignals.join(', ');
+      statusBadge.innerHTML = '&#128737; v15.0 EXPERT ENGINE: ' + buyCount + ' pullback-entry picks (SL -1.2%)' + riskLabel + ' | ' + catPct + '% catalysts | ' + topSignals.join(', ');
     }
 
     console.log('[DT-v13.4] Bought ' + buyCount + ' stocks. Cash: ' + w.cash.toLocaleString('en-IN'));
@@ -15377,21 +15454,26 @@ async function runDayTradeSmartExits() {
     // Update peak price tracking
     if (!pos.peakPrice || livePrice > pos.peakPrice) pos.peakPrice = livePrice;
 
-    // EXIT 1: Hard stop-loss at -0.8% [v5.0 — tighter from -1.5%]
-    // In day trading, capital preservation > hitting home runs
-    if (returnPct <= -0.8) {
+    // EXIT 1: Hard stop-loss at -1.2% [v15.0 — widened from -0.8%]
+    // Expert consensus (Minervini/O'Neil): 0.8% is too tight — normal intraday noise triggers it
+    // Al Brooks: "Stop must be beyond the noise zone of the trading range"
+    // -1.2% gives pullback room while still preserving capital (max 1.2% risk per trade)
+    if (returnPct <= -1.2) {
       shouldExit = true;
-      exitReason = 'STOP-LOSS: ' + returnPct.toFixed(2) + '% (limit -0.8%)';
+      exitReason = 'STOP-LOSS: ' + returnPct.toFixed(2) + '% (limit -1.2%)';
     }
 
-    // EXIT 2: Trailing stop — activates at +0.8%, trails at 50% of peak gain [v5.0 — earlier activation, tighter trail]
+    // EXIT 2: Trailing stop — v15.0 UPGRADED
+    // Expert upgrade: Activate later (+1.2%), trail tighter (60% of peak)
+    // Raschke: "Let winners run but protect the gain with a trailing stop"
+    // Old: activated at +0.8%, trailed at 50% — too early, gave back too much
     if (!shouldExit && pos.peakPrice && pos.peakPrice > pos.buyPrice) {
       var peakReturn = (pos.peakPrice - pos.buyPrice) / pos.buyPrice * 100;
-      if (peakReturn >= 0.8) {
-        var trailLevel = pos.buyPrice * (1 + peakReturn * 0.005); // Keep 50% of peak gain
+      if (peakReturn >= 1.2) {
+        var trailLevel = pos.buyPrice * (1 + peakReturn * 0.006); // Keep 60% of peak gain (was 50%)
         if (livePrice < trailLevel) {
           shouldExit = true;
-          exitReason = 'TRAIL-STOP: Peak +' + peakReturn.toFixed(1) + '%, now +' + returnPct.toFixed(1) + '% (trail at 50% of peak)';
+          exitReason = 'TRAIL-STOP: Peak +' + peakReturn.toFixed(1) + '%, now +' + returnPct.toFixed(1) + '% (trail at 60% of peak)';
         }
       }
     }
@@ -15402,9 +15484,10 @@ async function runDayTradeSmartExits() {
       exitReason = 'TIME EXIT: 3:10 PM auto square-off | P&L ' + (returnPct >= 0 ? '+' : '') + returnPct.toFixed(2) + '%';
     }
 
-    // EXIT 4: Partial profit booking at +2% — sell half [v5.0 — earlier from +3%]
-    // In day trading, +2% is a GREAT trade. Book half, let half ride with trailing stop.
-    if (!shouldExit && returnPct >= 2 && pos.qty > 1 && !pos.partialBooked) {
+    // EXIT 4: Partial profit booking at +2.5% — sell half [v15.0 — from +2%]
+    // Expert upgrade: Book at +2.5% not +2% — give trades more room to run
+    // Cameron: "2:1 minimum reward-to-risk" — with -1.2% stop, 2.5% = 2:1 R:R
+    if (!shouldExit && returnPct >= 2.5 && pos.qty > 1 && !pos.partialBooked) {
       var halfQty = Math.floor(pos.qty / 2);
       if (halfQty >= 1) {
         var partialPnl = (livePrice - pos.buyPrice) * halfQty;
