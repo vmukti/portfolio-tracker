@@ -15452,6 +15452,8 @@ async function runDayTradeAI() {
     var todayStr = new Date().toISOString().slice(0, 10);
     var buyCount = 0;
     var topSignals = [];
+    var _buyNow = new Date();
+    var hrs = _buyNow.getHours(), mins = _buyNow.getMinutes(); // v15.3: fix — hrs/mins needed for entryTimeMin
 
     allocations.forEach(function(a) {
       var pick = a.pick;
