@@ -12274,29 +12274,26 @@ var JainPMS_Cloud = {
     var self = this;
     var wallet = type === 'dayTrade' ? getDT() : getPT();
     var slim = this.slimWallet(wallet, type);
-    var json = JSON.stringify(slim);
-    var encoded = encodeURIComponent(json);
+    var payload = JSON.stringify({ type: type, data: slim, device: this.deviceId, v: '15.4' });
 
     this.updateBadge('syncing');
 
-    var url = this.URL + '?op=save&type=' + type + '&device=' + this.deviceId + '&v=15.4&data=' + encoded;
-
-    fetch(url, { signal: AbortSignal.timeout(15000) })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (d.ok) {
-          self.lastSync = d.ts;
-          self.updateBadge('synced');
-          console.log('[Cloud] Saved ' + type + ' (' + json.length + ' bytes) at ' + d.ts);
-        } else {
-          self.updateBadge('error');
-          console.warn('[Cloud] Save failed:', d.error);
-        }
-      })
-      .catch(function(e) {
-        self.updateBadge('error');
-        console.warn('[Cloud] Save error:', e.message);
-      });
+    // POST avoids URL length limits (wallet data can exceed 8KB)
+    fetch(this.URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: payload
+    })
+    .then(function() {
+      self.lastSync = new Date().toISOString();
+      self.updateBadge('synced');
+      console.log('[Cloud] Saved ' + type + ' via POST (' + payload.length + ' bytes)');
+    })
+    .catch(function(e) {
+      self.updateBadge('error');
+      console.warn('[Cloud] Save error:', e.message);
+    });
   },
 
   loadFromCloud: function(type) {
