@@ -1752,7 +1752,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v15.2 &mdash; AI Wealth Fund (₹1 Cr) + Smart Exit Engine (ATR-Scaled + 3-Tier Booking + Time Decay + Vol Fade + VWAP Recross) + Catalyst-Aware Entry + Full Universe Scanner (694 stocks) + Stealth Catalyst Detection + Jainism Compliance Filter + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine + Predator Detection Engine + Institutional Risk Controls + Live Daily P&amp;L Sync + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v15.3 &mdash; AI Wealth Fund (₹1 Cr) + Smart Exit Engine (ATR-Scaled + 3-Tier Booking + Time Decay + Vol Fade + VWAP Recross) + Catalyst-Aware Entry + Full Universe Scanner (694 stocks) + Stealth Catalyst Detection + Jainism Compliance Filter + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine + Predator Detection Engine + Institutional Risk Controls + Live Daily P&amp;L Sync + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -6107,6 +6107,9 @@ function paperSell(posIdx) {
 async function runAIAutoTrade() {
   // ── PRE-STEP: Sync all dashboard intelligence before trading ──
   syncAllIntelligence();
+
+  // v15.3: Initialize Predator Detection Engine (FII/DII flows, sentiment, institutional footprint)
+  try { await initPredatorEngine(); } catch(e) { console.log('[AI TRADE] Predator init skipped: ' + e.message); }
   const intelCount = Object.keys(window._dashboardIntel).length;
   const intelSources = [];
   if (typeof techData !== 'undefined' && techData.length > 0) intelSources.push('Tech');
@@ -6115,6 +6118,7 @@ async function runAIAutoTrade() {
   if (typeof fundData !== 'undefined' && fundData.length > 0) intelSources.push('Fund');
   intelSources.push('News'); // Always attempted
   console.log('[AI TRADE] 360° Intel: ' + intelCount + ' stocks, sources: ' + intelSources.join(', '));
+  console.log('[AI TRADE] v15.3 Engines: Predator Detection ✓ | Legends (Minervini+PTJ) ✓ | 12-Dim Unified ✓ | Sector Rotation ✓');
 
   const w = getPT();
   const now = new Date();
@@ -6195,24 +6199,31 @@ async function runAIAutoTrade() {
 
     const isMoverPos = pos.source === 'mover';
     const trailPct = isMoverPos ? 0.93 : 0.91;
-    const stopLoss = isMoverPos ? -4 : -5;
+    const stopLoss = isMoverPos ? -6 : -8; // v15.3: Widened from -4/-5 — swing positions need room
     const profitBook = isMoverPos ? 12 : 18;
 
     // ── Layer 4: Smart Exit Signals (check FIRST — catches what old rules miss) ──
+    // v15.3: Only act on smart exits after 7-day hold (was 3d — too impatient for swing trades)
     const exitSignals = getSmartExitSignal(pos);
-    if (exitSignals.length > 0 && exitSignals[0].urgency >= 7) {
+    const holdDaysForExit = pos.buyDate ? (now.getTime() - new Date(pos.buyDate).getTime()) / 86400000 : 0;
+    if (exitSignals.length > 0 && exitSignals[0].urgency >= 7 && holdDaysForExit >= 7) {
       shouldSell = true;
       reason = '🧠 ' + exitSignals[0].type + ': ' + exitSignals[0].reason;
     }
-    // Dead money exit: urgency 6 + no significant positive momentum
-    else if (exitSignals.length > 0 && exitSignals[0].urgency >= 5 && returnPct < 3) {
+    // Dead money exit: v15.3 — hold 7 days minimum (was 3d), only if return < -1%
+    else if (exitSignals.length > 0 && exitSignals[0].urgency >= 5 && returnPct < -1 && holdDaysForExit >= 7) {
       const deadMoney = exitSignals.find(s => s.type === 'DEAD_MONEY');
       if (deadMoney) { shouldSell = true; reason = '🧠 ' + deadMoney.reason; }
     }
 
+    // ── v15.3: Minimum hold period — no score-based exits in first 5 days ──
+    const holdDaysP1 = pos.buyDate ? (now.getTime() - new Date(pos.buyDate).getTime()) / 86400000 : 0;
+
     // ── Original exit rules (still active) ──
     if (!shouldSell) {
-      if (sc.total < 30 && !isMoverPos) { shouldSell = true; reason = 'AI EXIT: Score collapsed to ' + sc.total + '/100'; }
+      // v15.3: Score 0 = data failure (prices not loaded), NEVER sell on score 0
+      if (sc.total <= 0) { /* skip all score-based exits */ }
+      else if (sc.total < 30 && !isMoverPos && holdDaysP1 >= 5) { shouldSell = true; reason = 'AI EXIT: Score collapsed to ' + sc.total + '/100'; }
       else if (isMoverPos && moverActive) {
         const currentMover = window._moverScan.scored.find(m => m.ticker === pos.ticker);
         if (currentMover && currentMover.moverScore < 20) { shouldSell = true; reason = 'MOVER EXIT: Momentum died (score ' + currentMover.moverScore + ')'; }
@@ -6231,14 +6242,15 @@ async function runAIAutoTrade() {
       else if (returnPct > bearProfit) { shouldSell = true; reason = '🐻 BEAR REGIME: Early profit booking at ' + returnPct.toFixed(1) + '%'; }
     }
 
-    // ── Stale underperformer exit: free slots for higher-conviction universe/screener picks ──
-    if (!shouldSell && w.positions.length >= 14) {
+    // ── Stale underperformer exit: free slots for higher-conviction picks ──
+    // v15.3: Much more patient — 7 days minimum (was 2d), tighter thresholds, score 0 guard
+    if (!shouldSell && w.positions.length >= 14 && sc.total > 0) {
       const holdDays = pos.buyDate ? (now.getTime() - new Date(pos.buyDate).getTime()) / 86400000 : 0;
-      if (holdDays >= 2 && sc.total < 60 && returnPct < 0) {
+      if (holdDays >= 10 && sc.total < 40 && returnPct < -3) {
         shouldSell = true;
         reason = '🔄 ROTATION EXIT: Score ' + sc.total + ' + P&L ' + returnPct.toFixed(1) + '% after ' + Math.round(holdDays) + 'd — freeing slot';
       }
-      else if (holdDays >= 3 && sc.total < 62 && returnPct < -2) {
+      else if (holdDays >= 14 && sc.total < 50 && returnPct < -5) {
         shouldSell = true;
         reason = '🔄 ROTATION EXIT: Underperforming ' + returnPct.toFixed(1) + '% over ' + Math.round(holdDays) + 'd (score ' + sc.total + ')';
       }
@@ -6321,9 +6333,36 @@ async function runAIAutoTrade() {
       const _ssBuy = getSmartSignal(s.ticker.replace('.NS','').replace('.BO',''));
       if (_ssBuy && _ssBuy.total >= 40) bonusScore += 8;
 
+      // v15.3: Sector Rotation scoring (was missing from Phase 2)
+      try {
+        const sRot = getSectorRotationScore(s.sector);
+        if (sRot >= 2) bonusScore += 5;
+        else if (sRot <= -2) bonusScore -= 4;
+      } catch(e) {}
+
+      // v15.3: Predator Detection overlay — block institutional traps
+      let predatorData = null;
+      try {
+        const _prevCl = s.cmp / (1 + (s.changePct || 0) / 100);
+        predatorData = getPredatorCompositeScore(s.ticker, s.cmp, s.dayHigh || 0, s.dayLow || 0, _prevCl, s.high52 || 0, s.low52 || 0, s.vol || 0, 0);
+        if (predatorData.blocked) { sc.factors.push('🦈 PREDATOR BLOCK: ' + predatorData.blockReason); return null; }
+        bonusScore += Math.round(predatorData.totalScore * 0.5); // Scaled for swing trades
+        if (predatorData.signals.length > 0) sc.factors.push('🦈 Predator: ' + predatorData.signals[0]);
+      } catch(e) {}
+
+      // v15.3: Legends Engine overlay — Minervini trend + R:R gate
+      try {
+        const _prevCl2 = s.cmp / (1 + (s.changePct || 0) / 100);
+        const legends = getLegendsCompositeScore(s.ticker, s.cmp, _prevCl2, s.high52 || 0, s.low52 || 0, s.vol || 0, s.changePct || 0, s.dayHigh || 0, s.dayLow || 0, predatorData ? predatorData.totalScore : 0, !!(s.catalyst));
+        if (legends.blocked) { sc.factors.push('🏛️ LEGENDS BLOCK: ' + legends.blockReason); return null; }
+        bonusScore += Math.round(legends.totalScore * 0.4); // Scaled for swing
+        if (legends.trendTemplate && legends.trendTemplate.score >= 6) sc.factors.push('📐 Minervini ' + legends.trendTemplate.score + '/8');
+        if (legends.rewardRisk && legends.rewardRisk.ratio >= 3) sc.factors.push('⚖️ R:R ' + legends.rewardRisk.ratio.toFixed(1) + ':1');
+      } catch(e) {}
+
       return { stock: s, sc: { total: Math.min(100, Math.max(0, bonusScore)), factors: sc.factors, rawScore: sc.total }, source: 'portfolio', trend, sectorHeat: sHeat };
     })
-    .filter(x => x.sc.total >= 50)
+    .filter(x => x !== null && x.sc.total >= 50)
     .sort((a, b) => b.sc.total - a.sc.total);
 
   // ═══ PHASE 2.4: FULL UNIVERSE SCAN — Score ALL MOVER_UNIVERSE stocks with live prices ═══
@@ -6353,6 +6392,31 @@ async function runAIAutoTrade() {
       bonusScore += sHeat.bonus;
       const _ssBuy = getSmartSignal(existingStock.ticker.replace('.NS','').replace('.BO',''));
       if (_ssBuy && _ssBuy.total >= 40) bonusScore += 8;
+
+      // v15.3: Sector Rotation scoring
+      try {
+        const sRot = getSectorRotationScore(existingStock.sector);
+        if (sRot >= 2) bonusScore += 5;
+        else if (sRot <= -2) bonusScore -= 4;
+      } catch(e) {}
+
+      // v15.3: Predator Detection overlay
+      let _predData = null;
+      try {
+        const _pc = existingStock.cmp / (1 + (existingStock.changePct || 0) / 100);
+        _predData = getPredatorCompositeScore(existingStock.ticker, existingStock.cmp, existingStock.dayHigh || 0, existingStock.dayLow || 0, _pc, existingStock.high52 || 0, existingStock.low52 || 0, existingStock.vol || 0, 0);
+        if (_predData.blocked) return null;
+        bonusScore += Math.round(_predData.totalScore * 0.5);
+      } catch(e) {}
+
+      // v15.3: Legends Engine overlay
+      try {
+        const _pc2 = existingStock.cmp / (1 + (existingStock.changePct || 0) / 100);
+        const _leg = getLegendsCompositeScore(existingStock.ticker, existingStock.cmp, _pc2, existingStock.high52 || 0, existingStock.low52 || 0, existingStock.vol || 0, existingStock.changePct || 0, existingStock.dayHigh || 0, existingStock.dayLow || 0, _predData ? _predData.totalScore : 0, !!(existingStock.catalyst));
+        if (_leg.blocked) return null;
+        bonusScore += Math.round(_leg.totalScore * 0.4);
+      } catch(e) {}
+
       return { stock: existingStock, sc: { total: Math.min(100, Math.max(0, bonusScore)), factors: sc.factors, rawScore: sc.total }, source: 'universe', trend, sectorHeat: sHeat };
     }).filter(x => x && x.sc.total >= 55)
       .sort((a, b) => b.sc.total - a.sc.total)
@@ -6596,10 +6660,10 @@ async function runAIAutoTrade() {
     aiLog.push('🌐 Universe: ' + universeScored.length + ' auto-scanned candidates');
   }
 
-  // ═══ PHASE 3: AGGRESSIVE REBALANCE (up to 3 rotation swaps) ═══
+  // ═══ PHASE 3: SMART REBALANCE (v15.3: loss-aware + score-0 guard + min hold) ═══
   const allScored = [...portfolioScored, ...jainUniverseScored, ...moverScored, ...screenerScored, ...universeScored];
-  const rebalanceGap = 12; // v8.4: lowered from 20 for active rotation
-  const maxSwaps = 3;
+  const rebalanceGap = 25; // v15.3: raised from 12 — only swap for MUCH better picks (was over-churning)
+  const maxSwaps = 2; // v15.3: reduced from 3 — less churn
   let swapsDone = 0;
   if (w.positions.length >= 8 && allScored.length > 0) {
     for (let _swap = 0; _swap < maxSwaps; _swap++) {
@@ -6608,7 +6672,15 @@ async function runAIAutoTrade() {
         const s = stocks.find(st => st.ticker === p.ticker);
         if (s) {
           const sc = aiScore(s);
-          if (sc.total < weakestScore) { weakestScore = sc.total; weakestIdx = i; }
+          // v15.3: NEVER consider positions with score 0 (data failure) or held < 7 days
+          const heldDays = p.buyDate ? (now.getTime() - new Date(p.buyDate).getTime()) / 86400000 : 0;
+          if (sc.total > 0 && sc.total < weakestScore && heldDays >= 7) {
+            // v15.3: Also check P&L — don't sell at big losses just for score
+            const posReturn = s.cmp > 0 ? (s.cmp - p.avgPrice) / p.avgPrice * 100 : 0;
+            if (posReturn > -2) { // Only rebalance if we're NOT locking in > 2% loss
+              weakestScore = sc.total; weakestIdx = i;
+            }
+          }
         }
       });
       // Find best available candidate not already held
@@ -6634,21 +6706,22 @@ async function runAIAutoTrade() {
     if (swapsDone > 0) aiLog.push('🔄 Rebalanced ' + swapsDone + ' position(s)');
   }
 
-  // ═══ PHASE 3.5: UNIVERSE ROTATION — force swap when at capacity with high-scoring universe picks ═══
+  // ═══ PHASE 3.5: UNIVERSE ROTATION — force swap when at capacity (v15.3: loss-aware + min hold) ═══
   if (w.positions.length >= 15 && universeScored.length > 0) {
     const bestUniverse = universeScored.find(c => !heldTickers.has(c.stock.ticker));
-    if (bestUniverse && bestUniverse.sc.total >= 48) {
+    if (bestUniverse && bestUniverse.sc.total >= 65) { // v15.3: raised from 48 — only swap for truly great picks
       let weakestIdx = -1, weakestScore = 999;
       w.positions.forEach((p, i) => {
         const s = stocks.find(st => st.ticker === p.ticker);
         if (s) {
           const sc = aiScore(s);
           const returnPct = (s.cmp - p.avgPrice) / p.avgPrice * 100;
-          // Only consider underperformers for universe rotation
-          if (sc.total < weakestScore && returnPct < 3) { weakestScore = sc.total; weakestIdx = i; }
+          const heldDays = p.buyDate ? (now.getTime() - new Date(p.buyDate).getTime()) / 86400000 : 0;
+          // v15.3: score > 0 guard + min 7 day hold + no locking in > 2% loss
+          if (sc.total > 0 && sc.total < weakestScore && returnPct < 3 && returnPct > -2 && heldDays >= 7) { weakestScore = sc.total; weakestIdx = i; }
         }
       });
-      if (weakestIdx >= 0 && bestUniverse.sc.total > weakestScore) {
+      if (weakestIdx >= 0 && bestUniverse.sc.total - weakestScore >= 20) { // v15.3: gap check (was just >)
         const weakPos = w.positions[weakestIdx];
         const weakStock = stocks.find(s => s.ticker === weakPos.ticker);
         const sellPrice = weakStock ? weakStock.cmp : weakPos.avgPrice;
@@ -6713,6 +6786,15 @@ async function runAIAutoTrade() {
       aiLog.push('⬇️ Skipped ' + stock.ticker + ': confirmed downtrend');
       continue;
     }
+
+    // v15.3: Final Predator + Legends gate (safety net for all buy sources)
+    try {
+      const _pcBuy = stock.cmp / (1 + (stock.changePct || 0) / 100);
+      const _predBuy = getPredatorCompositeScore(stock.ticker, stock.cmp, stock.dayHigh || 0, stock.dayLow || 0, _pcBuy, stock.high52 || 0, stock.low52 || 0, stock.vol || 0, 0);
+      if (_predBuy.blocked) { aiLog.push('🦈 Predator blocked ' + stock.ticker + ': ' + _predBuy.blockReason.substring(0, 40)); continue; }
+      const _legBuy = getLegendsCompositeScore(stock.ticker, stock.cmp, _pcBuy, stock.high52 || 0, stock.low52 || 0, stock.vol || 0, stock.changePct || 0, stock.dayHigh || 0, stock.dayLow || 0, _predBuy.totalScore, !!(stock.catalyst));
+      if (_legBuy.blocked) { aiLog.push('🏛️ Legends blocked ' + stock.ticker + ': ' + _legBuy.blockReason.substring(0, 40)); continue; }
+    } catch(e) {}
 
     // ── Base position sizing ──
     let allocPct;
