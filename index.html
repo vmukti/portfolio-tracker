@@ -15314,16 +15314,17 @@ async function runDayTradeAI() {
       return s.changePct <= 6 && s.changePct >= 0.5;
     });
 
-    // v6.0 CATALYST GATE: Prefer stocks WITH catalysts
+    // v15.3.2 HARD CATALYST GATE: No catalyst = No trade, period.
+    // Evidence: Catalyst stocks consistently outperform. Non-catalyst at peak = retail FOMO chase.
+    // hasCatalyst is set by: shortlist entry, stocks[] catalyst field, or news sentiment.
     var catalystPicks = safeScored.filter(function(s) {
       return s.hasCatalyst && s.dtScore >= MIN_SCORE && parseFloat(s.momentum) > 0.5;
     });
-    var noCatalystPicks = safeScored.filter(function(s) {
-      return !s.hasCatalyst && s.dtScore >= MIN_SCORE + 20 && parseFloat(s.momentum) > 0.5;
-    });
+    var noCatRejected = safeScored.filter(function(s) { return !s.hasCatalyst && s.dtScore >= MIN_SCORE; }).length;
+    console.log('[DT-v15.3.2] CATALYST HARD GATE: ' + catalystPicks.length + ' catalyst stocks qualify, ' + noCatRejected + ' non-catalyst REJECTED');
 
-    // Catalyst stocks first, then very high-scoring non-catalyst stocks
-    var picks = catalystPicks.concat(noCatalystPicks);
+    // HARD GATE: ONLY catalyst stocks — no exceptions
+    var picks = catalystPicks;
 
     // v6.0: SECTOR DIVERSIFICATION — max 2 per sector
     var sectorCount = {};
@@ -15348,10 +15349,11 @@ async function runDayTradeAI() {
       picks = picks.slice(0, 4); // Absolute max 4
     }
 
-    // Fallback: if no catalyst picks, try lower threshold but still require SOME quality
+    // v15.3.2: Fallback — lower score threshold but STILL requires catalyst (hard gate)
     if (picks.length < 1) {
       sectorCount = {};
       picks = safeScored.filter(function(s) {
+        if (!s.hasCatalyst) return false; // HARD GATE — catalyst required even on fallback
         if (s.dtScore < 45 || parseFloat(s.momentum) <= 0) return false;
         var sec = s.sector || 'Unknown';
         if (!sectorCount[sec]) sectorCount[sec] = 0;
