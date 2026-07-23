@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v14 &mdash; AI Wealth Fund</span></h1>
+  <h1>Jain PMS <span>v15.4 &mdash; AI Wealth Fund</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -1403,6 +1403,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
       <button id="dtRunBtn" onclick="runDayTradeAI()" style="padding:10px 24px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">&#9889; Run Day Trade AI</button>
       <button id="dtSquareOffBtn" onclick="squareOffAll()" style="padding:10px 20px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px">&#128274; Square Off All</button>
       <button onclick="resetDayTrade()" style="padding:10px 18px;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">&#128260; Reset Day Trade</button>
+      <button onclick="JainPMS_Cloud.forceSync()" style="padding:10px 18px;background:var(--card2);color:#3b82f6;border:1px solid #3b82f6;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" title="Force sync wallets to cloud">☁ Sync Now</button>
       <span id="dtLastAction" style="color:var(--muted);font-size:12px;margin-left:auto">No trades today</span>
     </div>
 
@@ -1752,7 +1753,8 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v15.3 &mdash; AI Wealth Fund (₹1 Cr) + Smart Exit Engine (ATR-Scaled + 3-Tier Booking + Time Decay + Vol Fade + VWAP Recross) + Catalyst-Aware Entry + Full Universe Scanner (694 stocks) + Stealth Catalyst Detection + Jainism Compliance Filter + Paper Trade Auto-Trigger + Bloomberg Surveillance Desk + Legends Engine + Predator Detection Engine + Institutional Risk Controls + Live Daily P&amp;L Sync + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v15.4 &mdash; AI Wealth Fund (₹1 Cr) + Cloud Sync + Smart Exit Engine + Catalyst-Aware Entry + Hard Catalyst Gate + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span id="cloudSyncBadge" style="color:#f59e0b;font-weight:600;cursor:pointer;margin-right:8px" onclick="JainPMS_Cloud.forceLoad()" title="Click to force reload from cloud">☁ Connecting...</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
 
@@ -4848,7 +4850,7 @@ function getPT() {
   } catch(e) {}
   return { cash: PT_START, positions: [], trades: [], startDate: new Date().toISOString(), dailySnap: {}, peakValue: PT_START };
 }
-function savePT(w) { localStorage.setItem(PT_KEY, JSON.stringify(w)); }
+function savePT(w) { localStorage.setItem(PT_KEY, JSON.stringify(w)); if (window.JainPMS_Cloud) JainPMS_Cloud.queueSync('paperTrade'); }
 
 function resetPaperWallet() {
   if (!confirm('Reset Jain PMS wallet to ₹1,00,00,000 (₹1 Crore)? All positions & trade history will be cleared.')) return;
@@ -12192,13 +12194,204 @@ function getDT() {
 
 function saveDT(w) {
   localStorage.setItem(DT_KEY, JSON.stringify(w));
+  if (window.JainPMS_Cloud) JainPMS_Cloud.queueSync('dayTrade'); // v15.4 cloud sync
 }
 
 function resetDayTrade() {
   if (!confirm('Reset day trade wallet to 2,00,000? All positions & trade history will be cleared.')) return;
   localStorage.removeItem(DT_KEY);
+  if (window.JainPMS_Cloud) JainPMS_Cloud.saveToCloud('dayTrade'); // sync reset to cloud
   loadDayTrade();
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  JAIN PMS CLOUD SYNC v1.0 — Cross-Device State Synchronization
+//  One computer runs trades → all devices see the same state
+//  Backend: Google Apps Script PropertiesService
+// ═══════════════════════════════════════════════════════════════
+var JainPMS_Cloud = {
+  URL: 'https://script.google.com/macros/s/AKfycbzbKgZ2JBCln8elHDx6_wt9DZRHJbeuomfonTI-KyjwDzaXjlohwys7BAusd68YjIawZA/exec',
+  deviceId: null,
+  lastSync: null,
+  _timer: null,
+  _loaded: { dayTrade: false, paperTrade: false },
+  enabled: true,
+
+  init: function() {
+    this.deviceId = localStorage.getItem('jainpms_deviceId');
+    if (!this.deviceId) {
+      this.deviceId = 'D' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
+      localStorage.setItem('jainpms_deviceId', this.deviceId);
+    }
+    this.updateBadge('connecting');
+    this.loadFromCloud('dayTrade');
+    this.loadFromCloud('paperTrade');
+    console.log('[Cloud] v1.0 init — device: ' + this.deviceId);
+  },
+
+  slimWallet: function(w, type) {
+    if (type === 'dayTrade') {
+      return {
+        cash: w.cash,
+        positions: (w.positions || []).map(function(p) {
+          return { ticker: p.ticker, name: p.name, sector: p.sector, buyPrice: p.buyPrice,
+            qty: p.qty, hasCatalyst: p.hasCatalyst, source: p.source, buyTime: p.buyTime,
+            entryQuality: p.entryQuality, allocPct: p.allocPct, dtScore: p.dtScore,
+            signals: (p.signals || []).slice(0, 6), entryVolume: p.entryVolume,
+            entryDayHigh: p.entryDayHigh, entryATR: p.entryATR, stopLoss: p.stopLoss,
+            target1: p.target1, target2: p.target2, target3: p.target3 };
+        }),
+        dailyHistory: w.dailyHistory || [],
+        trades: (w.trades || []).slice(-25),
+        startDate: w.startDate,
+        todayDate: w.todayDate
+      };
+    } else {
+      return {
+        cash: w.cash,
+        positions: (w.positions || []).map(function(p) {
+          return { ticker: p.ticker, name: p.name, sector: p.sector, buyPrice: p.buyPrice,
+            qty: p.qty, buyDate: p.buyDate, reason: p.reason, score: p.score, source: p.source,
+            predatorScore: p.predatorScore, legendsScore: p.legendsScore };
+        }),
+        trades: (w.trades || []).slice(-30),
+        startDate: w.startDate,
+        dailySnap: w.dailySnap || {},
+        peakValue: w.peakValue
+      };
+    }
+  },
+
+  queueSync: function(type) {
+    if (!this.enabled) return;
+    var self = this;
+    if (this._timer) clearTimeout(this._timer);
+    this._timer = setTimeout(function() { self.saveToCloud(type); }, 2000);
+  },
+
+  saveToCloud: function(type) {
+    if (!this.enabled) return;
+    var self = this;
+    var wallet = type === 'dayTrade' ? getDT() : getPT();
+    var slim = this.slimWallet(wallet, type);
+    var json = JSON.stringify(slim);
+    var encoded = encodeURIComponent(json);
+
+    this.updateBadge('syncing');
+
+    var url = this.URL + '?op=save&type=' + type + '&device=' + this.deviceId + '&v=15.4&data=' + encoded;
+
+    fetch(url, { signal: AbortSignal.timeout(15000) })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ok) {
+          self.lastSync = d.ts;
+          self.updateBadge('synced');
+          console.log('[Cloud] Saved ' + type + ' (' + json.length + ' bytes) at ' + d.ts);
+        } else {
+          self.updateBadge('error');
+          console.warn('[Cloud] Save failed:', d.error);
+        }
+      })
+      .catch(function(e) {
+        self.updateBadge('error');
+        console.warn('[Cloud] Save error:', e.message);
+      });
+  },
+
+  loadFromCloud: function(type) {
+    if (!this.enabled) return;
+    var self = this;
+    var url = this.URL + '?op=load&type=' + type;
+
+    fetch(url, { signal: AbortSignal.timeout(10000) })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.found && d.data) {
+          var cloudWallet = typeof d.data === 'string' ? JSON.parse(d.data) : d.data;
+          var localWallet = type === 'dayTrade' ? getDT() : getPT();
+
+          // Merge: cloud state wins for positions/cash, merge trade history
+          cloudWallet.trades = self._mergeTrades(localWallet.trades || [], cloudWallet.trades || []);
+
+          // Save to local without re-triggering cloud sync
+          self.enabled = false;
+          if (type === 'dayTrade') {
+            localStorage.setItem(DT_KEY, JSON.stringify(cloudWallet));
+          } else {
+            localStorage.setItem(PT_KEY, JSON.stringify(cloudWallet));
+          }
+          self.enabled = true;
+          self._loaded[type] = true;
+
+          self.lastSync = d.meta ? d.meta.ts : null;
+          self.updateBadge('synced');
+          var syncDevice = d.meta ? d.meta.device : 'unknown';
+          console.log('[Cloud] Loaded ' + type + ' from cloud (last sync by ' + syncDevice + ')');
+
+          // Refresh UI if tab is active
+          try {
+            var dtTab = document.getElementById('daytrade');
+            var ptTab = document.getElementById('papertrade');
+            if (type === 'dayTrade' && dtTab && dtTab.style.display !== 'none') loadDayTrade();
+            if (type === 'paperTrade' && ptTab && ptTab.style.display !== 'none') loadPaperTrade();
+          } catch(e) {}
+        } else {
+          self._loaded[type] = true;
+          self.updateBadge('synced');
+          console.log('[Cloud] No cloud state for ' + type + ' — using local');
+        }
+      })
+      .catch(function(e) {
+        self._loaded[type] = true;
+        self.updateBadge('offline');
+        console.warn('[Cloud] Load ' + type + ' error:', e.message);
+      });
+  },
+
+  _mergeTrades: function(local, cloud) {
+    var seen = {};
+    var merged = [];
+    var all = (cloud || []).concat(local || []);
+    for (var i = 0; i < all.length; i++) {
+      var key = (all[i].time || '') + '|' + (all[i].ticker || '');
+      if (!seen[key]) { seen[key] = true; merged.push(all[i]); }
+    }
+    merged.sort(function(a, b) { return new Date(a.time) - new Date(b.time); });
+    return merged;
+  },
+
+  updateBadge: function(status) {
+    var badge = document.getElementById('cloudSyncBadge');
+    if (!badge) return;
+    var icons = { connecting: '☁ Connecting...', syncing: '☁ Syncing...',
+      synced: '☁ Cloud Synced', error: '⚠ Sync Error', offline: '⚠ Offline' };
+    var colors = { connecting: '#f59e0b', syncing: '#3b82f6', synced: '#22c55e',
+      error: '#ef4444', offline: '#6b7280' };
+    badge.textContent = icons[status] || status;
+    badge.style.color = colors[status] || '#6b7280';
+    if (status === 'synced' && this.lastSync) {
+      var ago = Math.round((Date.now() - new Date(this.lastSync).getTime()) / 1000);
+      var agoStr = ago < 60 ? ago + 's ago' : Math.round(ago / 60) + 'm ago';
+      badge.textContent += ' · ' + agoStr;
+    }
+  },
+
+  forceSync: function() {
+    this.saveToCloud('dayTrade');
+    this.saveToCloud('paperTrade');
+  },
+
+  forceLoad: function() {
+    this.loadFromCloud('dayTrade');
+    this.loadFromCloud('paperTrade');
+  }
+};
+
+// Initialize cloud sync on page load
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() { JainPMS_Cloud.init(); }, 3000); // Init after 3s to let page load first
+});
 
 // ═══════════════════════════════════════════════════════════════
 //  INSTITUTIONAL RISK CONTROL ENGINE v1.0 [v13.4]
