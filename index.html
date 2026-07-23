@@ -1835,6 +1835,13 @@ const stocks = [
 //  ALERTS SYSTEM
 // ============================================================
 let alerts = [
+  // ── Seeded by AI Research Agent 2026-07-23 ──
+  {type:'research', stock:'MARKET', title:'Regime BULL → SIDEWAYS; crude $95 + both FII/DII selling', time:'2026-07-23', desc:'Nifty 23,996 (-0.79% Jul 22) broke 24,000 and 24,050 support, 3rd straight fall. Brent surged ~5% to $94-95 (11th night of US-Iran strikes; Hormuz tanker attacks). FII -819 Cr AND DII -418 Cr both sold. Reclaim 24,200 + Brent <$90 = BULL again; close <23,700 or Brent >$100 = BEAR. MEDIUM conviction — headline-driven, could reverse fast.', key:'MARKET-research-Regime SIDEWAYS Jul 23', read:false},
+  {type:'research', stock:'DIXON', title:'Semicon 2.0 + MPMS Rs 1.9L Cr cleared — thesis tailwind (KAYNES too)', time:'2026-07-23', desc:'Cabinet approved Jul 16: incentives 2.25-5% of eligible sales FY27-31, +1.5% for domestic components. Dixon named primary beneficiary; Kaynes/Syrma/Cyient DLM/PGEL rallied. Caveat: BS says upside may be limited — much priced in at ~95x PE. Dixon Q1 FY27 results could NOT be verified as published — prior "Jul 22 results" note unconfirmed.', key:'DIXON-research-Semicon2.0 MPMS Jul 16', read:false},
+  {type:'research', stock:'ATHERENERGY', title:'QIP Rs 1,300 Cr @ Rs 1,202 allotted Jul 20 — dilution watch', time:'2026-07-23', desc:'1.08 Cr shares allotted via QIP, on top of June preferential issue. Funds growth but cumulative dilution mounting. PM E-Drive subsidy expires Jul 31 — watch for post-expiry demand air-pocket in Aug. MEDIUM conviction flag.', key:'ATHERENERGY-research-QIP Jul 20 dilution', read:false},
+  {type:'research', stock:'JIOFIN', title:'Price/thesis divergence — Rs 234.60, drifting toward 52wk low', time:'2026-07-23', desc:'-2.26% Jul 22 despite Q1 blowout (PAT +156%) and Reliance promoter buying. 52wk low Rs 223 only ~5% away. Thesis intact fundamentally; 2-week price watch — if it breaks 223 on volume, re-examine.', key:'JIOFIN-research-52wk-low drift Jul 23', read:false},
+  {type:'research', stock:'SYRMA', title:'New candidate — score 74 (top of scan)', time:'2026-07-23', desc:'Syrma SGS: 58% YoY growth (exports/auto/railways), Rs 6,600 Cr order book, 35% FY27 growth guide, JM preferred pick TP Rs 1,100, Semicon 2.0/MPMS beneficiary. MEDIUM-HIGH conviction; verify ROCE/D-E/pledge on Screener. Also: Amber 70 (down 29%, MPMS via Oppo, BOB TP 9,300), PGEL 68, MahSeamless 68 reaffirm, Aegis Logistics 66 momentum.', key:'SYRMA-research-Candidate score 74', read:false},
+  {type:'research', stock:'INFY', title:'Q1 FY27 TODAY after market — IT tape pivot', time:'2026-07-23', desc:'Consensus ~Rs 41,000 Cr rev, 1.5-2.2% CC QoQ, margin ~21%. Watch large-deal TCV + FY27 guide + AI commentary. IT = heaviest FII sell of 2026 (AI allocation rotating to Korea/Taiwan) — strong guide could pause narrative; read-through for CYIENT (also today) and Mphasis. Zensar corrected to Jul 29.', key:'INFY-research-Q1 today Jul 23', read:false},
   // ── Seeded by AI Research Agent 2026-07-20 ──
   {type:'research', stock:'ICICIBANK', title:'Q1 FY27 BEAT — PAT +15.9%', time:'2026-07-20', desc:'PAT Rs 14,804 Cr (+15.9% YoY), GNPA 1.38% (from 1.67%). Reported Jul 18. Thesis strengthening. HIGH conviction. Kotak also beat: standalone PAT +26%, GNPA 1.18%.', key:'ICICIBANK-research-Q1 FY27 beat Jul 18', read:false},
   {type:'research', stock:'HDFCBANK', title:'Q1 mixed — NIM 3.26% record low', time:'2026-07-20', desc:'PAT +5% to Rs 19,060 Cr, NII +7%, advances +15.4%, but NIM 3.26% lowest on record (3.38% in Mar qtr). Growth intact, margin compression is the watch item. Set 2-quarter NIM-recovery checkpoint.', key:'HDFCBANK-research-NIM record low Q1', read:false},
@@ -3438,25 +3445,26 @@ async function predictDailyMovers() {
 
 // ── Global Market Cues (updated via web research + can be auto-refreshed) ──
 var PRE_MARKET_GLOBAL = {
-  lastUpdated: '2026-07-22',
+  lastUpdated: '2026-07-23',
   giftNifty: { value: 24115, changePct: -0.30, signal: 'MILDLY_BEARISH' },
   dow: { value: 52225, changePct: 0.70, signal: 'BULLISH' },
   sp500: { value: 7509, changePct: 0.90, signal: 'BULLISH' },
   nasdaq: { value: 25837, changePct: 1.30, signal: 'BULLISH' },
   nikkei: { value: 66004, changePct: 2.90, signal: 'BULLISH' },
-  brentCrude: { value: 92.09, changePct: 1.2, signal: 'RISING' },
+  brentCrude: { value: 94.50, changePct: 3.4, signal: 'SURGING' },
   indiaVix: { value: 12.60, signal: 'LOW_VOL' },
-  fiiFlow: { value: 1578, label: '+1,578 Cr cash (Jul 21) — FII turned net BUYERS; July MTD +11,682 Cr; 4-month selling streak broken', signal: 'INFLOW' },
-  diiFlow: { value: -622, label: '-622 Cr cash (Jul 21) — DII taking profits as FII returns', signal: 'OUTFLOW' },
+  fiiFlow: { value: -819, label: '-819 Cr cash (Jul 22) — FII flipped back to sellers on crude spike; July MTD still net positive; H1-Jul NSDL: bought ConsumerSvcs +7,361 Cr, Metals +5,993 Cr; sold Auto -6,936 Cr', signal: 'OUTFLOW' },
+  diiFlow: { value: -418, label: '-418 Cr cash (Jul 22) — DII also net sellers; rare double-negative day', signal: 'OUTFLOW' },
   usdInr: { value: 96.36, signal: 'WEAK' },
-  niftySupport: 24050,
-  niftyResistance: 24400,
-  regime: 'BULL',
-  keyThemes: ['Nifty 24,188 (-0.21% Jul 21) — 2nd straight decline; 200 EMA resistance at 24,421; support 24,050', 'Iran-Gulf tensions escalate — Brent crude $92+ (highest since Jun 11); Strait of Hormuz risk', 'Bank Q1 divergence: ICICI +16%, Kotak +26%, PNB +214% BEAT; HDFC Bank NIM squeeze MIXED', 'Bajaj Auto Q1 blowout: PAT +46%, Rev +65% all-time high; TVS Motor PAT +65% — auto sector strong', 'FII INFLOW REVERSAL: July +11,682 Cr MTD; buying Consumer Services, Metals, Healthcare', 'TODAY: Dixon, KEI, Zensar results; Jul 23 PIVOT: Infosys + Cyient + Mphasis + HCL Tech', 'Sectors Jul 21: Realty +1.07%, Auto +0.93%, Metal +0.63% led; IT -0.61%, Banking weak']
+  niftySupport: 23700,
+  niftyResistance: 24200,
+  regime: 'SIDEWAYS',
+  keyThemes: ['Nifty 23,996 (-0.79% Jul 22), Sensex -715 — 3rd straight decline; broke 24,000 and 24,050 support; regime downgraded BULL→SIDEWAYS', 'Brent SURGE ~5% to $94-95 — 11th night of US strikes on Iran; Hormuz tanker attacks + Red Sea Houthi threat; $100 risk flagged', 'Jul 22 gainers: Bajaj Auto +5.9%, Nestle +2.1%, ONGC, Titan; losers: IndiGo (crude), SBI, Axis', 'Semicon 2.0 + MPMS Rs 1.9L Cr cleared Jul 16 — DIXON/KAYNES/Syrma/PGEL/Amber beneficiaries; much priced in at Dixon ~95x', 'FII sector rotation: INTO metals (+5,993 Cr H1-Jul reversal), consumer services, realty; OUT of auto (-6,936 Cr) and IT (heaviest 2026 sell)', 'TODAY Jul 23: INFOSYS Q1 after mkt (~Rs 41,000 Cr rev, 1.5-2.2% CC QoQ expected) + Cyient + Mphasis; Jul 25: Tata Motors; Jul 29: Zensar (corrected from Jul 22)', 'Regime triggers: reclaim 24,200 + Brent <$90 = back to BULL; close <23,700 or Brent >$100 = BEAR risk']
 };
 
 // ── AI Research Agent — last automated scan ──
-var AI_RESEARCH_LAST_UPDATE = '2026-07-22 (daily scan: Bajaj Auto Q1 PAT +46% all-time high revenue; TVS Motor +65%; FII INFLOW reversal Jul MTD +11,682 Cr; Brent $92 Iran-Gulf risk; Nifty 24,188 2nd decline; Infosys Jul 23 pivot; Dixon/KEI/Zensar results today; regime BULL with crude headwind)';
+var AI_RESEARCH_LAST_UPDATE = '2026-07-23 (daily scan: regime BULL→SIDEWAYS — Nifty 23,996 broke 24,050 support; Brent $94-95 Iran escalation, $100 risk; FII -819 Cr + DII -418 Cr Jul 22 both sellers; Semicon 2.0 Rs 1.9L Cr = DIXON/KAYNES tailwind; INFY Q1 today; Ather QIP Rs 1,300 Cr dilution; JIOFIN drifting to 52wk low; new candidates: Syrma 74, Amber 70, PGEL 68)';
+// Previous: '2026-07-22 (daily scan: Bajaj Auto Q1 PAT +46% all-time high revenue; TVS Motor +65%; FII INFLOW reversal Jul MTD +11,682 Cr; Brent $92 Iran-Gulf risk; Nifty 24,188 2nd decline; Infosys Jul 23 pivot; Dixon/KEI/Zensar results today; regime BULL with crude headwind)';
 // Previous: '2026-07-20 (daily scan: regime upgraded to BULL-early — Nifty 24,334 breakout; bank Q1 Jul 18: ICICI/Kotak beat, HDFC Bank NIM 3.26% record low; JIOFIN +6%, Reliance promoter stake 50.48%; CYIENT catalyst refreshed to Q1 Jul 23 with INFY)';
 
 // ── Earnings Calendar (stocks reporting today/tomorrow) ──
@@ -3465,7 +3473,7 @@ var EARNINGS_CALENDAR = [
   {ticker:'ICICIBANK', name:'ICICI Bank', date:'2026-07-18', status:'REPORTED', result:'BEAT', patGrowth:16, keyNote:'GNPA 1.38% (from 1.67%); ROA 2.49%; advances +19.6%'},
   {ticker:'KOTAKBANK', name:'Kotak Mahindra Bank', date:'2026-07-18', status:'REPORTED', result:'BEAT', patGrowth:26, keyNote:'PAT Rs 4,123 Cr +26%; GNPA 0.27%; CASA 40.3%'},
   {ticker:'BAJAJ-AUTO', name:'Bajaj Auto', date:'2026-07-21', status:'REPORTED', result:'BEAT', patGrowth:46, keyNote:'PAT Rs 3,226 Cr +46%; Rev Rs 21,689 Cr all-time high +65%; exports record 700K units'},
-  {ticker:'DIXON', name:'Dixon Technologies', date:'2026-07-22', status:'UPCOMING', keyNote:'EMS leader — Vivo JV execution ramp; consensus expects 35%+ revenue growth'},
+  {ticker:'DIXON', name:'Dixon Technologies', date:'2026-07-22', status:'UNVERIFIED', keyNote:'Q1 FY27 publication NOT confirmed as of Jul 23 scan; Semicon 2.0 + MPMS (Jul 16) tailwind; verify date/numbers'},
   {ticker:'INFY', name:'Infosys', date:'2026-07-23', status:'UPCOMING', keyNote:'HOLDING — large-deal TCV + AI commentary; consensus Rev ~Rs 41,000 Cr'},
   {ticker:'CYIENT', name:'Cyient', date:'2026-07-23', status:'UPCOMING', keyNote:'HOLDING — refreshed catalyst; IT selective tape'},
   {ticker:'MPHASIS', name:'Mphasis', date:'2026-07-23', status:'UPCOMING', keyNote:'IT tape read-through; BFS exposure'},
@@ -6156,6 +6164,7 @@ async function runAIAutoTrade() {
   }
 
   // ═══ PHASE 1: SMART EXIT — multi-factor sell decisions + Layer 4 smart exits ═══
+  const soldThisRun = new Set(); // v15.2: Track sold tickers to prevent re-buy in same run
   for (let i = w.positions.length - 1; i >= 0; i--) {
     const pos = w.positions[i];
     let stock = stocks.find(s => s.ticker === pos.ticker);
@@ -6240,6 +6249,7 @@ async function runAIAutoTrade() {
       const pnl = (sellPrice - pos.avgPrice) * pos.qty;
       w.cash += proceeds;
       w.trades.push({ type: 'SELL', ticker: pos.ticker, qty: pos.qty, price: sellPrice, pnl: Math.round(pnl), aiScore: sc.total, reason, source: pos.source || 'portfolio', time: now.toISOString() });
+      soldThisRun.add(pos.ticker); // v15.2: Prevent re-buy in same run
       w.positions.splice(i, 1);
       tradesMade++;
       log.push('SELL ' + pos.ticker + ' @ ₹' + sellPrice.toFixed(0) + ' (' + reason + ')');
@@ -6290,7 +6300,7 @@ async function runAIAutoTrade() {
   });
 
   const portfolioScored = stocks
-    .filter(s => s.cmp && s.cmp > 0 && !heldTickers.has(s.ticker))
+    .filter(s => s.cmp && s.cmp > 0 && !heldTickers.has(s.ticker) && !isEthicallyExcluded(s.sector) && !isEthicallyExcluded(s.name || s.ticker))
     .map(s => {
       const sc = aiScore(s);
       let bonusScore = sc.total;
@@ -6613,6 +6623,7 @@ async function runAIAutoTrade() {
         const swapTarget = bestCandidate;
         const swapLabel = swapTarget.source === 'mover' ? '🔥MOVER ' : swapTarget.source === 'screener' ? '🎯SCREENER ' : swapTarget.source === 'universe' ? '🌐UNIVERSE ' : '';
         w.trades.push({ type: 'SELL', ticker: weakPos.ticker, qty: weakPos.qty, price: sellPrice, pnl: Math.round(pnl), aiScore: weakestScore, reason: 'AI REBALANCE: Score ' + weakestScore + ' → swapped for ' + swapLabel + swapTarget.stock.ticker + ' (' + swapTarget.sc.total + ')', source: weakPos.source || 'portfolio', time: now.toISOString() });
+        soldThisRun.add(weakPos.ticker); // v15.2: Track rebalance sells
         w.positions.splice(weakestIdx, 1);
         tradesMade++;
         swapsDone++;
@@ -6644,6 +6655,7 @@ async function runAIAutoTrade() {
         const pnl = (sellPrice - weakPos.avgPrice) * weakPos.qty;
         w.cash += sellPrice * weakPos.qty;
         w.trades.push({ type: 'SELL', ticker: weakPos.ticker, qty: weakPos.qty, price: sellPrice, pnl: Math.round(pnl), aiScore: weakestScore, reason: '🌐 UNIVERSE ROTATION: Score ' + weakestScore + ' → ' + bestUniverse.stock.ticker + ' (' + bestUniverse.sc.total + ')', source: weakPos.source || 'portfolio', time: now.toISOString() });
+        soldThisRun.add(weakPos.ticker); // v15.2: Track rotation sells
         w.positions.splice(weakestIdx, 1);
         tradesMade++;
         heldTickers.delete(weakPos.ticker);
@@ -6685,6 +6697,10 @@ async function runAIAutoTrade() {
     if (w.positions.length >= maxPositions) break;
     if (w.cash < 500) break;
     if (heldTickers.has(stock.ticker)) continue;
+    // v15.2: Block re-buy of stocks sold in this same run (prevents CDSL-like sell→rebuy loops)
+    if (soldThisRun.has(stock.ticker)) { aiLog.push('🚫 Blocked re-buy of ' + stock.ticker + ' (sold this run)'); continue; }
+    // v15.2: Final Jainism compliance gate (safety net)
+    if (isEthicallyExcluded(stock.sector) || isEthicallyExcluded(stock.name || stock.ticker)) continue;
     if (source === 'mover' && (currentMoverCount + moverBuys) >= maxMoverPositions) continue;
     if ((source === 'screener' || source === 'universe') && (currentScreenerCount + screenerBuys) >= maxScreenerPositions) continue;
 
