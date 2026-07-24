@@ -13985,7 +13985,7 @@ function buildDayTradeShortlist() {
       if (!e.ticker) return;
       if (isEthicallyExcluded(e.sector || '') || isEthicallyExcluded(e.ticker || '')) return;
       if (e.status === 'REPORTED') {
-        var surprise = (e.surprise || '').toUpperCase();
+        var surprise = (e.result || e.surprise || '').toUpperCase();
         if (surprise.indexOf('BEAT') >= 0 || surprise.indexOf('STRONG') >= 0 || surprise.indexOf('ABOVE') >= 0) {
           if (!shortlist[e.ticker]) shortlist[e.ticker] = { ticker: e.ticker, catalysts: [], catalystScore: 0, name: '', sector: '' };
           shortlist[e.ticker].catalysts.push('EARNINGS_BEAT');
