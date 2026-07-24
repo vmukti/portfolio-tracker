@@ -5939,7 +5939,8 @@ function updatePTDisplay(w) {
   const moverFresh = isMoverScanFresh();
   w.positions.forEach(p => {
     const stock = stocks.find(s => s.ticker === p.ticker);
-    let livePrice = stock ? (stock.cmp || p.avgPrice) : p.avgPrice;
+    if (!p.avgPrice && stock && stock.cmp > 0) { p.avgPrice = stock.cmp; p.peakPrice = stock.cmp; } // Auto-heal missing avgPrice
+    let livePrice = stock ? (stock.cmp || p.avgPrice || 0) : (p.avgPrice || 0);
     let prevClose = stock ? (stock.prevClose || livePrice) : livePrice;
     // For mover-sourced positions, try mover scan data for price
     if ((!stock || !stock.cmp) && moverFresh && window._moverScan) {
@@ -5947,13 +5948,13 @@ function updatePTDisplay(w) {
       if (ms && ms.cmp > 0) { livePrice = ms.cmp; prevClose = ms.prevClose || livePrice; }
     }
     // For screener/universe positions, try screener results for price
-    if ((!stock || livePrice === p.avgPrice) && window._screenerResults) {
+    if ((!stock || livePrice === (p.avgPrice||0)) && window._screenerResults) {
       const sr = window._screenerResults.find(r => r.ticker === p.ticker);
       if (sr && (sr.price || sr.cmp) > 0) { livePrice = sr.price || sr.cmp; }
     }
     p.currentPrice = livePrice;
     p.marketValue = livePrice * p.qty;
-    p.pnl = (livePrice - p.avgPrice) * p.qty;
+    p.pnl = (livePrice - (p.avgPrice||0)) * p.qty;
     p.dayPnl = (livePrice - prevClose) * p.qty;
     p.aiScoreNow = stock ? aiScore(stock).total : (p.entryScore || 0);
     holdingsVal += p.marketValue;
@@ -6060,7 +6061,7 @@ function updatePTDisplay(w) {
     // Sort by AI score descending
     const sorted = w.positions.map((p, i) => ({...p, idx: i})).sort((a, b) => (b.aiScoreNow||0) - (a.aiScoreNow||0));
     sorted.forEach(p => {
-      const ret = ((p.currentPrice - p.avgPrice) / p.avgPrice * 100);
+      const ret = (p.avgPrice > 0) ? ((p.currentPrice - p.avgPrice) / p.avgPrice * 100) : 0;
       const pnlColor = p.pnl >= 0 ? '#22c55e' : '#ef4444';
       const grade = aiScoreGrade(p.aiScoreNow || 0);
       html += '<tr style="border-bottom:1px solid var(--border)22">';
@@ -6068,7 +6069,7 @@ function updatePTDisplay(w) {
       html += '<td style="padding:8px;font-weight:600">' + p.ticker + srcBadge + '</td>';
       html += '<td style="text-align:center"><span style="background:' + grade.color + '22;color:' + grade.color + ';padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px">' + (p.aiScoreNow||0) + ' ' + grade.grade + '</span></td>';
       html += '<td style="text-align:center">' + p.qty + '</td>';
-      html += '<td style="text-align:center">₹' + p.avgPrice.toLocaleString('en-IN',{maximumFractionDigits:1}) + '</td>';
+      html += '<td style="text-align:center">₹' + (p.avgPrice||0).toLocaleString('en-IN',{maximumFractionDigits:1}) + '</td>';
       html += '<td style="text-align:center">₹' + (p.currentPrice||0).toLocaleString('en-IN',{maximumFractionDigits:1}) + '</td>';
       html += '<td style="text-align:center">₹' + (p.marketValue||0).toLocaleString('en-IN',{maximumFractionDigits:0}) + '</td>';
       html += '<td style="text-align:center;color:' + pnlColor + '">' + (p.pnl>=0?'+':'') + '₹' + (p.pnl||0).toLocaleString('en-IN',{maximumFractionDigits:0}) + '</td>';
@@ -6320,7 +6321,7 @@ async function runAIAutoTrade() {
       const s = stocks.find(st => st.ticker === p.ticker);
       let price = s ? s.cmp : 0;
       if (!price && moverActive) { const ms = window._moverScan.scored.find(m => m.ticker === p.ticker); if (ms) price = ms.cmp; }
-      return sum + ((price || p.avgPrice) * p.qty);
+      return sum + ((price || p.avgPrice || 0) * p.qty);
     }, 0);
     const totalVal = w.cash + holdingsVal;
     w.peakValue = Math.max(w.peakValue || PT_START, totalVal);
@@ -6718,7 +6719,7 @@ async function runAIAutoTrade() {
           const heldDays = p.buyDate ? (now.getTime() - new Date(p.buyDate).getTime()) / 86400000 : 0;
           if (sc.total > 0 && sc.total < weakestScore && heldDays >= 7) {
             // v15.3: Also check P&L — don't sell at big losses just for score
-            const posReturn = s.cmp > 0 ? (s.cmp - p.avgPrice) / p.avgPrice * 100 : 0;
+            const posReturn = (s.cmp > 0 && p.avgPrice > 0) ? (s.cmp - p.avgPrice) / p.avgPrice * 100 : 0;
             if (posReturn > -2) { // Only rebalance if we're NOT locking in > 2% loss
               weakestScore = sc.total; weakestIdx = i;
             }
@@ -6759,7 +6760,7 @@ async function runAIAutoTrade() {
         const s = stocks.find(st => st.ticker === p.ticker);
         if (s) {
           const sc = aiScore(s);
-          const returnPct = (s.cmp - p.avgPrice) / p.avgPrice * 100;
+          const returnPct = (p.avgPrice > 0) ? (s.cmp - p.avgPrice) / p.avgPrice * 100 : 0;
           const heldDays = p.buyDate ? (now.getTime() - new Date(p.buyDate).getTime()) / 86400000 : 0;
           // v15.3: score > 0 guard + min 7 day hold + no locking in > 2% loss
           if (sc.total > 0 && sc.total < weakestScore && returnPct < 3 && returnPct > -2 && heldDays >= 7) { weakestScore = sc.total; weakestIdx = i; }
@@ -6923,7 +6924,7 @@ async function runAIAutoTrade() {
     let price = s ? s.cmp : 0;
     if (!price && moverActive) { const ms = window._moverScan.scored.find(m => m.ticker === p.ticker); if (ms) price = ms.cmp; }
     if (!price && window._screenerResults) { const sr = window._screenerResults.find(r => r.ticker === p.ticker); if (sr) price = sr.price || sr.cmp || 0; }
-    return sum + ((price || p.avgPrice) * p.qty);
+    return sum + ((price || p.avgPrice || 0) * p.qty);
   }, 0);
   const totalVal = w.cash + holdingsVal;
   w.peakValue = Math.max(w.peakValue || PT_START, totalVal);
@@ -7149,7 +7150,7 @@ const CIRCUIT_KEY = 'aiCircuitBreaker_v1';
 
 function checkCircuitBreaker(w) {
   const cb = { halt: false, reason: '', sellAll: false };
-  const totalVal = w.cash + w.positions.reduce((s, p) => s + (p.currentPrice || p.avgPrice) * p.qty, 0);
+  const totalVal = w.cash + w.positions.reduce((s, p) => s + (p.currentPrice || p.avgPrice || 0) * p.qty, 0);
   const totalReturn = ((totalVal - PT_START) / PT_START * 100);
 
   // Load circuit breaker state
@@ -7168,8 +7169,8 @@ function checkCircuitBreaker(w) {
   // Check today's P&L
   const todayPnl = w.positions.reduce((s, p) => {
     const stock = stocks.find(st => st.ticker === p.ticker);
-    const prevClose = stock ? (stock.prevClose || p.avgPrice) : p.avgPrice;
-    const livePrice = p.currentPrice || p.avgPrice;
+    const prevClose = stock ? (stock.prevClose || p.avgPrice || 0) : (p.avgPrice || 0);
+    const livePrice = p.currentPrice || p.avgPrice || 0;
     return s + (livePrice - prevClose) * p.qty;
   }, 0);
   const todayPnlPct = totalVal > 0 ? (todayPnl / totalVal * 100) : 0;
