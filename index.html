@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v17.0 &mdash; AI Wealth Fund</span></h1>
+  <h1>Jain PMS <span>v17.2 &mdash; AI Wealth Fund</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -1411,7 +1411,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     <div class="card" style="margin-bottom:16px">
       <h3 style="margin:0 0 12px;font-size:16px">&#128200; Current Intraday Positions</h3>
       <div id="dtPositionsTable" style="font-size:13px">
-        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. v17.0 Reaction Engine: Live mover discovery (9:30-11:00 AM) &mdash; scans for stocks ALREADY moving (+1.5% &amp; 2x volume), confirms with Opening Range Breakout, max 3 picks, 1/sector, structural stop below day low.</div>
+        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. v17.2 Reaction Engine: Live mover discovery (9:30-11:00 AM) &mdash; scans for stocks ALREADY moving (+1.5% &amp; 2x volume), confirms with Opening Range Breakout, max 3 picks, 1/sector, structural stop below day low.</div>
       </div>
     </div>
 
@@ -15248,7 +15248,7 @@ function renderDTEquityCurve(w) {
 //  Target: 3-5% daily return on news-powered concentrated portfolio
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
-//  v17.0 REACTION ENGINE — LIVE MOVER DISCOVERY
+//  v17.2 REACTION ENGINE — LIVE MOVER DISCOVERY
 //  Old approach: PREDICT which stocks will move using hardcoded
 //  catalyst calendars (PRIMARY_SIGNALS, EARNINGS_CALENDAR) — failed
 //  because a catalyst gate with no real data blocked 31/31 trades.
@@ -15309,7 +15309,7 @@ function discoverLiveMovers(candidates) {
 //  DAY TRADE AI v17.2 — CATALYST-DIRECT ENGINE
 //  Target: 3-5% daily return via TWO entry pathways:
 //
-//  PATH A: Live Mover Discovery (v17.0 — unchanged)
+//  PATH A: Live Mover Discovery (v17.2 — unchanged)
 //   Phase 1: Discover stocks ALREADY moving (+1.5%, 2x volume)
 //   Phase 2: Confirm with ORB breakout + sector + Predator + Legends
 //
@@ -15339,7 +15339,7 @@ async function runDayTradeAI() {
   }
 
   // ══════════════════════════════════════════════════════════
-  //  v17.0 PHASE 0a: DAILY TRADE CAP — Max 3 buys per day
+  //  v17.2 PHASE 0a: DAILY TRADE CAP — Max 3 buys per day
   //  Quality over quantity. Confirmed breakouts, not FOMO chases.
   // ══════════════════════════════════════════════════════════
   var todayIST = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
@@ -15350,12 +15350,12 @@ async function runDayTradeAI() {
   }).length;
   if (todayBuys >= MAX_DAILY_BUYS) {
     console.log('[DT-v17] DAILY CAP: ' + todayBuys + '/' + MAX_DAILY_BUYS + ' buys used today. No more trades.');
-    alert('v17.0 DAILY TRADE CAP: Already made ' + todayBuys + ' buys today (max ' + MAX_DAILY_BUYS + ').\n\nQuality over quantity — only confirmed breakouts, never more than 3 a day.');
+    alert('v17.2 DAILY TRADE CAP: Already made ' + todayBuys + ' buys today (max ' + MAX_DAILY_BUYS + ').\n\nQuality over quantity — only confirmed breakouts, never more than 3 a day.');
     return;
   }
 
   // ══════════════════════════════════════════════════════════
-  //  v17.0 PHASE 0b: RE-ENTRY BAN — Once sold, banned for rest of day
+  //  v17.2 PHASE 0b: RE-ENTRY BAN — Once sold, banned for rest of day
   // ══════════════════════════════════════════════════════════
   var _soldTodayTickers = [];
   (w.trades || []).forEach(function(t) {
@@ -15368,7 +15368,7 @@ async function runDayTradeAI() {
   }
 
   // ══════════════════════════════════════════════════════════
-  //  v17.0 PHASE 0c: MARKET HOURS GUARD — wait for market to settle
+  //  v17.2 PHASE 0c: MARKET HOURS GUARD — wait for market to settle
   //  No new trades before 9:30 AM (opening range not formed yet)
   //  or after 11:00 AM (professional day traders front-load risk
   //  into the first 90 minutes; afternoon entries chase, don't lead).
@@ -15380,7 +15380,7 @@ async function runDayTradeAI() {
     return;
   }
   if (hhmm < 930) {
-    alert('v17.0 REACTION ENGINE: Waiting for the Opening Range to form.\n\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + '\n\nWe do not chase the first 15 minutes of noise. Come back at/after 9:30 AM once real moves are confirmed by live price + volume.');
+    alert('v17.2 REACTION ENGINE: Waiting for the Opening Range to form.\n\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + '\n\nWe do not chase the first 15 minutes of noise. Come back at/after 9:30 AM once real moves are confirmed by live price + volume.');
     return;
   }
   if (hhmm > 1130) {
@@ -15408,7 +15408,7 @@ async function runDayTradeAI() {
     statusBadge.style.background = '#f59e0b22';
     statusBadge.style.color = '#f59e0b';
     statusBadge.style.borderColor = '#f59e0b44';
-    statusBadge.innerHTML = '&#9889; v17.0 REACTION ENGINE: Scanning for stocks already moving...';
+    statusBadge.innerHTML = '&#9889; v17.2 REACTION ENGINE: Scanning for stocks already moving...';
   }
 
   try {
@@ -15416,17 +15416,17 @@ async function runDayTradeAI() {
     //  v13.5 PREDATOR ENGINE INIT — Fetch institutional data
     //  BEFORE any stock scanning. We need to know the battlefield.
     // ══════════════════════════════════════════════════════════
-    if (statusBadge) statusBadge.innerHTML = '&#127919; v17.0: Initializing Predator Detection Engine...';
+    if (statusBadge) statusBadge.innerHTML = '&#127919; v17.2: Initializing Predator Detection Engine...';
     var predatorInit = await initPredatorEngine();
     console.log('[DT-v17] Predator Engine: FII=' + predatorInit.fiiRegime + ' Sentiment=' + predatorInit.sentiment + ' Deals=' + predatorInit.bulkDeals);
     updatePredatorDashboard();
 
     // ══════════════════════════════════════════════════════════
-    //  v17.0 NEWS INTELLIGENCE — Fetch BEFORE mover scan
+    //  v17.2 NEWS INTELLIGENCE — Fetch BEFORE mover scan
     //  News sentiment gives CONTEXT to price moves:
     //  A stock up 3% WITH a catalyst is real; without = random noise
     // ══════════════════════════════════════════════════════════
-    if (statusBadge) statusBadge.innerHTML = '&#128240; v17.0: Scanning news catalysts for context...';
+    if (statusBadge) statusBadge.innerHTML = '&#128240; v17.2: Scanning news catalysts for context...';
     await fetchDayTradeNews();
     console.log('[DT-v17] News sentiment loaded: ' + (typeof _dtNewsSentiment !== 'undefined' ? Object.keys(_dtNewsSentiment).length : 0) + ' stocks with sentiment');
 
@@ -15436,12 +15436,12 @@ async function runDayTradeAI() {
     //  was the only thing that produced wins in 2 weeks of testing.
     //  NEVER remove this. Catalysts = institutional moves = real momentum.
     // ══════════════════════════════════════════════════════════
-    if (statusBadge) statusBadge.innerHTML = '&#128203; v17.0: Building catalyst shortlist...';
+    if (statusBadge) statusBadge.innerHTML = '&#128203; v17.2: Building catalyst shortlist...';
     buildDayTradeShortlist();
     console.log('[DT-v17] Catalyst shortlist: ' + _dtShortlist.length + ' stocks with identifiable catalysts');
 
     // ══════════════════════════════════════════════════════════
-    //  v17.0 GLOBAL CUES CONTEXT — Market regime affects all trades
+    //  v17.2 GLOBAL CUES CONTEXT — Market regime affects all trades
     //  Bullish global = be aggressive, Bearish global = be cautious
     // ══════════════════════════════════════════════════════════
     var _v17GlobalBias = 0; // -10 to +10
@@ -15525,7 +15525,7 @@ async function runDayTradeAI() {
           .then(function(resp) { return resp.json(); })
           .then(function(json) {
             batchesDone++;
-            if (statusBadge) statusBadge.innerHTML = '&#128269; v17.0: Scanning universe for live movers... batch ' + batchesDone + '/' + totalBatches;
+            if (statusBadge) statusBadge.innerHTML = '&#128269; v17.2: Scanning universe for live movers... batch ' + batchesDone + '/' + totalBatches;
             if (json && json.success && json.data && json.data.stocks) {
               Object.entries(json.data.stocks).forEach(function(entry) {
                 var sym = entry[0]; var d = entry[1];
@@ -15676,7 +15676,7 @@ async function runDayTradeAI() {
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       if (statusBadge) {
         statusBadge.style.background = '#06b6d422'; statusBadge.style.color = '#06b6d4'; statusBadge.style.borderColor = '#06b6d444';
-        statusBadge.innerHTML = '&#128161; v17.0 REACTION ENGINE: 0 live movers (need +1.5% & 2x volume) | FII: ' + _predatorFIIDII.flowRegime + ' | Sitting out = capital preservation.';
+        statusBadge.innerHTML = '&#128161; v17.2 REACTION ENGINE: 0 live movers (need +1.5% & 2x volume) | FII: ' + _predatorFIIDII.flowRegime + ' | Sitting out = capital preservation.';
       }
       return;
     }
@@ -15756,7 +15756,7 @@ async function runDayTradeAI() {
         return; // Skip normal ORB check
       }
 
-      // ═══ NORMAL ORB PATH (unchanged from v17.0) ═══
+      // ═══ NORMAL ORB PATH (unchanged from v17.2) ═══
       // ORB breakout: real gap (>1.5% above prevClose) and price near day high
       var gapBreakout = m.dayHigh > m.prevClose * 1.015;
       var nearDayHigh = m.dayHigh > 0 ? (m.price >= m.dayHigh * 0.995) : true;
@@ -15956,7 +15956,7 @@ async function runDayTradeAI() {
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       if (statusBadge) {
         statusBadge.style.background = '#06b6d422'; statusBadge.style.color = '#06b6d4'; statusBadge.style.borderColor = '#06b6d444';
-        statusBadge.innerHTML = '&#128161; v17.0 REACTION ENGINE: ' + qualified.length + ' qualified but daily cap reached | Sitting out today.';
+        statusBadge.innerHTML = '&#128161; v17.2 REACTION ENGINE: ' + qualified.length + ' qualified but daily cap reached | Sitting out today.';
       }
       return;
     }
@@ -15992,7 +15992,7 @@ async function runDayTradeAI() {
       var slPct = Math.max(0.008, Math.min(0.025, structuralSLPct || 0.008));
       pick.stopLossPct = slPct;
 
-      // v17.0: 0.5% risk per trade (quality over quantity — smaller, more precise risk)
+      // v17.2: 0.5% risk per trade (quality over quantity — smaller, more precise risk)
       var sizing = getRiskBasedPositionSize(totalCash, pick.price, slPct, pickSizeMultiplier * 0.5);
       if (sizing.value >= minPerTrade && sizing.qty > 0) {
         allocations.push({
@@ -16059,7 +16059,7 @@ async function runDayTradeAI() {
         type: 'BUY', ticker: pick.ticker, name: pick.name,
         qty: qty, price: pick.price, dtScore: pick.dtScore,
         predatorScore: a.predatorScore || 0, predatorSignals: a.predatorSignals || [],
-        reason: '&#9889; v17.0 REACTION Score ' + pick.dtScore + ' | ' + sigStr + ' | Chg +' + pick.momentum + '% | ORB ' + pick.orbStrength.toFixed(2) + ' | Structural SL ' + (pick.stopLossPct * 100).toFixed(2) + '% | Alloc ' + allocPct + '%' + riskInfo + sizeInfo + predatorInfo + (a.trendTemplate ? ' | T:' + a.trendTemplate.score + '/8' : '') + (a.rewardRisk ? ' | RR:' + a.rewardRisk.ratio + ':1' : '') + ' | ' + pick.source + ' | ' + _predatorFIIDII.flowRegime,
+        reason: '&#9889; v17.2 REACTION Score ' + pick.dtScore + ' | ' + sigStr + ' | Chg +' + pick.momentum + '% | ORB ' + pick.orbStrength.toFixed(2) + ' | Structural SL ' + (pick.stopLossPct * 100).toFixed(2) + '% | Alloc ' + allocPct + '%' + riskInfo + sizeInfo + predatorInfo + (a.trendTemplate ? ' | T:' + a.trendTemplate.score + '/8' : '') + (a.rewardRisk ? ' | RR:' + a.rewardRisk.ratio + ':1' : '') + ' | ' + pick.source + ' | ' + _predatorFIIDII.flowRegime,
         source: 'daytrade', time: new Date().toISOString()
       });
 
