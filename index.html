@@ -1753,7 +1753,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v17.0 &mdash; AI Wealth Fund (₹1 Cr) + Day Trade Reaction Engine (live mover discovery + ORB confirmation, no predictions) + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v17.2 &mdash; AI Wealth Fund (₹1 Cr) + Catalyst-Direct Entry (earnings beat stocks trade directly) + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
   <span id="cloudSyncBadge" style="color:#f59e0b;font-weight:600;cursor:pointer;margin-right:8px" onclick="JainPMS_Cloud.forceLoad()" title="Click to force reload from cloud">☁ Connecting...</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
@@ -15306,20 +15306,22 @@ function discoverLiveMovers(candidates) {
 }
 
 // ---------------------------------------------------------------
-//  DAY TRADE AI v17.0 — REACTION ENGINE
-//  Target: 3-5% daily return by trading CONFIRMED breakouts only.
+//  DAY TRADE AI v17.2 — CATALYST-DIRECT ENGINE
+//  Target: 3-5% daily return via TWO entry pathways:
 //
-//  Why v13-v16 failed (7W/12L, barely +₹366):
-//   1. Built a static shortlist from hardcoded catalyst data
-//   2. Required a catalyst gate with NO real data (31/31 = catalyst:N)
-//   3. Used 200+ point scoring that rewarded FOMO chasing
-//   4. Entered at market open based on PREDICTIONS, not proof
+//  PATH A: Live Mover Discovery (v17.0 — unchanged)
+//   Phase 1: Discover stocks ALREADY moving (+1.5%, 2x volume)
+//   Phase 2: Confirm with ORB breakout + sector + Predator + Legends
 //
-//  v17.0 fix — trade REACTIONS, not predictions:
-//   Phase 1: Discover stocks ALREADY moving (live gap + volume proof)
-//   Phase 2: Confirm with Opening Range Breakout (ORB) + sector + Predator + Legends
-//   Phase 3: Simple, transparent scoring (no black-box FOMO scoring)
-//   Phase 4: Max 3 picks, max 1/sector, structural stop below day low
+//  PATH B: Catalyst-Direct Entry (v17.2 — NEW)
+//   Stocks with PROVEN catalysts (EARNINGS_BEAT, strong news, score >= 50)
+//   are fetched and traded directly with relaxed ORB thresholds.
+//   Conviction comes from the CATALYST, not price action alone.
+//   A stock with +268% PAT beat showing +0.5% is more tradeable
+//   than a random stock up +3% with no catalyst.
+//
+//  BOTH paths still require: Predator check, ethical compliance,
+//  risk sizing, and full intelligence scoring in Phase 3.
 //
 //  "When only 1 stock qualifies, that IS correct. Never lower standards."
 // ---------------------------------------------------------------
@@ -15381,8 +15383,8 @@ async function runDayTradeAI() {
     alert('v17.0 REACTION ENGINE: Waiting for the Opening Range to form.\n\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + '\n\nWe do not chase the first 15 minutes of noise. Come back at/after 9:30 AM once real moves are confirmed by live price + volume.');
     return;
   }
-  if (hhmm > 1100) {
-    alert('v17.0 TIME GUARD: No new day trades after 11:00 AM.\n\nReaction trades need room to run. Professional day traders do 80% of their volume in the first 90 minutes — entering late means chasing an already-extended move.\n\nUse "Square Off All" to close open positions before 3:30 PM.');
+  if (hhmm > 1130) {
+    alert('v17.2 TIME GUARD: No new day trades after 11:30 AM.\n\nReaction trades need room to run. Professional day traders do 80% of their volume in the first 2 hours — entering late means chasing an already-extended move.\n\nUse "Square Off All" to close open positions before 3:30 PM.');
     return;
   }
 
@@ -15564,7 +15566,110 @@ async function runDayTradeAI() {
       console.log('  ' + (idx + 1) + '. ' + m.ticker + ' +' + m.changePct.toFixed(2) + '% vol=' + (m.volume/100000).toFixed(1) + 'L orb=' + m.orbStrength.toFixed(2));
     });
 
-    if (statusBadge) statusBadge.innerHTML = '&#9889; v17.0: ' + liveMovers.length + ' live movers found | Checking ORB confirmation...';
+    // ══════════════════════════════════════════════════════════
+    //  v17.2 CATALYST-DIRECT PATHWAY
+    //  The missing link: catalyst stocks (EARNINGS_BEAT, strong news)
+    //  should be traded DIRECTLY even if they're not top % movers.
+    //  A stock with +268% PAT beat showing ANY positive reaction is
+    //  MORE tradeable than a random stock up +3% with no catalyst.
+    //  This does NOT lower standards — it's a SEPARATE entry pathway
+    //  with its own conviction source (proven catalyst vs price action).
+    // ══════════════════════════════════════════════════════════
+    var catalystDirectCount = 0;
+    if (_dtShortlist && _dtShortlist.length > 0) {
+      var alreadyInMovers = {};
+      liveMovers.forEach(function(m) { alreadyInMovers[m.ticker] = true; });
+
+      var catalystCandidates = [];
+      _dtShortlist.forEach(function(sl) {
+        if (alreadyInMovers[sl.ticker]) return;
+        if (_soldTodayTickers.indexOf(sl.ticker) >= 0) return;
+        var hasEarningsBeat = sl.catalysts && sl.catalysts.some(function(c) {
+          return c === 'EARNINGS_BEAT' || c === 'SIG:EARNINGS';
+        });
+        var strongCatalyst = hasEarningsBeat || sl.score >= 50;
+        if (!strongCatalyst) return;
+        catalystCandidates.push(sl);
+      });
+
+      // Fetch live prices for catalyst stocks not yet in candidates
+      if (catalystCandidates.length > 0) {
+        var catTickersToFetch = catalystCandidates
+          .filter(function(sl) { return !candidates[sl.ticker]; })
+          .map(function(sl) { return sl.ticker; });
+        if (catTickersToFetch.length > 0) {
+          console.log('[DT-v17.2] Fetching prices for ' + catTickersToFetch.length + ' catalyst-direct stocks');
+          if (statusBadge) statusBadge.innerHTML = '&#128293; v17.2: Fetching catalyst stock prices...';
+          try {
+            var catSymStr = catTickersToFetch.map(function(t) { return t + '.NS'; }).join(',');
+            var catResp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(catSymStr) + '&mode=all', {signal: AbortSignal.timeout(15000)});
+            var catJson = await catResp.json();
+            if (catJson && catJson.success && catJson.data && catJson.data.stocks) {
+              Object.entries(catJson.data.stocks).forEach(function(entry) {
+                var sym = entry[0]; var d = entry[1];
+                var tk = sym.replace('.NS', '').replace('.BO', '');
+                if (d.price > 0 && d.prevClose > 0) {
+                  var uvEntry = null;
+                  if (typeof MOVER_UNIVERSE !== 'undefined') {
+                    uvEntry = MOVER_UNIVERSE.find(function(m) { return m.t === tk; });
+                  }
+                  candidates[tk] = {
+                    ticker: tk, name: uvEntry ? uvEntry.n : tk, sector: uvEntry ? uvEntry.s : '',
+                    price: d.price, prevClose: d.prevClose,
+                    high52: d.high52 || 0, low52: d.low52 || 0,
+                    volume: d.volume || 0, avgVol: 0,
+                    dayHigh: d.dayHigh || d.high || d.price,
+                    dayLow: d.dayLow || d.low || d.price,
+                    source: 'catalyst-direct'
+                  };
+                }
+              });
+            }
+          } catch(e) {
+            console.log('[DT-v17.2] Catalyst fetch error:', e.message || e);
+          }
+        }
+
+        // Inject catalyst stocks showing positive reaction into liveMovers
+        catalystCandidates.forEach(function(sl) {
+          var c = candidates[sl.ticker];
+          if (!c || !c.price || c.price <= 0 || !c.prevClose || c.prevClose <= 0) return;
+          if (isEthicallyExcluded(c.sector || '') || isEthicallyExcluded(c.name || '')) return;
+          var changePct = ((c.price - c.prevClose) / c.prevClose) * 100;
+          if (changePct < 0.3) return; // Must show SOME positive reaction
+          var volume = c.volume || 0;
+          if (volume < 100000) return; // At least 1L shares traded
+          var dayHigh = c.dayHigh || c.price;
+          var dayLow = c.dayLow || c.price;
+          var range = dayHigh - dayLow;
+          var orbStrength = range > 0 ? ((c.price - dayLow) / range) : 0.5;
+          liveMovers.push({
+            ticker: c.ticker, name: c.name || c.ticker, sector: c.sector || '',
+            price: c.price, prevClose: c.prevClose,
+            changePct: changePct, volume: volume, avgVol: c.avgVol || 0,
+            dayHigh: dayHigh, dayLow: dayLow,
+            high52: c.high52 || 0, low52: c.low52 || 0,
+            volumeRatio: 0, orbStrength: orbStrength,
+            source: 'catalyst-direct',
+            catalystDirect: true,
+            catalystScore: sl.score,
+            catalystSignals: sl.catalysts || []
+          });
+          catalystDirectCount++;
+        });
+
+        if (catalystDirectCount > 0) {
+          console.log('[DT-v17.2] CATALYST-DIRECT: ' + catalystDirectCount + ' catalyst stocks injected');
+          liveMovers.forEach(function(m) {
+            if (m.catalystDirect) {
+              console.log('  CAT-DIRECT: ' + m.ticker + ' +' + m.changePct.toFixed(2) + '% vol=' + (m.volume/100000).toFixed(1) + 'L cat=' + (m.catalystSignals || []).join(','));
+            }
+          });
+        }
+      }
+    }
+
+    if (statusBadge) statusBadge.innerHTML = '&#9889; v17.2: ' + liveMovers.length + ' candidates (' + catalystDirectCount + ' catalyst-direct) | Checking qualification...';
 
     if (liveMovers.length === 0) {
       console.log('[DT-v17] No live movers today — sitting out. This is CORRECT behavior.');
@@ -15607,10 +15712,51 @@ async function runDayTradeAI() {
     var qualified = [];
     var orbRejected = 0, sectorRejected = 0, predatorRejected = 0, legendsRejected = 0;
 
+    var catalystDirectQualified = 0;
     liveMovers.forEach(function(m) {
       // Re-entry ban
       if (_soldTodayTickers.indexOf(m.ticker) >= 0) return;
 
+      // ══════════════════════════════════════════════════════════
+      //  v17.2 CATALYST-DIRECT BYPASS — Separate qualification for
+      //  stocks with PROVEN catalysts (earnings beat, strong news).
+      //  These don't need aggressive ORB breakout because conviction
+      //  comes from the CATALYST, not from price action alone.
+      //  Still require: positive reaction, Predator check, basic sanity.
+      // ══════════════════════════════════════════════════════════
+      if (m.catalystDirect) {
+        // Basic sanity: price should be in upper half of day range
+        if (m.orbStrength < 0.4) { orbRejected++; return; }
+
+        // VWAP proxy with relaxed tolerance (catalyst stocks consolidate)
+        var catVwapProxy = (m.dayHigh + m.dayLow + m.price) / 3;
+        if (m.price < catVwapProxy * 0.98) { orbRejected++; return; }
+
+        // Still run Predator check — no bypassing institutional detection
+        var _catPredNews = (typeof _dtNewsSentiment !== 'undefined' && _dtNewsSentiment[m.ticker]) ? _dtNewsSentiment[m.ticker].score : 0;
+        var catPredator = getPredatorCompositeScore(
+          m.ticker, m.price, m.dayHigh, m.dayLow, m.prevClose, m.high52, m.low52, m.volume, _catPredNews
+        );
+        if (catPredator.blocked) { predatorRejected++; return; }
+
+        m.predatorScore = catPredator.totalScore;
+        m.predatorSignals = catPredator.signals || [];
+        m.predatorSizeMultiplier = catPredator.sizeMultiplier || 1.0;
+        m.legendsScore = 0;
+        m.legendsSignals = [];
+        m.legendsSizeMultiplier = 0.7; // Smaller size (catalyst-direct still proving itself)
+        m.trendTemplate = null;
+        m.rewardRisk = null;
+        m.conviction = 'CATALYST-DIRECT';
+        m.signals = ['CATALYST-DIRECT', 'EARNINGS-REACTION'].concat(catPredator.signals || []).concat(m.catalystSignals || []);
+
+        qualified.push(m);
+        catalystDirectQualified++;
+        console.log('[DT-v17.2] CATALYST-DIRECT QUALIFIED: ' + m.ticker + ' +' + m.changePct.toFixed(2) + '% | catalysts=' + (m.catalystSignals || []).join(','));
+        return; // Skip normal ORB check
+      }
+
+      // ═══ NORMAL ORB PATH (unchanged from v17.0) ═══
       // ORB breakout: real gap (>1.5% above prevClose) and price near day high
       var gapBreakout = m.dayHigh > m.prevClose * 1.015;
       var nearDayHigh = m.dayHigh > 0 ? (m.price >= m.dayHigh * 0.995) : true;
@@ -15654,14 +15800,14 @@ async function runDayTradeAI() {
       qualified.push(m);
     });
 
-    console.log('[DT-v17] ORB QUALIFIED: ' + qualified.length + ' | Rejected: ORB=' + orbRejected + ' Sector=' + sectorRejected + ' Predator=' + predatorRejected + ' Legends=' + legendsRejected);
+    console.log('[DT-v17.2] QUALIFIED: ' + qualified.length + ' (ORB: ' + (qualified.length - catalystDirectQualified) + ' + Catalyst-Direct: ' + catalystDirectQualified + ') | Rejected: ORB=' + orbRejected + ' Sector=' + sectorRejected + ' Predator=' + predatorRejected + ' Legends=' + legendsRejected);
 
     if (qualified.length === 0) {
-      console.log('[DT-v17] No ORB-confirmed breakouts today — sitting out. This is CORRECT behavior.');
+      console.log('[DT-v17.2] No qualified candidates (0 ORB + 0 catalyst-direct) — sitting out.');
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       if (statusBadge) {
         statusBadge.style.background = '#06b6d422'; statusBadge.style.color = '#06b6d4'; statusBadge.style.borderColor = '#06b6d444';
-        statusBadge.innerHTML = '&#128161; v17.0 REACTION ENGINE: ' + liveMovers.length + ' live movers, 0 ORB-confirmed | Sitting out = capital preservation. Never lower standards.';
+        statusBadge.innerHTML = '&#128161; v17.2 ENGINE: ' + liveMovers.length + ' candidates (incl ' + catalystDirectCount + ' catalyst-direct), 0 qualified | Sitting out = capital preservation.';
       }
       return;
     }
@@ -15739,6 +15885,18 @@ async function runDayTradeAI() {
       if (relStrength > 2) { score += 8; s.signals.push('RS-ALPHA'); }
       else if (relStrength > 1) { score += 4; s.signals.push('RS-STRONG'); }
 
+      // ── v17.2 CATALYST-DIRECT ENTRY BONUS ──
+      // Stocks that entered via catalyst-direct pathway get a conviction boost
+      // because their entry is backed by PROVEN catalyst (earnings beat, etc.)
+      if (s.catalystDirect) {
+        score += 25; // Catalyst-direct conviction bonus
+        s.hasCatalyst = true; // Force catalyst flag
+        s.signals.push('CAT-DIRECT-BONUS');
+        // Extra boost for catalyst score
+        if (s.catalystScore >= 55) { score += 10; s.signals.push('STRONG-CATALYST'); }
+        if (s.changePct >= 1.0) { score += 5; s.signals.push('CAT-MOMENTUM'); }
+      }
+
       // ── v17 CATALYST-REACTION COMBO — The holy grail ──
       // Stock is ALREADY moving (reaction) + HAS catalyst = highest conviction
       if (s.hasCatalyst && s.changePct >= 2 && s.volume > 2000000) {
@@ -15775,9 +15933,9 @@ async function runDayTradeAI() {
     });
 
     qualified.sort(function(a, b) { return b.dtScore - a.dtScore; });
-    console.log('[DT-v17] Scored ' + qualified.length + ' ORB-confirmed candidates. Top picks:');
+    console.log('[DT-v17.2] Scored ' + qualified.length + ' candidates (' + catalystDirectQualified + ' catalyst-direct). Top picks:');
     qualified.slice(0, 10).forEach(function(s, idx) {
-      console.log('  ' + (idx + 1) + '. ' + s.ticker + ' score=' + s.dtScore + ' chg=' + s.changePct.toFixed(2) + '% orb=' + s.orbStrength.toFixed(2) + ' [' + s.signals.slice(0, 6).join(', ') + ']');
+      console.log('  ' + (idx + 1) + '. ' + s.ticker + ' score=' + s.dtScore + ' chg=' + s.changePct.toFixed(2) + '% orb=' + s.orbStrength.toFixed(2) + (s.catalystDirect ? ' [CAT-DIRECT]' : ' [ORB]') + ' [' + s.signals.slice(0, 6).join(', ') + ']');
     });
 
     // ══════════════════════════════════════════════════════════
@@ -15921,16 +16079,16 @@ async function runDayTradeAI() {
     // ══════════════════════════════════════════════════════════
     var lastAction = document.getElementById('dtLastAction');
     if (lastAction) {
-      lastAction.innerHTML = '&#128737; v17.0: Bought ' + buyCount + ' @ ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) + ' | ' + topSignals.join(', ') + ' | Movers:' + liveMovers.length + ' Qualified:' + qualified.length;
+      lastAction.innerHTML = '&#128737; v17.2: Bought ' + buyCount + ' @ ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) + ' | ' + topSignals.join(', ') + ' | Movers:' + liveMovers.length + ' Qualified:' + qualified.length + ' (CatDirect:' + catalystDirectQualified + ')';
     }
 
     if (statusBadge) {
       statusBadge.style.background = '#22c55e22'; statusBadge.style.color = '#22c55e'; statusBadge.style.borderColor = '#22c55e44';
-      statusBadge.innerHTML = '&#128737; v17.0 REACTION ENGINE: ' + buyCount + ' ORB-confirmed picks | Movers:' + liveMovers.length + ' &rarr; Qualified:' + qualified.length + ' &rarr; Entered:' + buyCount + ' | Cap ' + todayBuys + '&rarr;' + (todayBuys + buyCount) + '/' + MAX_DAILY_BUYS + ' | ' + topSignals.join(', ');
+      statusBadge.innerHTML = '&#128737; v17.2 CATALYST ENGINE: ' + buyCount + ' picks | Movers:' + liveMovers.length + ' &rarr; Qualified:' + qualified.length + ' (CatDirect:' + catalystDirectQualified + ') &rarr; Entered:' + buyCount + ' | Cap ' + todayBuys + '&rarr;' + (todayBuys + buyCount) + '/' + MAX_DAILY_BUYS + ' | ' + topSignals.join(', ');
     }
 
-    console.log('[DT-v17] Bought ' + buyCount + ' stocks. Cash: ' + w.cash.toLocaleString('en-IN'));
-    console.log('[DT-v17] Funnel: ' + Object.keys(candidates).length + ' candidates -> ' + liveMovers.length + ' live movers -> ' + qualified.length + ' ORB-qualified -> ' + buyCount + ' entered');
+    console.log('[DT-v17.2] Bought ' + buyCount + ' stocks. Cash: ' + w.cash.toLocaleString('en-IN'));
+    console.log('[DT-v17.2] Funnel: ' + Object.keys(candidates).length + ' universe -> ' + liveMovers.length + ' candidates (' + catalystDirectCount + ' cat-direct) -> ' + qualified.length + ' qualified (' + catalystDirectQualified + ' cat-direct) -> ' + buyCount + ' entered');
 
   } catch(err) {
     console.error('[DT-v17] Error:', err);
@@ -16205,12 +16363,18 @@ async function runDayTradeSmartExits() {
     }
   }
 
+  // v17.2: ALWAYS save position state after monitoring (peak prices, current prices)
+  // This prevents position loss on page refresh — positions survive even if page crashes
+  if (w.positions.length > 0 || exitCount > 0) {
+    saveDT(w);
+  }
+
   if (exitCount > 0) {
     // v13.7.1 FIX: Record daily P&L after ANY sells, not just when all positions closed
     // Uses rebuildDailyHistory which creates/updates records from trade data
     rebuildDailyHistory(w);
 
-    saveDT(w);
+    saveDT(w); // save again after history rebuild
     updateDTDisplay(w);
 
     // v13.4: Show risk control status after exits
