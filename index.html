@@ -16640,11 +16640,13 @@ function checkPaperTradeAutoTrigger() {
     autoState = { date: todayStr, runs: 0, lastRun: '' };
   }
 
-  // Run max 3 times per day (9:30-10:00, 12:00-12:30, 14:30-15:00)
+  // Run max 3 times per day (10:00-10:30, 12:00-12:30, 14:30-15:00)
+  // v17.2 FIX: Morning shifted from 9:30 to 10:00 — was firing during OPEN_VOLATILE (9:15-9:45)
+  // which has timing multiplier=0, blocking all buys. Now fires in PRIME_BUY window.
   var shouldRun = false;
   var triggerName = '';
 
-  if (hhmm >= 930 && hhmm <= 1015 && !autoState.t1_morning) {
+  if (hhmm >= 1000 && hhmm <= 1030 && !autoState.t1_morning) {
     shouldRun = true;
     triggerName = 'Morning Scan';
     autoState.t1_morning = true;
