@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v17.2 &mdash; AI Wealth Fund</span></h1>
+  <h1>Jain PMS <span>v17.3 &mdash; AI Wealth Fund</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -1411,7 +1411,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     <div class="card" style="margin-bottom:16px">
       <h3 style="margin:0 0 12px;font-size:16px">&#128200; Current Intraday Positions</h3>
       <div id="dtPositionsTable" style="font-size:13px">
-        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. v17.2 Reaction Engine: Live mover discovery (9:30-11:00 AM) &mdash; scans for stocks ALREADY moving (+1.5% &amp; 2x volume), confirms with Opening Range Breakout, max 3 picks, 1/sector, structural stop below day low.</div>
+        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. v17.3 Reaction Engine: Live mover discovery (9:30-11:00 AM) &mdash; scans for stocks ALREADY moving (+1.5% &amp; 2x volume), confirms with Opening Range Breakout, max 3 picks, 1/sector, structural stop below day low.</div>
       </div>
     </div>
 
@@ -1753,7 +1753,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v17.2 &mdash; AI Wealth Fund (₹1 Cr) + Catalyst-Direct Entry (earnings beat stocks trade directly) + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v17.3 &mdash; AI Wealth Fund (₹1 Cr) + Catalyst-Direct Entry (earnings beat stocks trade directly) + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
   <span id="cloudSyncBadge" style="color:#f59e0b;font-weight:600;cursor:pointer;margin-right:8px" onclick="JainPMS_Cloud.forceLoad()" title="Click to force reload from cloud">☁ Connecting...</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
@@ -3594,15 +3594,19 @@ function _buildPreMarketPanel(pmDiv) {
     var direction = 'NEUTRAL';
     var confidence = 30; // base
 
-    // ── SIGNAL 1: PRIMARY_SIGNALS match (0-30) ──
-    var matchedSignal = PRIMARY_SIGNALS.find(function(sig) {
+    // ── SIGNAL 1: PRIMARY_SIGNALS match (0-30) — v17.3: live + decay ──
+    var pmSignals = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getSignals() : PRIMARY_SIGNALS;
+    var matchedSignal = pmSignals.find(function(sig) {
       return sig.ticker && sig.ticker === s.ticker;
     });
     if (matchedSignal) {
       var sigAge = Math.floor((now.getTime() - new Date(matchedSignal.date).getTime()) / 86400000);
-      if (sigAge <= 1) {
-        score += 30; confidence += 20;
-        reasons.push(matchedSignal.icon + ' ' + matchedSignal.type.replace(/_/g,' ') + ': ' + matchedSignal.signal.substring(0, 80));
+      var sigDecay = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getDecay(matchedSignal.date) : 1.0;
+      if (sigAge <= 7) { // v17.3: extended window, decay handles staleness
+        var sigScore = Math.round(30 * sigDecay);
+        var sigConf = Math.round(20 * sigDecay);
+        score += sigScore; confidence += sigConf;
+        reasons.push(matchedSignal.icon + ' ' + matchedSignal.type.replace(/_/g,' ') + ': ' + matchedSignal.signal.substring(0, 80) + (sigAge > 1 ? ' (' + sigAge + 'd ago, ' + Math.round(sigDecay*100) + '% weight)' : ''));
         if (matchedSignal.type === 'EARNINGS' || matchedSignal.type === 'ORDER_WIN' || matchedSignal.type === 'GOVT_APPROVAL' || matchedSignal.type === 'CREDIT_UPGRADE' || matchedSignal.type === 'PROMOTER_BUY' || matchedSignal.type === 'FII_SURGE' || matchedSignal.type === 'TRADE_DEAL' || matchedSignal.type === 'CAPACITY') {
           direction = 'UP';
         } else if (matchedSignal.type === 'EARNINGS_MISS' || matchedSignal.type === 'TARIFF_RISK') {
@@ -3610,27 +3614,24 @@ function _buildPreMarketPanel(pmDiv) {
         } else {
           direction = 'VOLATILE';
         }
-      } else if (sigAge <= 3) {
-        score += 20; confidence += 12;
-        reasons.push(matchedSignal.icon + ' Recent: ' + matchedSignal.type.replace(/_/g,' ') + ' (' + sigAge + 'd ago)');
-        direction = (matchedSignal.type === 'EARNINGS_MISS' || matchedSignal.type === 'TARIFF_RISK') ? 'DOWN' : 'UP';
-      } else if (sigAge <= 7) {
-        score += 10; confidence += 5;
-        reasons.push(matchedSignal.type.replace(/_/g,' ') + ' signal (' + sigAge + 'd ago)');
       }
     }
 
-    // ── SIGNAL 2: Earnings Calendar match (0-25) ──
-    var earningsMatch = EARNINGS_CALENDAR.find(function(e) { return e.ticker === s.ticker; });
+    // ── SIGNAL 2: Earnings Calendar match (0-25) — v17.3: magnitude + decay ──
+    var pmEarnings = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getEarnings() : EARNINGS_CALENDAR;
+    var earningsMatch = pmEarnings.find(function(e) { return e.ticker === s.ticker; });
     if (earningsMatch) {
       if (earningsMatch.status === 'REPORTED') {
-        score += 25; confidence += 15;
+        var earnDecay = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getDecay(earningsMatch.date) : 1.0;
+        var earnMag = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getMagnitude(earningsMatch.patGrowth) : 1.0;
+        var earnScore = Math.round(25 * earnDecay * Math.max(0.5, Math.abs(earnMag)));
+        score += earnScore; confidence += Math.round(15 * earnDecay);
         if (earningsMatch.result === 'BEAT') {
           direction = 'UP';
-          reasons.push('&#128200; EARNINGS BEAT: PAT +' + (earningsMatch.patGrowth||0) + '%, Rev +' + (earningsMatch.revenueGrowth||0) + '%');
+          reasons.push('&#128200; EARNINGS BEAT: PAT +' + (earningsMatch.patGrowth||0) + '% (' + earnMag.toFixed(1) + 'x magnitude, ' + Math.round(earnDecay*100) + '% fresh)');
         } else if (earningsMatch.result === 'MISS') {
           direction = 'DOWN';
-          reasons.push('&#128201; EARNINGS MISS — market reaction expected');
+          reasons.push('&#128201; EARNINGS MISS: PAT ' + (earningsMatch.patGrowth||0) + '% (' + Math.round(earnDecay*100) + '% fresh)');
         }
       } else if (earningsMatch.status === 'EXPECTED') {
         score += 20; confidence += 12;
@@ -8912,8 +8913,9 @@ async function loadNewsIntelTab() {
   // Phase -1: Render Primary Research Signals (our edge)
   renderPrimaryResearch();
 
-  // Phase 0: Show curated agent-researched news immediately
-  const curatedItems = CURATED_NEWS.map(n => ({
+  // Phase 0: Show curated agent-researched news immediately (v17.3: live catalyst engine)
+  const liveCuratedNews = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getNews() : CURATED_NEWS;
+  const curatedItems = liveCuratedNews.map(n => ({
     title: n.title, link: n.link, pubDate: n.pubDate, source: n.source,
     tag: n.tag, tagLabel: n.tagLabel, desc: n.detail || '',
     impact: n.impact || '', impactText: n.impactText || '',
@@ -12472,7 +12474,206 @@ var JainPMS_Cloud = {
 // Initialize cloud sync on page load
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function() { JainPMS_Cloud.init(); }, 3000); // Init after 3s to let page load first
+  setTimeout(function() { LiveCatalystEngine.init(); }, 5000); // Load live catalysts after cloud sync
 });
+
+// ═══════════════════════════════════════════════════════════════
+//  LIVE CATALYST ENGINE v1.0 [v17.3]
+//  Replaces static hardcoded catalysts with dynamic cloud-fetched data
+//  Features: Auto-fetch from cloud, age-based decay, earnings surprise magnitude
+// ═══════════════════════════════════════════════════════════════
+var LiveCatalystEngine = {
+  cloudUrl: JainPMS_Cloud.URL,
+  _loaded: false,
+  _cloudSignals: null,
+  _cloudEarnings: null,
+  _cloudNews: null,
+  _lastFetch: null,
+
+  // ── Catalyst Age Decay ──
+  // Fresh catalysts (today) = 1.0x weight
+  // 1 day old = 0.85x, 2 days = 0.70x, 3 days = 0.55x
+  // 5 days = 0.25x, 7+ days = 0.10x (stale but still slightly relevant)
+  getDecay: function(dateStr) {
+    if (!dateStr) return 0.5;
+    var age = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+    if (age <= 0) return 1.0;
+    if (age === 1) return 0.85;
+    if (age === 2) return 0.70;
+    if (age === 3) return 0.55;
+    if (age === 4) return 0.40;
+    if (age === 5) return 0.25;
+    if (age <= 7) return 0.15;
+    return 0.10;
+  },
+
+  // ── Earnings Surprise Magnitude ──
+  // 90%+ PAT growth = 3.0x (blowout), 60% = 2.0x, 30% = 1.0x (baseline), 10% = 0.5x
+  // Negative (miss) gets negative multiplier for scoring
+  getMagnitude: function(patGrowth) {
+    if (typeof patGrowth !== 'number' || isNaN(patGrowth)) return 1.0;
+    var absGrowth = Math.abs(patGrowth);
+    if (absGrowth >= 90) return patGrowth > 0 ? 3.0 : -2.0;
+    if (absGrowth >= 60) return patGrowth > 0 ? 2.5 : -1.5;
+    if (absGrowth >= 40) return patGrowth > 0 ? 2.0 : -1.2;
+    if (absGrowth >= 25) return patGrowth > 0 ? 1.5 : -0.8;
+    if (absGrowth >= 10) return patGrowth > 0 ? 1.0 : -0.5;
+    return patGrowth > 0 ? 0.5 : -0.3;
+  },
+
+  // ── Get catalyst score with decay + magnitude applied ──
+  getCatalystScore: function(ticker) {
+    var score = 0;
+    var catalysts = [];
+    var signals = this.getSignals();
+    var earnings = this.getEarnings();
+
+    // Check PRIMARY_SIGNALS
+    signals.forEach(function(sig) {
+      if (sig.ticker !== ticker) return;
+      var decay = LiveCatalystEngine.getDecay(sig.date);
+      var bullishTypes = ['EARNINGS','ORDER_WIN','GOVT_APPROVAL','CREDIT_UPGRADE','PROMOTER_BUY','FII_SURGE','TRADE_DEAL','CAPACITY','BLOCK_DEAL','BUYBACK','BONUS','SPLIT','DEMERGER'];
+      if (bullishTypes.indexOf(sig.type) >= 0) {
+        var baseScore = sig.severity === 'HIGH' ? 35 : 25;
+        score += Math.round(baseScore * decay);
+        catalysts.push(sig.type + '(' + Math.round(decay * 100) + '%)');
+      }
+    });
+
+    // Check EARNINGS_CALENDAR
+    earnings.forEach(function(e) {
+      if (e.ticker !== ticker) return;
+      if (e.status !== 'REPORTED') return;
+      var surprise = (e.result || '').toUpperCase();
+      var isBeat = surprise.indexOf('BEAT') >= 0 || surprise.indexOf('STRONG') >= 0;
+      var isMiss = surprise.indexOf('MISS') >= 0;
+      if (!isBeat && !isMiss) return;
+      var decay = LiveCatalystEngine.getDecay(e.date);
+      var magnitude = LiveCatalystEngine.getMagnitude(e.patGrowth);
+      var baseScore = isBeat ? 30 : -15;
+      var adjusted = Math.round(baseScore * decay * Math.abs(magnitude));
+      score += adjusted;
+      catalysts.push('EARN:' + (isBeat ? '+' : '') + e.patGrowth + '%(' + Math.round(decay * 100) + '%decay,' + magnitude.toFixed(1) + 'x)');
+    });
+
+    return { score: score, catalysts: catalysts };
+  },
+
+  // ── Get merged signals (cloud + hardcoded fallback) ──
+  getSignals: function() {
+    if (this._cloudSignals && this._cloudSignals.length > 0) {
+      // Cloud data available — merge: cloud entries override hardcoded for same ticker+date
+      var merged = [];
+      var cloudKeys = {};
+      this._cloudSignals.forEach(function(s) {
+        var key = (s.ticker || '') + '|' + (s.date || '') + '|' + (s.type || '');
+        cloudKeys[key] = true;
+        merged.push(s);
+      });
+      // Add hardcoded entries that aren't in cloud (fallback)
+      if (typeof PRIMARY_SIGNALS !== 'undefined') {
+        PRIMARY_SIGNALS.forEach(function(s) {
+          var key = (s.ticker || '') + '|' + (s.date || '') + '|' + (s.type || '');
+          if (!cloudKeys[key]) merged.push(s);
+        });
+      }
+      return merged;
+    }
+    return typeof PRIMARY_SIGNALS !== 'undefined' ? PRIMARY_SIGNALS : [];
+  },
+
+  // ── Get merged earnings (cloud + hardcoded fallback) ──
+  getEarnings: function() {
+    if (this._cloudEarnings && this._cloudEarnings.length > 0) {
+      var merged = [];
+      var cloudKeys = {};
+      this._cloudEarnings.forEach(function(e) {
+        cloudKeys[e.ticker || ''] = true;
+        merged.push(e);
+      });
+      if (typeof EARNINGS_CALENDAR !== 'undefined') {
+        EARNINGS_CALENDAR.forEach(function(e) {
+          if (!cloudKeys[e.ticker || '']) merged.push(e);
+        });
+      }
+      return merged;
+    }
+    return typeof EARNINGS_CALENDAR !== 'undefined' ? EARNINGS_CALENDAR : [];
+  },
+
+  // ── Get merged news (cloud + hardcoded fallback) ──
+  getNews: function() {
+    if (this._cloudNews && this._cloudNews.length > 0) {
+      var merged = [];
+      var cloudKeys = {};
+      this._cloudNews.forEach(function(n) {
+        var key = (n.title || '').substring(0, 40);
+        cloudKeys[key] = true;
+        merged.push(n);
+      });
+      if (typeof CURATED_NEWS !== 'undefined') {
+        CURATED_NEWS.forEach(function(n) {
+          var key = (n.title || '').substring(0, 40);
+          if (!cloudKeys[key]) merged.push(n);
+        });
+      }
+      return merged;
+    }
+    return typeof CURATED_NEWS !== 'undefined' ? CURATED_NEWS : [];
+  },
+
+  // ── Load catalysts from cloud ──
+  init: function() {
+    var self = this;
+    var url = this.cloudUrl + '?op=load&type=catalysts';
+    fetch(url, { signal: AbortSignal.timeout(10000) })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.found && d.data) {
+          var cloud = typeof d.data === 'string' ? JSON.parse(d.data) : d.data;
+          if (cloud.signals) self._cloudSignals = cloud.signals;
+          if (cloud.earnings) self._cloudEarnings = cloud.earnings;
+          if (cloud.news) self._cloudNews = cloud.news;
+          self._loaded = true;
+          self._lastFetch = new Date().toISOString();
+          var sCount = (self._cloudSignals || []).length;
+          var eCount = (self._cloudEarnings || []).length;
+          var nCount = (self._cloudNews || []).length;
+          console.log('[LiveCatalyst] Loaded from cloud: ' + sCount + ' signals, ' + eCount + ' earnings, ' + nCount + ' news');
+          // Force rebuild day trade shortlist with fresh data
+          _dtShortlistBuilt = '';
+        } else {
+          self._loaded = true;
+          console.log('[LiveCatalyst] No cloud catalysts — using hardcoded fallback');
+        }
+      })
+      .catch(function(e) {
+        self._loaded = true;
+        console.warn('[LiveCatalyst] Cloud fetch failed — using hardcoded:', e.message);
+      });
+  },
+
+  // ── Save catalysts to cloud (called by daily scheduled task) ──
+  saveCatalysts: function(data) {
+    var payload = JSON.stringify({ type: 'catalysts', data: data, device: JainPMS_Cloud.deviceId || 'scheduler', v: '17.3' });
+    fetch(this.cloudUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: payload
+    })
+    .then(function() { console.log('[LiveCatalyst] Saved to cloud (' + payload.length + ' bytes)'); })
+    .catch(function(e) { console.warn('[LiveCatalyst] Save error:', e.message); });
+  },
+
+  // ── Status for UI display ──
+  getStatus: function() {
+    var signals = this.getSignals();
+    var earnings = this.getEarnings();
+    var source = this._cloudSignals ? 'CLOUD' : 'HARDCODED';
+    return { source: source, signals: signals.length, earnings: earnings.length, lastFetch: this._lastFetch };
+  }
+};
 
 // ═══════════════════════════════════════════════════════════════
 //  INSTITUTIONAL RISK CONTROL ENGINE v1.0 [v13.4]
@@ -13962,38 +14163,43 @@ function buildDayTradeShortlist() {
   var shortlist = {};
   var now = Date.now();
 
-  // ── SOURCE 1: PRIMARY_SIGNALS — stocks with hard catalyst signals ──
-  if (typeof PRIMARY_SIGNALS !== 'undefined') {
-    PRIMARY_SIGNALS.forEach(function(sig) {
-      if (!sig.ticker) return;
-      var sigAge = Math.floor((now - new Date(sig.date).getTime()) / 86400000);
-      if (sigAge > 5) return;
-      if (isEthicallyExcluded(sig.sector || '') || isEthicallyExcluded(sig.ticker || '')) return;
-      var bullishTypes = ['EARNINGS','ORDER_WIN','GOVT_APPROVAL','CREDIT_UPGRADE','PROMOTER_BUY','FII_SURGE','TRADE_DEAL','CAPACITY','BLOCK_DEAL','BUYBACK','BONUS','SPLIT','DEMERGER'];
-      var isBullish = bullishTypes.indexOf(sig.type) >= 0;
-      if (!isBullish) return;
+  // ── SOURCE 1: PRIMARY_SIGNALS — stocks with hard catalyst signals (v17.3: live + decay) ──
+  var liveSignals = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getSignals() : (typeof PRIMARY_SIGNALS !== 'undefined' ? PRIMARY_SIGNALS : []);
+  liveSignals.forEach(function(sig) {
+    if (!sig.ticker) return;
+    var sigAge = Math.floor((now - new Date(sig.date).getTime()) / 86400000);
+    if (sigAge > 7) return; // v17.3: extended from 5 to 7 days (decay handles staleness)
+    if (isEthicallyExcluded(sig.sector || '') || isEthicallyExcluded(sig.ticker || '')) return;
+    var bullishTypes = ['EARNINGS','ORDER_WIN','GOVT_APPROVAL','CREDIT_UPGRADE','PROMOTER_BUY','FII_SURGE','TRADE_DEAL','CAPACITY','BLOCK_DEAL','BUYBACK','BONUS','SPLIT','DEMERGER'];
+    var isBullish = bullishTypes.indexOf(sig.type) >= 0;
+    if (!isBullish) return;
 
-      if (!shortlist[sig.ticker]) shortlist[sig.ticker] = { ticker: sig.ticker, catalysts: [], catalystScore: 0, name: '', sector: '' };
-      shortlist[sig.ticker].catalysts.push('SIG:' + sig.type);
-      shortlist[sig.ticker].catalystScore += (sigAge <= 1 ? 35 : sigAge <= 3 ? 25 : 15);
-    });
-  }
+    if (!shortlist[sig.ticker]) shortlist[sig.ticker] = { ticker: sig.ticker, catalysts: [], catalystScore: 0, name: '', sector: '' };
+    shortlist[sig.ticker].catalysts.push('SIG:' + sig.type);
+    // v17.3: Apply decay instead of hardcoded age tiers
+    var decay = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getDecay(sig.date) : (sigAge <= 1 ? 1.0 : sigAge <= 3 ? 0.7 : 0.4);
+    var baseScore = sig.severity === 'HIGH' ? 35 : 25;
+    shortlist[sig.ticker].catalystScore += Math.round(baseScore * decay);
+  });
 
-  // ── SOURCE 2: EARNINGS_CALENDAR — recent earnings beats ──
-  if (typeof EARNINGS_CALENDAR !== 'undefined') {
-    EARNINGS_CALENDAR.forEach(function(e) {
-      if (!e.ticker) return;
-      if (isEthicallyExcluded(e.sector || '') || isEthicallyExcluded(e.ticker || '')) return;
-      if (e.status === 'REPORTED') {
-        var surprise = (e.result || e.surprise || '').toUpperCase();
-        if (surprise.indexOf('BEAT') >= 0 || surprise.indexOf('STRONG') >= 0 || surprise.indexOf('ABOVE') >= 0) {
-          if (!shortlist[e.ticker]) shortlist[e.ticker] = { ticker: e.ticker, catalysts: [], catalystScore: 0, name: '', sector: '' };
-          shortlist[e.ticker].catalysts.push('EARNINGS_BEAT');
-          shortlist[e.ticker].catalystScore += 30;
-        }
+  // ── SOURCE 2: EARNINGS_CALENDAR — recent earnings beats (v17.3: magnitude + decay) ──
+  var liveEarnings = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getEarnings() : (typeof EARNINGS_CALENDAR !== 'undefined' ? EARNINGS_CALENDAR : []);
+  liveEarnings.forEach(function(e) {
+    if (!e.ticker) return;
+    if (isEthicallyExcluded(e.sector || '') || isEthicallyExcluded(e.ticker || '')) return;
+    if (e.status === 'REPORTED') {
+      var surprise = (e.result || e.surprise || '').toUpperCase();
+      if (surprise.indexOf('BEAT') >= 0 || surprise.indexOf('STRONG') >= 0 || surprise.indexOf('ABOVE') >= 0) {
+        if (!shortlist[e.ticker]) shortlist[e.ticker] = { ticker: e.ticker, catalysts: [], catalystScore: 0, name: '', sector: '' };
+        shortlist[e.ticker].catalysts.push('EARNINGS_BEAT');
+        // v17.3: Apply decay + earnings magnitude
+        var decay = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getDecay(e.date) : 1.0;
+        var magnitude = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getMagnitude(e.patGrowth) : 1.0;
+        var baseScore = 30;
+        shortlist[e.ticker].catalystScore += Math.round(baseScore * decay * Math.max(0.5, magnitude));
       }
-    });
-  }
+    }
+  });
 
   // ── SOURCE 3: NEWS SENTIMENT — stocks with positive headlines ──
   if (typeof _dtNewsSentiment !== 'undefined') {
@@ -15248,7 +15454,7 @@ function renderDTEquityCurve(w) {
 //  Target: 3-5% daily return on news-powered concentrated portfolio
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
-//  v17.2 REACTION ENGINE — LIVE MOVER DISCOVERY
+//  v17.3 REACTION ENGINE — LIVE MOVER DISCOVERY
 //  Old approach: PREDICT which stocks will move using hardcoded
 //  catalyst calendars (PRIMARY_SIGNALS, EARNINGS_CALENDAR) — failed
 //  because a catalyst gate with no real data blocked 31/31 trades.
@@ -15306,14 +15512,14 @@ function discoverLiveMovers(candidates) {
 }
 
 // ---------------------------------------------------------------
-//  DAY TRADE AI v17.2 — CATALYST-DIRECT ENGINE
+//  DAY TRADE AI v17.3 — CATALYST-DIRECT ENGINE
 //  Target: 3-5% daily return via TWO entry pathways:
 //
-//  PATH A: Live Mover Discovery (v17.2 — unchanged)
+//  PATH A: Live Mover Discovery (v17.3 — unchanged)
 //   Phase 1: Discover stocks ALREADY moving (+1.5%, 2x volume)
 //   Phase 2: Confirm with ORB breakout + sector + Predator + Legends
 //
-//  PATH B: Catalyst-Direct Entry (v17.2 — NEW)
+//  PATH B: Catalyst-Direct Entry (v17.3 — NEW)
 //   Stocks with PROVEN catalysts (EARNINGS_BEAT, strong news, score >= 50)
 //   are fetched and traded directly with relaxed ORB thresholds.
 //   Conviction comes from the CATALYST, not price action alone.
@@ -15339,7 +15545,7 @@ async function runDayTradeAI() {
   }
 
   // ══════════════════════════════════════════════════════════
-  //  v17.2 PHASE 0a: DAILY TRADE CAP — Max 3 buys per day
+  //  v17.3 PHASE 0a: DAILY TRADE CAP — Max 3 buys per day
   //  Quality over quantity. Confirmed breakouts, not FOMO chases.
   // ══════════════════════════════════════════════════════════
   var todayIST = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
@@ -15350,12 +15556,12 @@ async function runDayTradeAI() {
   }).length;
   if (todayBuys >= MAX_DAILY_BUYS) {
     console.log('[DT-v17] DAILY CAP: ' + todayBuys + '/' + MAX_DAILY_BUYS + ' buys used today. No more trades.');
-    alert('v17.2 DAILY TRADE CAP: Already made ' + todayBuys + ' buys today (max ' + MAX_DAILY_BUYS + ').\n\nQuality over quantity — only confirmed breakouts, never more than 3 a day.');
+    alert('v17.3 DAILY TRADE CAP: Already made ' + todayBuys + ' buys today (max ' + MAX_DAILY_BUYS + ').\n\nQuality over quantity — only confirmed breakouts, never more than 3 a day.');
     return;
   }
 
   // ══════════════════════════════════════════════════════════
-  //  v17.2 PHASE 0b: RE-ENTRY BAN — Once sold, banned for rest of day
+  //  v17.3 PHASE 0b: RE-ENTRY BAN — Once sold, banned for rest of day
   // ══════════════════════════════════════════════════════════
   var _soldTodayTickers = [];
   (w.trades || []).forEach(function(t) {
@@ -15368,7 +15574,7 @@ async function runDayTradeAI() {
   }
 
   // ══════════════════════════════════════════════════════════
-  //  v17.2 PHASE 0c: MARKET HOURS GUARD — wait for market to settle
+  //  v17.3 PHASE 0c: MARKET HOURS GUARD — wait for market to settle
   //  No new trades before 9:30 AM (opening range not formed yet)
   //  or after 11:00 AM (professional day traders front-load risk
   //  into the first 90 minutes; afternoon entries chase, don't lead).
@@ -15380,11 +15586,11 @@ async function runDayTradeAI() {
     return;
   }
   if (hhmm < 930) {
-    alert('v17.2 REACTION ENGINE: Waiting for the Opening Range to form.\n\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + '\n\nWe do not chase the first 15 minutes of noise. Come back at/after 9:30 AM once real moves are confirmed by live price + volume.');
+    alert('v17.3 REACTION ENGINE: Waiting for the Opening Range to form.\n\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + '\n\nWe do not chase the first 15 minutes of noise. Come back at/after 9:30 AM once real moves are confirmed by live price + volume.');
     return;
   }
   if (hhmm > 1130) {
-    alert('v17.2 TIME GUARD: No new day trades after 11:30 AM.\n\nReaction trades need room to run. Professional day traders do 80% of their volume in the first 2 hours — entering late means chasing an already-extended move.\n\nUse "Square Off All" to close open positions before 3:30 PM.');
+    alert('v17.3 TIME GUARD: No new day trades after 11:30 AM.\n\nReaction trades need room to run. Professional day traders do 80% of their volume in the first 2 hours — entering late means chasing an already-extended move.\n\nUse "Square Off All" to close open positions before 3:30 PM.');
     return;
   }
 
@@ -15408,7 +15614,7 @@ async function runDayTradeAI() {
     statusBadge.style.background = '#f59e0b22';
     statusBadge.style.color = '#f59e0b';
     statusBadge.style.borderColor = '#f59e0b44';
-    statusBadge.innerHTML = '&#9889; v17.2 REACTION ENGINE: Scanning for stocks already moving...';
+    statusBadge.innerHTML = '&#9889; v17.3 REACTION ENGINE: Scanning for stocks already moving...';
   }
 
   try {
@@ -15416,17 +15622,17 @@ async function runDayTradeAI() {
     //  v13.5 PREDATOR ENGINE INIT — Fetch institutional data
     //  BEFORE any stock scanning. We need to know the battlefield.
     // ══════════════════════════════════════════════════════════
-    if (statusBadge) statusBadge.innerHTML = '&#127919; v17.2: Initializing Predator Detection Engine...';
+    if (statusBadge) statusBadge.innerHTML = '&#127919; v17.3: Initializing Predator Detection Engine...';
     var predatorInit = await initPredatorEngine();
     console.log('[DT-v17] Predator Engine: FII=' + predatorInit.fiiRegime + ' Sentiment=' + predatorInit.sentiment + ' Deals=' + predatorInit.bulkDeals);
     updatePredatorDashboard();
 
     // ══════════════════════════════════════════════════════════
-    //  v17.2 NEWS INTELLIGENCE — Fetch BEFORE mover scan
+    //  v17.3 NEWS INTELLIGENCE — Fetch BEFORE mover scan
     //  News sentiment gives CONTEXT to price moves:
     //  A stock up 3% WITH a catalyst is real; without = random noise
     // ══════════════════════════════════════════════════════════
-    if (statusBadge) statusBadge.innerHTML = '&#128240; v17.2: Scanning news catalysts for context...';
+    if (statusBadge) statusBadge.innerHTML = '&#128240; v17.3: Scanning news catalysts for context...';
     await fetchDayTradeNews();
     console.log('[DT-v17] News sentiment loaded: ' + (typeof _dtNewsSentiment !== 'undefined' ? Object.keys(_dtNewsSentiment).length : 0) + ' stocks with sentiment');
 
@@ -15436,12 +15642,12 @@ async function runDayTradeAI() {
     //  was the only thing that produced wins in 2 weeks of testing.
     //  NEVER remove this. Catalysts = institutional moves = real momentum.
     // ══════════════════════════════════════════════════════════
-    if (statusBadge) statusBadge.innerHTML = '&#128203; v17.2: Building catalyst shortlist...';
+    if (statusBadge) statusBadge.innerHTML = '&#128203; v17.3: Building catalyst shortlist...';
     buildDayTradeShortlist();
     console.log('[DT-v17] Catalyst shortlist: ' + _dtShortlist.length + ' stocks with identifiable catalysts');
 
     // ══════════════════════════════════════════════════════════
-    //  v17.2 GLOBAL CUES CONTEXT — Market regime affects all trades
+    //  v17.3 GLOBAL CUES CONTEXT — Market regime affects all trades
     //  Bullish global = be aggressive, Bearish global = be cautious
     // ══════════════════════════════════════════════════════════
     var _v17GlobalBias = 0; // -10 to +10
@@ -15525,7 +15731,7 @@ async function runDayTradeAI() {
           .then(function(resp) { return resp.json(); })
           .then(function(json) {
             batchesDone++;
-            if (statusBadge) statusBadge.innerHTML = '&#128269; v17.2: Scanning universe for live movers... batch ' + batchesDone + '/' + totalBatches;
+            if (statusBadge) statusBadge.innerHTML = '&#128269; v17.3: Scanning universe for live movers... batch ' + batchesDone + '/' + totalBatches;
             if (json && json.success && json.data && json.data.stocks) {
               Object.entries(json.data.stocks).forEach(function(entry) {
                 var sym = entry[0]; var d = entry[1];
@@ -15567,7 +15773,7 @@ async function runDayTradeAI() {
     });
 
     // ══════════════════════════════════════════════════════════
-    //  v17.2 CATALYST-DIRECT PATHWAY
+    //  v17.3 CATALYST-DIRECT PATHWAY
     //  The missing link: catalyst stocks (EARNINGS_BEAT, strong news)
     //  should be traded DIRECTLY even if they're not top % movers.
     //  A stock with +268% PAT beat showing ANY positive reaction is
@@ -15598,8 +15804,8 @@ async function runDayTradeAI() {
           .filter(function(sl) { return !candidates[sl.ticker]; })
           .map(function(sl) { return sl.ticker; });
         if (catTickersToFetch.length > 0) {
-          console.log('[DT-v17.2] Fetching prices for ' + catTickersToFetch.length + ' catalyst-direct stocks');
-          if (statusBadge) statusBadge.innerHTML = '&#128293; v17.2: Fetching catalyst stock prices...';
+          console.log('[DT-v17.3] Fetching prices for ' + catTickersToFetch.length + ' catalyst-direct stocks');
+          if (statusBadge) statusBadge.innerHTML = '&#128293; v17.3: Fetching catalyst stock prices...';
           try {
             var catSymStr = catTickersToFetch.map(function(t) { return t + '.NS'; }).join(',');
             var catResp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(catSymStr) + '&mode=all', {signal: AbortSignal.timeout(15000)});
@@ -15626,7 +15832,7 @@ async function runDayTradeAI() {
               });
             }
           } catch(e) {
-            console.log('[DT-v17.2] Catalyst fetch error:', e.message || e);
+            console.log('[DT-v17.3] Catalyst fetch error:', e.message || e);
           }
         }
 
@@ -15659,7 +15865,7 @@ async function runDayTradeAI() {
         });
 
         if (catalystDirectCount > 0) {
-          console.log('[DT-v17.2] CATALYST-DIRECT: ' + catalystDirectCount + ' catalyst stocks injected');
+          console.log('[DT-v17.3] CATALYST-DIRECT: ' + catalystDirectCount + ' catalyst stocks injected');
           liveMovers.forEach(function(m) {
             if (m.catalystDirect) {
               console.log('  CAT-DIRECT: ' + m.ticker + ' +' + m.changePct.toFixed(2) + '% vol=' + (m.volume/100000).toFixed(1) + 'L cat=' + (m.catalystSignals || []).join(','));
@@ -15669,14 +15875,14 @@ async function runDayTradeAI() {
       }
     }
 
-    if (statusBadge) statusBadge.innerHTML = '&#9889; v17.2: ' + liveMovers.length + ' candidates (' + catalystDirectCount + ' catalyst-direct) | Checking qualification...';
+    if (statusBadge) statusBadge.innerHTML = '&#9889; v17.3: ' + liveMovers.length + ' candidates (' + catalystDirectCount + ' catalyst-direct) | Checking qualification...';
 
     if (liveMovers.length === 0) {
       console.log('[DT-v17] No live movers today — sitting out. This is CORRECT behavior.');
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       if (statusBadge) {
         statusBadge.style.background = '#06b6d422'; statusBadge.style.color = '#06b6d4'; statusBadge.style.borderColor = '#06b6d444';
-        statusBadge.innerHTML = '&#128161; v17.2 REACTION ENGINE: 0 live movers (need +1.5% & 2x volume) | FII: ' + _predatorFIIDII.flowRegime + ' | Sitting out = capital preservation.';
+        statusBadge.innerHTML = '&#128161; v17.3 REACTION ENGINE: 0 live movers (need +1.5% & 2x volume) | FII: ' + _predatorFIIDII.flowRegime + ' | Sitting out = capital preservation.';
       }
       return;
     }
@@ -15718,7 +15924,7 @@ async function runDayTradeAI() {
       if (_soldTodayTickers.indexOf(m.ticker) >= 0) return;
 
       // ══════════════════════════════════════════════════════════
-      //  v17.2 CATALYST-DIRECT BYPASS — Separate qualification for
+      //  v17.3 CATALYST-DIRECT BYPASS — Separate qualification for
       //  stocks with PROVEN catalysts (earnings beat, strong news).
       //  These don't need aggressive ORB breakout because conviction
       //  comes from the CATALYST, not from price action alone.
@@ -15752,11 +15958,11 @@ async function runDayTradeAI() {
 
         qualified.push(m);
         catalystDirectQualified++;
-        console.log('[DT-v17.2] CATALYST-DIRECT QUALIFIED: ' + m.ticker + ' +' + m.changePct.toFixed(2) + '% | catalysts=' + (m.catalystSignals || []).join(','));
+        console.log('[DT-v17.3] CATALYST-DIRECT QUALIFIED: ' + m.ticker + ' +' + m.changePct.toFixed(2) + '% | catalysts=' + (m.catalystSignals || []).join(','));
         return; // Skip normal ORB check
       }
 
-      // ═══ NORMAL ORB PATH (unchanged from v17.2) ═══
+      // ═══ NORMAL ORB PATH (unchanged from v17.3) ═══
       // ORB breakout: real gap (>1.5% above prevClose) and price near day high
       var gapBreakout = m.dayHigh > m.prevClose * 1.015;
       var nearDayHigh = m.dayHigh > 0 ? (m.price >= m.dayHigh * 0.995) : true;
@@ -15800,14 +16006,14 @@ async function runDayTradeAI() {
       qualified.push(m);
     });
 
-    console.log('[DT-v17.2] QUALIFIED: ' + qualified.length + ' (ORB: ' + (qualified.length - catalystDirectQualified) + ' + Catalyst-Direct: ' + catalystDirectQualified + ') | Rejected: ORB=' + orbRejected + ' Sector=' + sectorRejected + ' Predator=' + predatorRejected + ' Legends=' + legendsRejected);
+    console.log('[DT-v17.3] QUALIFIED: ' + qualified.length + ' (ORB: ' + (qualified.length - catalystDirectQualified) + ' + Catalyst-Direct: ' + catalystDirectQualified + ') | Rejected: ORB=' + orbRejected + ' Sector=' + sectorRejected + ' Predator=' + predatorRejected + ' Legends=' + legendsRejected);
 
     if (qualified.length === 0) {
-      console.log('[DT-v17.2] No qualified candidates (0 ORB + 0 catalyst-direct) — sitting out.');
+      console.log('[DT-v17.3] No qualified candidates (0 ORB + 0 catalyst-direct) — sitting out.');
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       if (statusBadge) {
         statusBadge.style.background = '#06b6d422'; statusBadge.style.color = '#06b6d4'; statusBadge.style.borderColor = '#06b6d444';
-        statusBadge.innerHTML = '&#128161; v17.2 ENGINE: ' + liveMovers.length + ' candidates (incl ' + catalystDirectCount + ' catalyst-direct), 0 qualified | Sitting out = capital preservation.';
+        statusBadge.innerHTML = '&#128161; v17.3 ENGINE: ' + liveMovers.length + ' candidates (incl ' + catalystDirectCount + ' catalyst-direct), 0 qualified | Sitting out = capital preservation.';
       }
       return;
     }
@@ -15885,7 +16091,7 @@ async function runDayTradeAI() {
       if (relStrength > 2) { score += 8; s.signals.push('RS-ALPHA'); }
       else if (relStrength > 1) { score += 4; s.signals.push('RS-STRONG'); }
 
-      // ── v17.2 CATALYST-DIRECT ENTRY BONUS ──
+      // ── v17.3 CATALYST-DIRECT ENTRY BONUS ──
       // Stocks that entered via catalyst-direct pathway get a conviction boost
       // because their entry is backed by PROVEN catalyst (earnings beat, etc.)
       if (s.catalystDirect) {
@@ -15933,7 +16139,7 @@ async function runDayTradeAI() {
     });
 
     qualified.sort(function(a, b) { return b.dtScore - a.dtScore; });
-    console.log('[DT-v17.2] Scored ' + qualified.length + ' candidates (' + catalystDirectQualified + ' catalyst-direct). Top picks:');
+    console.log('[DT-v17.3] Scored ' + qualified.length + ' candidates (' + catalystDirectQualified + ' catalyst-direct). Top picks:');
     qualified.slice(0, 10).forEach(function(s, idx) {
       console.log('  ' + (idx + 1) + '. ' + s.ticker + ' score=' + s.dtScore + ' chg=' + s.changePct.toFixed(2) + '% orb=' + s.orbStrength.toFixed(2) + (s.catalystDirect ? ' [CAT-DIRECT]' : ' [ORB]') + ' [' + s.signals.slice(0, 6).join(', ') + ']');
     });
@@ -15956,7 +16162,7 @@ async function runDayTradeAI() {
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Day Trade AI'; }
       if (statusBadge) {
         statusBadge.style.background = '#06b6d422'; statusBadge.style.color = '#06b6d4'; statusBadge.style.borderColor = '#06b6d444';
-        statusBadge.innerHTML = '&#128161; v17.2 REACTION ENGINE: ' + qualified.length + ' qualified but daily cap reached | Sitting out today.';
+        statusBadge.innerHTML = '&#128161; v17.3 REACTION ENGINE: ' + qualified.length + ' qualified but daily cap reached | Sitting out today.';
       }
       return;
     }
@@ -15992,7 +16198,7 @@ async function runDayTradeAI() {
       var slPct = Math.max(0.008, Math.min(0.025, structuralSLPct || 0.008));
       pick.stopLossPct = slPct;
 
-      // v17.2: 0.5% risk per trade (quality over quantity — smaller, more precise risk)
+      // v17.3: 0.5% risk per trade (quality over quantity — smaller, more precise risk)
       var sizing = getRiskBasedPositionSize(totalCash, pick.price, slPct, pickSizeMultiplier * 0.5);
       if (sizing.value >= minPerTrade && sizing.qty > 0) {
         allocations.push({
@@ -16059,7 +16265,7 @@ async function runDayTradeAI() {
         type: 'BUY', ticker: pick.ticker, name: pick.name,
         qty: qty, price: pick.price, dtScore: pick.dtScore,
         predatorScore: a.predatorScore || 0, predatorSignals: a.predatorSignals || [],
-        reason: '&#9889; v17.2 REACTION Score ' + pick.dtScore + ' | ' + sigStr + ' | Chg +' + pick.momentum + '% | ORB ' + pick.orbStrength.toFixed(2) + ' | Structural SL ' + (pick.stopLossPct * 100).toFixed(2) + '% | Alloc ' + allocPct + '%' + riskInfo + sizeInfo + predatorInfo + (a.trendTemplate ? ' | T:' + a.trendTemplate.score + '/8' : '') + (a.rewardRisk ? ' | RR:' + a.rewardRisk.ratio + ':1' : '') + ' | ' + pick.source + ' | ' + _predatorFIIDII.flowRegime,
+        reason: '&#9889; v17.3 REACTION Score ' + pick.dtScore + ' | ' + sigStr + ' | Chg +' + pick.momentum + '% | ORB ' + pick.orbStrength.toFixed(2) + ' | Structural SL ' + (pick.stopLossPct * 100).toFixed(2) + '% | Alloc ' + allocPct + '%' + riskInfo + sizeInfo + predatorInfo + (a.trendTemplate ? ' | T:' + a.trendTemplate.score + '/8' : '') + (a.rewardRisk ? ' | RR:' + a.rewardRisk.ratio + ':1' : '') + ' | ' + pick.source + ' | ' + _predatorFIIDII.flowRegime,
         source: 'daytrade', time: new Date().toISOString()
       });
 
@@ -16079,16 +16285,16 @@ async function runDayTradeAI() {
     // ══════════════════════════════════════════════════════════
     var lastAction = document.getElementById('dtLastAction');
     if (lastAction) {
-      lastAction.innerHTML = '&#128737; v17.2: Bought ' + buyCount + ' @ ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) + ' | ' + topSignals.join(', ') + ' | Movers:' + liveMovers.length + ' Qualified:' + qualified.length + ' (CatDirect:' + catalystDirectQualified + ')';
+      lastAction.innerHTML = '&#128737; v17.3: Bought ' + buyCount + ' @ ' + new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) + ' | ' + topSignals.join(', ') + ' | Movers:' + liveMovers.length + ' Qualified:' + qualified.length + ' (CatDirect:' + catalystDirectQualified + ')';
     }
 
     if (statusBadge) {
       statusBadge.style.background = '#22c55e22'; statusBadge.style.color = '#22c55e'; statusBadge.style.borderColor = '#22c55e44';
-      statusBadge.innerHTML = '&#128737; v17.2 CATALYST ENGINE: ' + buyCount + ' picks | Movers:' + liveMovers.length + ' &rarr; Qualified:' + qualified.length + ' (CatDirect:' + catalystDirectQualified + ') &rarr; Entered:' + buyCount + ' | Cap ' + todayBuys + '&rarr;' + (todayBuys + buyCount) + '/' + MAX_DAILY_BUYS + ' | ' + topSignals.join(', ');
+      statusBadge.innerHTML = '&#128737; v17.3 CATALYST ENGINE: ' + buyCount + ' picks | Movers:' + liveMovers.length + ' &rarr; Qualified:' + qualified.length + ' (CatDirect:' + catalystDirectQualified + ') &rarr; Entered:' + buyCount + ' | Cap ' + todayBuys + '&rarr;' + (todayBuys + buyCount) + '/' + MAX_DAILY_BUYS + ' | ' + topSignals.join(', ');
     }
 
-    console.log('[DT-v17.2] Bought ' + buyCount + ' stocks. Cash: ' + w.cash.toLocaleString('en-IN'));
-    console.log('[DT-v17.2] Funnel: ' + Object.keys(candidates).length + ' universe -> ' + liveMovers.length + ' candidates (' + catalystDirectCount + ' cat-direct) -> ' + qualified.length + ' qualified (' + catalystDirectQualified + ' cat-direct) -> ' + buyCount + ' entered');
+    console.log('[DT-v17.3] Bought ' + buyCount + ' stocks. Cash: ' + w.cash.toLocaleString('en-IN'));
+    console.log('[DT-v17.3] Funnel: ' + Object.keys(candidates).length + ' universe -> ' + liveMovers.length + ' candidates (' + catalystDirectCount + ' cat-direct) -> ' + qualified.length + ' qualified (' + catalystDirectQualified + ' cat-direct) -> ' + buyCount + ' entered');
 
   } catch(err) {
     console.error('[DT-v17] Error:', err);
@@ -16363,7 +16569,7 @@ async function runDayTradeSmartExits() {
     }
   }
 
-  // v17.2: ALWAYS save position state after monitoring (peak prices, current prices)
+  // v17.3: ALWAYS save position state after monitoring (peak prices, current prices)
   // This prevents position loss on page refresh — positions survive even if page crashes
   if (w.positions.length > 0 || exitCount > 0) {
     saveDT(w);
@@ -16641,7 +16847,7 @@ function checkPaperTradeAutoTrigger() {
   }
 
   // Run max 3 times per day (10:00-10:30, 12:00-12:30, 14:30-15:00)
-  // v17.2 FIX: Morning shifted from 9:30 to 10:00 — was firing during OPEN_VOLATILE (9:15-9:45)
+  // v17.3 FIX: Morning shifted from 9:30 to 10:00 — was firing during OPEN_VOLATILE (9:15-9:45)
   // which has timing multiplier=0, blocking all buys. Now fires in PRIME_BUY window.
   var shouldRun = false;
   var triggerName = '';
