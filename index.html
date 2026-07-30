@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v17.3 &mdash; AI Wealth Fund</span></h1>
+  <h1>Jain PMS <span>v18.0 &mdash; AI-Agentic Wealth Fund</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -1339,6 +1339,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
       <p style="color:var(--muted);margin:4px 0 0;font-size:13px">v13.6: Minervini Trend Template + PTJ 200-Day MA Defense + Reward:Risk Ratio + Conviction Sizing + Predator Detection + 14 Legendary Traders' Wisdom</p>
       <div id="dtStatusBadge" style="display:inline-block;margin-top:8px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#4f8cff22;color:#4f8cff;border:1px solid #4f8cff44">&#128337; STATUS: No positions &mdash; Market ready</div>
       <div id="dtAutoStatus" style="display:inline-block;margin-top:8px;margin-left:12px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:600;background:#22c55e11;color:#60a5fa;border:1px solid #22c55e33">&#9889; AUTO: Initializing...</div>
+      <div id="dtAIAgentStatus" style="display:inline-block;margin-top:8px;margin-left:8px;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:600;background:#a78bfa11;color:#a78bfa;border:1px solid #a78bfa33">&#129302; AI-AGENT: Initializing...</div>
     </div>
 
     <!-- Wallet Summary Cards -->
@@ -1411,7 +1412,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     <div class="card" style="margin-bottom:16px">
       <h3 style="margin:0 0 12px;font-size:16px">&#128200; Current Intraday Positions</h3>
       <div id="dtPositionsTable" style="font-size:13px">
-        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. v17.3 Reaction Engine: Live mover discovery (9:30-11:00 AM) &mdash; scans for stocks ALREADY moving (+1.5% &amp; 2x volume), confirms with Opening Range Breakout, max 3 picks, 1/sector, structural stop below day low.</div>
+        <div style="color:var(--muted);text-align:center;padding:30px">No intraday positions. v18.0 AI-Agentic Engine: Claude AI Brain pushes BUY/SELL decisions via Cloud Sync every 15 min. Conviction sizing (HIGH=30%, MED=20%), partial profit exits (50% at +1.5%, trail rest), sector guard (max 2/sector). Fallback: v17.3 Reaction Engine.</div>
       </div>
     </div>
 
@@ -1753,7 +1754,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v17.3 &mdash; AI Wealth Fund (₹1 Cr) + Catalyst-Direct Entry (earnings beat stocks trade directly) + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v18.0 &mdash; AI-Agentic Wealth Fund (₹1 Cr) + AI Agent Engine (Claude LLM brain + Cloud Sync decisions) + Conviction Sizing + Partial Profit Exits + Sector Correlation Guard + Catalyst-Direct Entry + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
   <span id="cloudSyncBadge" style="color:#f59e0b;font-weight:600;cursor:pointer;margin-right:8px" onclick="JainPMS_Cloud.forceLoad()" title="Click to force reload from cloud">☁ Connecting...</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
@@ -3472,36 +3473,31 @@ var PRE_MARKET_GLOBAL = {
 };
 
 // ── AI Research Agent — last automated scan ──
-var AI_RESEARCH_LAST_UPDATE = '2026-07-24 (CATALYST REFRESH: 23 fresh PRIMARY_SIGNALS + 20 EARNINGS_CALENDAR entries + 14 CURATED_NEWS items updated; Q1 results: INFY guide cut 1.5-3%, Eternal +268%, IndusInd +72%, Nestle +48%, Adani Power +42%, HPCL loss Rs11,526 Cr, BPCL loss Rs3,962 Cr, IndiGo loss Rs238 Cr; Brent $101; FII -2,999 Cr; regime BEAR; Nifty 23,870 4th decline; TODAY: Shriram Finance + NTPC results; TOMORROW: Tata Motors + Titan)';
+var AI_RESEARCH_LAST_UPDATE = '2026-07-30 (CATALYST REFRESH + CLOUD SYNC PUSH: 12 signals + 14 earnings entries + 12 news items; Q1 results: Asian Paints +40%, Balkrishna +56%, IDFC First +132% highest-ever, Waaree rev +79%, Bajaj Housing +23%, KPIT -28% QoQ miss; MARKET REBOUND: Sensex +889 to 77,655, Nifty 24,250 +1.1%; FII +2,982 Cr + DII +998 Cr BOTH BUYERS Jul 29; Fed HOLDS rates; crude eased ~$85 from $100+; rupee 95.7; TODAY: Vedanta; TOMORROW Jul 31: Maruti, TVS, Ambuja, JSW Energy)';
+// Previous: '2026-07-24 (CATALYST REFRESH: 23 fresh PRIMARY_SIGNALS + 20 EARNINGS_CALENDAR entries + 14 CURATED_NEWS items updated; Q1 results: INFY guide cut 1.5-3%, Eternal +268%, IndusInd +72%, Nestle +48%, Adani Power +42%, HPCL loss Rs11,526 Cr, BPCL loss Rs3,962 Cr, IndiGo loss Rs238 Cr; Brent $101; FII -2,999 Cr; regime BEAR; Nifty 23,870 4th decline; TODAY: Shriram Finance + NTPC results; TOMORROW: Tata Motors + Titan)';
 // Previous: '2026-07-23 (daily scan: regime BULL→SIDEWAYS — Nifty 23,996 broke 24,050 support; Brent $94-95 Iran escalation, $100 risk; FII -819 Cr + DII -418 Cr Jul 22 both sellers; Semicon 2.0 Rs 1.9L Cr = DIXON/KAYNES tailwind; INFY Q1 today; Ather QIP Rs 1,300 Cr dilution; JIOFIN drifting to 52wk low; new candidates: Syrma 74, Amber 70, PGEL 68)';
 // Previous: '2026-07-22 (daily scan: Bajaj Auto Q1 PAT +46% all-time high revenue; TVS Motor +65%; FII INFLOW reversal Jul MTD +11,682 Cr; Brent $92 Iran-Gulf risk; Nifty 24,188 2nd decline; Infosys Jul 23 pivot; Dixon/KEI/Zensar results today; regime BULL with crude headwind)';
 // Previous: '2026-07-20 (daily scan: regime upgraded to BULL-early — Nifty 24,334 breakout; bank Q1 Jul 18: ICICI/Kotak beat, HDFC Bank NIM 3.26% record low; JIOFIN +6%, Reliance promoter stake 50.48%; CYIENT catalyst refreshed to Q1 Jul 23 with INFY)';
 
 // ── Earnings Calendar (stocks reporting today/tomorrow) ──
 var EARNINGS_CALENDAR = [
-  // ═══ Jul 22-23 REPORTED ═══
+  // ═══ Jul 25-29 REPORTED (updated 2026-07-30 by AI Research Agent) ═══
+  {ticker:'ASIANPAINT', name:'Asian Paints', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:40, keyNote:'PAT Rs 1,539 Cr +40%; Rev Rs 10,521 Cr +17.9%; PBDIT margin 20.6% (+240bps); intl sales +27.2%'},
+  {ticker:'BALKRISIND', name:'Balkrishna Industries', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:56, keyNote:'PAT Rs 451 Cr +56.4%; Rev Rs 3,455 Cr +25.2%; Rs 4/share dividend; off-highway tyre demand strong'},
+  {ticker:'WAAREEENER', name:'Waaree Energies', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:14, keyNote:'PAT Rs 850 Cr +14%; Rev Rs 7,932 Cr +79%; EBITDA Rs 1,440 Cr +44%; US 236 MW order'},
+  {ticker:'BAJAJHFL', name:'Bajaj Housing Finance', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:23, keyNote:'PAT Rs 715 Cr +23%; AUM Rs 1.50 L Cr +24%; record disbursements Rs 19,509 Cr; NII +9% margin watch'},
+  {ticker:'IDFCFIRSTB', name:'IDFC First Bank', date:'2026-07-25', status:'REPORTED', result:'BEAT', patGrowth:132, keyNote:'Highest-ever PAT Rs 1,075 Cr +132.4% YoY (vs Rs 463 Cr); turnaround accelerating'},
+  {ticker:'KPITTECH', name:'KPIT Technologies', date:'2026-07-29', status:'REPORTED', result:'MISS', patGrowth:-28, keyNote:'PAT Rs 117 Cr -28.1% QoQ; Rev Rs 1,675 Cr -2.1% QoQ; auto-ER&D demand soft'},
+  // ═══ Jul 23 REPORTED (still in scoring window) ═══
   {ticker:'INFY', name:'Infosys', date:'2026-07-23', status:'REPORTED', result:'MIXED', patGrowth:12, keyNote:'PAT Rs 7,775 Cr +12.3%; Rev Rs 48,211 Cr +14%; TCV $3.6B; FY27 guide CUT to 1.5-3.0%; AI 8.2% of rev'},
   {ticker:'INDIGO', name:'IndiGo', date:'2026-07-23', status:'REPORTED', result:'MISS', patGrowth:-111, keyNote:'Net loss Rs 238 Cr vs profit Rs 2,176 Cr YoY; Revenue +20% but fuel costs +86%; Cash Rs 52,885 Cr'},
-  {ticker:'ETERNAL', name:'Eternal (Zomato)', date:'2026-07-22', status:'REPORTED', result:'BEAT', patGrowth:268, keyNote:'PAT Rs 92 Cr +268%; Rev Rs 20,211 Cr +182%; Blinkit driving; EBITDA +417%'},
-  {ticker:'NESTLEIND', name:'Nestle India', date:'2026-07-22', status:'REPORTED', result:'BEAT', patGrowth:48, keyNote:'PAT Rs 975 Cr +48%; Rev Rs 6,378 Cr +25.2%; broad volume growth'},
-  {ticker:'ADANIPOWER', name:'Adani Power', date:'2026-07-22', status:'REPORTED', result:'BEAT', patGrowth:42, keyNote:'PAT Rs 4,806 Cr +42%; Revenue +44%; power demand cycle intact'},
-  {ticker:'INDUSINDBK', name:'IndusInd Bank', date:'2026-07-22', status:'REPORTED', result:'BEAT', patGrowth:72, keyNote:'PAT Rs 1,037 Cr +72%; provisions -21%; stock fell 6% post-results'},
-  {ticker:'BPCL', name:'BPCL', date:'2026-07-22', status:'REPORTED', result:'MISS', patGrowth:-165, keyNote:'Net loss Rs 3,962 Cr vs profit Rs 6,124 Cr; crude spike margin destruction'},
-  {ticker:'HINDPETRO', name:'HPCL', date:'2026-07-22', status:'REPORTED', result:'MISS', patGrowth:-999, keyNote:'Net loss Rs 11,526 Cr; OMC sector catastrophe from Brent $90+'},
-  {ticker:'JSWENERGY', name:'JSW Energy', date:'2026-07-22', status:'REPORTED', result:'MISS', patGrowth:-36, keyNote:'PAT Rs 532 Cr -36%; higher finance costs; power sales -5% YoY'},
-  {ticker:'ADANIGREEN', name:'Adani Green Energy', date:'2026-07-22', status:'REPORTED', result:'BEAT', patGrowth:19, keyNote:'PAT Rs 983 Cr +19%; capacity 20 GW; BESS 3,551 MWh at Khavda'},
-  {ticker:'NTPCGREEN', name:'NTPC Green Energy', date:'2026-07-22', status:'REPORTED', result:'BEAT', patGrowth:38, keyNote:'PAT Rs 305 Cr +38%; Rev Rs 1,107 Cr +63%; EBITDA margin 92%'},
   {ticker:'CYIENT', name:'Cyient', date:'2026-07-23', status:'REPORTED', result:'BEAT', patGrowth:90, keyNote:'PAT Rs 104 Cr +90% QoQ; EBIT margin 9% +90bps; Semis arm valued $500M; DLM record order book'},
-  // ═══ Jul 18-21 REPORTED (still in scoring window) ═══
-  {ticker:'HDFCBANK', name:'HDFC Bank', date:'2026-07-18', status:'REPORTED', result:'MIXED', patGrowth:5, keyNote:'NIM 3.26% record low; advances +15.4%; PAT Rs 19,060 Cr'},
-  {ticker:'ICICIBANK', name:'ICICI Bank', date:'2026-07-18', status:'REPORTED', result:'BEAT', patGrowth:16, keyNote:'GNPA 1.38% (from 1.67%); ROA 2.49%; advances +19.6%'},
-  {ticker:'KOTAKBANK', name:'Kotak Mahindra Bank', date:'2026-07-18', status:'REPORTED', result:'BEAT', patGrowth:26, keyNote:'PAT Rs 4,123 Cr +26%; GNPA 0.27%; CASA 40.3%'},
-  {ticker:'BAJAJ-AUTO', name:'Bajaj Auto', date:'2026-07-21', status:'REPORTED', result:'BEAT', patGrowth:46, keyNote:'PAT Rs 3,226 Cr +46%; Rev Rs 21,689 Cr all-time high +65%; exports record 700K units'},
   // ═══ UPCOMING ═══
-  {ticker:'SHRIRAMFIN', name:'Shriram Finance', date:'2026-07-24', status:'UPCOMING', keyNote:'AAA-upgrade thesis check; lower borrowing cost benefit; MUFG 20% stake'},
-  {ticker:'NTPC', name:'NTPC', date:'2026-07-24', status:'UPCOMING', keyNote:'Power capex cycle; thermal + renewable mix'},
-  {ticker:'TATAMOTORS', name:'Tata Motors', date:'2026-07-25', status:'UPCOMING', keyNote:'EV + SUV surge; JLR margin; 3,400+ electric CV orders'},
-  {ticker:'TITAN', name:'Titan Company', date:'2026-07-25', status:'UPCOMING', keyNote:'Jewellery demand + wedding season; Tanishq expansion; CaratLane integration'}
+  {ticker:'VEDL', name:'Vedanta', date:'2026-07-30', status:'UPCOMING', keyNote:'Results TODAY; concall 5:00-6:30 PM IST; metals cycle + demerger progress watch'},
+  {ticker:'MARUTI', name:'Maruti Suzuki', date:'2026-07-31', status:'UPCOMING', keyNote:'Auto demand read; exports + SUV mix; follows Bajaj Auto +46% blowout'},
+  {ticker:'TVSMOTOR', name:'TVS Motor', date:'2026-07-31', status:'UPCOMING', keyNote:'2W momentum check; EV (iQube) trajectory'},
+  {ticker:'AMBUJACEM', name:'Ambuja Cements', date:'2026-07-31', status:'UPCOMING', keyNote:'Cement pricing + monsoon demand; Adani cement capex'},
+  {ticker:'JSWENERGY', name:'JSW Energy', date:'2026-07-31', status:'UPCOMING', keyNote:'Recovery check after Q1 FY26 PAT -36%; power demand cycle'}
 ];
 
 function runPreMarketIntel() {
@@ -8767,32 +8763,21 @@ function renderNSEAnnouncements(announcements) {
 //  Sources: BSE filings, SEBI bulk deals, VAHAN, promoter txns
 // ============================================================
 const PRIMARY_SIGNALS = [
-  // ═══ FRESH Jul 22-23 Q1 FY27 Results (TODAY's catalysts) ═══
+  // ═══ FRESH Jul 29-30 Q1 FY27 Results (updated 2026-07-30 by AI Research Agent) ═══
+  {type:"EARNINGS",company:"Asian Paints",ticker:"ASIANPAINT",signal:"Q1 FY27 STRONG BEAT: PAT Rs 1,539 Cr (+40% YoY), Revenue Rs 10,521 Cr (+17.9%). PBDIT margin 20.6% (from 18.2%). International net sales +27.2% — Egypt/UAE/Oman/Nepal driving; intl PBT +94.9%.",source:"BSE Filing / Business Standard",date:"2026-07-29",severity:"HIGH",icon:"💹"},
+  {type:"EARNINGS",company:"Balkrishna Industries",ticker:"BALKRISIND",signal:"Q1 FY27 BEAT: PAT Rs 451 Cr (+56.4% YoY), Revenue Rs 3,455 Cr (+25.2%). Rs 4/share dividend declared. Off-highway tyre (agri/OTR) export demand strong.",source:"BSE Filing / Sahi",date:"2026-07-29",severity:"HIGH",icon:"💹"},
+  {type:"EARNINGS",company:"Waaree Energies",ticker:"WAAREEENER",signal:"Q1 FY27: Revenue Rs 7,932 Cr (+79% YoY), PAT Rs 850 Cr (+14%), EBITDA Rs 1,440 Cr (+44%). Solar scale-up + US arm's 236 MW Kentucky supply win. Margin compression is the watch item.",source:"BSE Filing / Upstox",date:"2026-07-29",severity:"HIGH",icon:"💹"},
+  {type:"EARNINGS",company:"Bajaj Housing Finance",ticker:"BAJAJHFL",signal:"Q1 FY27: PAT Rs 715 Cr (+23% YoY). AUM Rs 1.50 L Cr (+24%). Record AUM addition Rs 8,918 Cr; all-time-high disbursements Rs 19,509 Cr. NII +9% vs AUM +24% = margin pressure.",source:"BSE Filing / Upstox",date:"2026-07-29",severity:"HIGH",icon:"💹"},
+  {type:"EARNINGS",company:"IDFC First Bank",ticker:"IDFCFIRSTB",signal:"Q1 FY27 BLOWOUT: Highest-ever PAT Rs 1,075 Cr (+132.4% YoY vs Rs 463 Cr). Credit-cost normalization + operating leverage. Private-bank Q1 season strong across the board.",source:"BSE Filing / The Tribune",date:"2026-07-25",severity:"HIGH",icon:"💹"},
+  {type:"EARNINGS_MISS",company:"KPIT Technologies",ticker:"KPITTECH",signal:"Q1 FY27 WEAK: PAT Rs 117 Cr (-28.1% QoQ vs Rs 163 Cr). Revenue Rs 1,675 Cr (-2.1% QoQ). Auto-ER&D demand soft; IT tape stays selective post-Infosys guide cut.",source:"BSE Filing / PTI",date:"2026-07-29",severity:"MEDIUM",icon:"📉"},
+  // ═══ MARKET CONTEXT Jul 29-30 ═══
+  {type:"FII_FLOW",company:"FII+DII Both Buyers",ticker:"",signal:"Jul 29: FII net BUY +Rs 2,982 Cr cash; DII net BUY +Rs 998 Cr. Short covering of 2.63L net-short index-futures position underway. Flow regime flipping bullish from -2,999 Cr Jul 23.",source:"NSE / 5paisa",date:"2026-07-29",severity:"HIGH",icon:"🌍"},
+  {type:"POLICY",company:"Market Rebound + Fed Hold",ticker:"",signal:"Sensex +889 pts (+1.16%) to 77,655; Nifty +265 to 24,250 Jul 29 — sharp rebound from 23,870. US Fed HELD rates. Rupee stronger ~95.7/USD; crude eased to ~$85 from $100+ panic. IT flows returning.",source:"Investing.com / Goodreturns",date:"2026-07-30",severity:"HIGH",icon:"📈"},
+  {type:"EARNINGS_UPCOMING",company:"Vedanta",ticker:"VEDL",signal:"Q1 FY27 results TODAY Jul 30, concall 5:00-6:30 PM IST. Metals/mining cycle read + demerger progress watch.",source:"BSE Filing / Upstox",date:"2026-07-30",severity:"MEDIUM",icon:"📋"},
+  {type:"EARNINGS_UPCOMING",company:"Jul 31 Heavyweights",ticker:"MARUTI",signal:"TOMORROW Jul 31: Maruti Suzuki, TVS Motor, Ambuja Cements, JSW Energy, PB Fintech report Q1 FY27. Auto demand + cement pricing + power reads — heaviest day of the season.",source:"Business Standard",date:"2026-07-30",severity:"HIGH",icon:"📋"},
+  // ═══ STILL ACTIVE (Jul 23) ═══
   {type:"EARNINGS",company:"Infosys",ticker:"INFY",signal:"Q1 FY27: Revenue Rs 48,211 Cr (+14% YoY), PAT Rs 7,775 Cr (+12.3%). Large-deal TCV $3.6B. BUT FY27 guide CUT to 1.5-3.0% (from 1.5-3.5%). AI 8.2% of rev.",source:"BSE Filing / Infosys IR",date:"2026-07-23",severity:"HIGH",icon:"📉"},
-  {type:"EARNINGS",company:"Eternal (Zomato)",ticker:"ETERNAL",signal:"Q1 FY27 BLOWOUT: PAT Rs 92 Cr (+268% YoY), Revenue Rs 20,211 Cr (+182% YoY). Blinkit driving explosive growth. EBITDA +417% to Rs 594 Cr.",source:"BSE Filing",date:"2026-07-22",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"Nestle India",ticker:"NESTLEIND",signal:"Q1 FY27 STRONG BEAT: PAT Rs 975 Cr (+48% YoY), Revenue Rs 6,378 Cr (+25.2%). Broad-based volume growth. Stock fell 2.39% Jul 23 (profit booking).",source:"BSE Filing",date:"2026-07-22",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"Adani Power",ticker:"ADANIPOWER",signal:"Q1 FY27: PAT Rs 4,806 Cr (+42% YoY), Revenue +44% to Rs 546 Cr. Power demand cycle + thermal capacity utilization.",source:"BSE Filing",date:"2026-07-22",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"IndusInd Bank",ticker:"INDUSINDBK",signal:"Q1 FY27 RECOVERY: PAT Rs 1,037 Cr (+72% YoY). Provisions down 21% to Rs 1,384 Cr. Stock fell 6% post-results (profit booking).",source:"BSE Filing",date:"2026-07-22",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS_MISS",company:"BPCL",ticker:"BPCL",signal:"Q1 FY27 MASSIVE MISS: Net loss Rs 3,962 Cr vs profit Rs 6,124 Cr YoY. Revenue +23% but crude spike crushed margins. OMC sector under severe stress.",source:"BSE Filing",date:"2026-07-22",severity:"HIGH",icon:"📉"},
-  {type:"EARNINGS_MISS",company:"HPCL",ticker:"HINDPETRO",signal:"Q1 FY27 CATASTROPHIC: Net loss Rs 11,526 Cr. Crude above $90 devastating refining/marketing margins. Revenue +21% QoQ but margin destruction.",source:"BSE Filing",date:"2026-07-22",severity:"HIGH",icon:"📉"},
-  {type:"EARNINGS_MISS",company:"IndiGo",ticker:"INDIGO",signal:"Q1 FY27: Net loss Rs 238 Cr vs profit Rs 2,176 Cr YoY. Revenue +20% to Rs 24,584 Cr but fuel costs surged 86%. Cash Rs 52,885 Cr provides cushion.",source:"BSE Filing",date:"2026-07-23",severity:"HIGH",icon:"📉"},
-  {type:"EARNINGS_MISS",company:"JSW Energy",ticker:"JSWENERGY",signal:"Q1 FY27 WEAK: PAT Rs 532 Cr (-36% YoY). Higher finance costs + 5% decline in power sales YoY.",source:"BSE Filing",date:"2026-07-22",severity:"MEDIUM",icon:"📉"},
-  {type:"EARNINGS",company:"Adani Green Energy",ticker:"ADANIGREEN",signal:"Q1 FY27: PAT Rs 983 Cr (+19% YoY), Revenue Rs 4,431 Cr (+17%). Operational capacity crossed 20 GW. BESS 3,551 MWh at Khavda.",source:"BSE Filing",date:"2026-07-22",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"NTPC Green Energy",ticker:"NTPCGREEN",signal:"Q1 FY27: Revenue Rs 1,107 Cr (+63% YoY), PAT Rs 305 Cr (+38% YoY). EBITDA margin 92%. New RE SPV approved.",source:"BSE Filing",date:"2026-07-22",severity:"HIGH",icon:"💹"},
-  // ═══ MARKET CONTEXT Jul 23-24 ═══
-  {type:"GEOPOLITICAL",company:"Crude Oil Crisis",ticker:"",signal:"Brent BROKE $100 — surged to ~$101 Jul 23 (+7%). Houthi attacks on 2 Saudi tankers + Kazakhstan CPC export halt + US-Iran strikes. OMC sector devastated.",source:"Reuters / Bloomberg",date:"2026-07-23",severity:"HIGH",icon:"⚠️"},
-  {type:"FII_FLOW",company:"FII Selling Resumes",ticker:"",signal:"FII -2,999 Cr cash Jul 23 (2nd straight sell day). 2.63L net short index-futures contracts = bearish positioning. Jul MTD inflows reversing.",source:"NSDL / BSE",date:"2026-07-23",severity:"HIGH",icon:"🌍"},
-  {type:"EARNINGS_UPCOMING",company:"Shriram Finance",ticker:"SHRIRAMFIN",signal:"Q1 FY27 results TODAY Jul 24. AAA upgrade by all 3 agencies + MUFG 20% stake. Lower borrowing cost benefit expected. Stock fell Jul 23 with market.",source:"BSE Filing",date:"2026-07-24",severity:"HIGH",icon:"📋"},
-  {type:"EARNINGS_UPCOMING",company:"Tata Motors",ticker:"TATAMOTORS",signal:"Q1 FY27 results Jul 25. EV + SUV thesis test. JLR margin critical. 3,400+ electric CV orders. Key auto sector read.",source:"BSE Filing",date:"2026-07-24",severity:"HIGH",icon:"📋"},
-  // ═══ STILL ACTIVE (Jul 17-22) ═══
-  {type:"EARNINGS",company:"Bajaj Auto",ticker:"BAJAJ-AUTO",signal:"Q1 FY27 BLOWOUT: PAT Rs 3,226 Cr (+46% YoY), Revenue Rs 21,689 Cr (+65% YoY, ALL-TIME HIGH). Exports 700K units record.",source:"BSE Filing",date:"2026-07-21",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"ICICI Bank",ticker:"ICICIBANK",signal:"Q1 FY27 BEAT: PAT Rs 14,805 Cr (+16% YoY). GNPA 1.38% (from 1.67%). ROA 2.49%. Advances +19.6%.",source:"BSE Filing",date:"2026-07-18",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS_MISS",company:"HDFC Bank",ticker:"HDFCBANK",signal:"Q1 FY27 MIXED: PAT Rs 19,060 Cr (+5% YoY), NIM 3.26% RECORD LOW. Margin squeeze from HDFC Ltd integration.",source:"BSE Filing",date:"2026-07-18",severity:"HIGH",icon:"📉"},
-  {type:"EARNINGS",company:"PNB",ticker:"PNB",signal:"Q1 FY27: PAT Rs 5,253 Cr (+214% YoY). GNPA 2.78%, NNPA 0.28%. Massive turnaround.",source:"BSE Filing",date:"2026-07-18",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"Reliance Industries",ticker:"RELIANCE",signal:"Q1 FY27: EBITDA Rs 54,067 Cr RECORD (+10.1%). PAT Rs 23,001 Cr (-22.4% due to base year one-off).",source:"BSE Filing",date:"2026-07-17",severity:"HIGH",icon:"💹"},
-  {type:"GOVT_APPROVAL",company:"Dixon Technologies",ticker:"DIXON",signal:"Vivo JV APPROVED (Dixon 51%). ~22M handsets/yr. ECMS camera-module approvals for Kaynes, Syrma, Uno Minda, Dixon — EMS policy tailwind stacking.",source:"DPIIT / BSE",date:"2026-07-22",severity:"HIGH",icon:"🏭"},
-  {type:"POLICY",company:"Ather Energy",ticker:"ATHERENERGY",signal:"PM E-Drive subsidy expiry Jul 31. Pre-buy rush in final week. Post-expiry price hike ~Rs 5,000.",source:"MHI Dashboard",date:"2026-07-22",severity:"HIGH",icon:"⚡"},
-  {type:"CREDIT_UPGRADE",company:"Shriram Finance",ticker:"SHRIRAMFIN",signal:"AAA by ALL 3 agencies + MUFG 20% stake. Results TODAY Jul 24.",source:"Rating Agencies",date:"2026-07-22",severity:"HIGH",icon:"⭐"},
+  {type:"EARNINGS_MISS",company:"IndiGo",ticker:"INDIGO",signal:"Q1 FY27: Net loss Rs 238 Cr vs profit Rs 2,176 Cr YoY. Revenue +20% to Rs 24,584 Cr but fuel costs surged 86%. Cash Rs 52,885 Cr cushion. Crude easing to ~$85 = recovery watch.",source:"BSE Filing",date:"2026-07-23",severity:"HIGH",icon:"📉"},
 ];
 
 function renderPrimaryResearch() {
@@ -8818,89 +8803,83 @@ function renderPrimaryResearch() {
 
 // ============================================================
 //  AGENT-CURATED NEWS INTELLIGENCE (web-search powered)
-//  Last updated: 24 Jul 2026 by AI Research Agent
+//  Last updated: 30 Jul 2026 by AI Research Agent
 // ============================================================
 const CURATED_NEWS = [
-  // ═══ FRESH Jul 23-24 Intelligence ═══
-  {title:"Brent crude BROKE $100 — surged to ~$101 Jul 23 (+7%). Houthi attacks on 2 Saudi tankers + Kazakhstan CPC export halt. OMC sector devastated.",
-   source:"Reuters / Bloomberg",link:"https://intellectia.ai/blog/brent-crude-oil-price-analysis-july-2026",
-   pubDate:"2026-07-23",tag:"geo",tagLabel:"Crude Crisis",
-   impact:"bearish",impactText:"$100+ Crude",
+  // ═══ FRESH Jul 29-30 Intelligence (updated 2026-07-30 by AI Research Agent) ═══
+  {title:"Sensex ROARS BACK +889 pts (+1.16%) to 77,655; Nifty +265 to 24,250 — rupee strengthens, IT flows return, FII short covering.",
+   source:"Investing.com",link:"https://m.in.investing.com/news/stock-market-news/nifty-sensex-rise-as-rupee-strengthens-despite-higher-crude-oil-prices-5481860",
+   pubDate:"2026-07-29",tag:"india",tagLabel:"Market Rebound",
+   impact:"bullish",impactText:"+1.16% Rally",
    stocks:[],
-   detail:"Brent at highest since May 2026. BPCL loss Rs 3,962 Cr, HPCL loss Rs 11,526 Cr, IndiGo loss Rs 238 Cr — all crude casualties. India imports 85% crude. Airlines, paints, chemicals under margin pressure."},
-  {title:"Nifty 23,870 (-0.53%) — 4th STRAIGHT decline. Sensex 76,391 (-364). SMIDs -1%. Regime shifts to BEAR territory.",
-   source:"NSE / BSE",link:"https://hdfcsky.com/news/bse-nse-sensex-july-23-2026-close-report-sensex-nifty-fall-for-fourth-straight-session-as-oil-iran-continue-to-weigh",
-   pubDate:"2026-07-23",tag:"india",tagLabel:"Market Update",
-   impact:"bearish",impactText:"4th Decline",
+   detail:"Sharp reversal from last week's 4-session slide to 23,870. Drivers: IT sector inflows after global AI-stock correction, rupee appreciation to ~95.7/USD, FII short covering, sustained frontline buying."},
+  {title:"Fed HOLDS rates — Sensex, Nifty seen positive with range-bound bias Jul 30. Crude eased to ~$85; USD/INR 95.69.",
+   source:"Goodreturns",link:"https://www.goodreturns.in/news/stock-market-outlook-today-30-july-2026-sensex-nifty-likely-to-trade-positive-after-fed-holds-rates-1525181.html",
+   pubDate:"2026-07-30",tag:"global",tagLabel:"Fed + Macro",
+   impact:"bullish",impactText:"Fed Hold",
    stocks:[],
-   detail:"Support 23,700 only ~170 pts away. If broken = BEAR confirmed. Gainers: SBI Life, Bajaj Auto, M&M, Eternal. Losers: Nestle -2.39%, Adani Enterprises, Shriram Finance."},
-  {title:"FII selling -2,999 Cr cash Jul 23 (2nd straight day). 2.63L net short index-futures contracts — aggressive bearish positioning.",
-   source:"NSDL / BSE",link:"https://www.business-standard.com/markets/news/fpi-inflows-resume-in-july-consumer-services-metals-lead-sectoral-buying-126072101105_1.html",
-   pubDate:"2026-07-23",tag:"india",tagLabel:"FII Flow",
-   impact:"bearish",impactText:"FII Selling",
+   detail:"Crude sharply off the $100+ Brent panic of Jul 23 — relief for OMCs, aviation, paints, chemicals. Resilient domestic earnings + improving global sentiment supporting the tape."},
+  {title:"FII net BUY +Rs 2,982 Cr and DII net BUY +Rs 998 Cr Jul 29 — BOTH buyers; flow regime flipping bullish.",
+   source:"NSE / 5paisa",link:"https://www.5paisa.com/share-market-today/fii-dii-data",
+   pubDate:"2026-07-29",tag:"india",tagLabel:"FII Flow",
+   impact:"bullish",impactText:"FII Buying",
    stocks:[],
-   detail:"Jul MTD FII flows reversing from earlier +11,682 Cr. Futures shorts signal institutional bearishness. DII also selling (-418 Cr Jul 22). Double-seller days are rare and concerning."},
+   detail:"Reversal from -2,999 Cr FII selling on Jul 23. Short covering of the 2.63L net-short index-futures position underway. Double-buyer days after double-seller days = strong regime signal."},
+  {title:"Asian Paints Q1 BEAT: PAT Rs 1,539 Cr (+40% YoY), Revenue Rs 10,521 Cr (+17.9%). PBDIT margin 20.6%.",
+   source:"Business Standard",link:"https://www.business-standard.com/markets/capital-market-news/asian-paints-gains-as-q1-pat-jumps-40-yoy-to-rs-1-539-crore-126072900833_1.html",
+   pubDate:"2026-07-29",tag:"company",tagLabel:"Asian Paints",
+   impact:"bullish",impactText:"+40% PAT",
+   stocks:["Asian Paints"],
+   detail:"Margin expansion +240bps to 20.6%. International net sales +27.2% (Egypt, UAE, Oman, Nepal, Bangladesh); intl PBT +94.9%. Crude easing = further input-cost tailwind for paints."},
+  {title:"Balkrishna Industries Q1: PAT jumps 56% YoY to Rs 451 Cr; Rs 4/share dividend declared.",
+   source:"Sahi",link:"https://www.sahi.com/blogs/balkrishna-industries-q1-results-fy27",
+   pubDate:"2026-07-29",tag:"company",tagLabel:"Balkrishna Inds",
+   impact:"bullish",impactText:"+56% PAT",
+   stocks:["Balkrishna Industries"],
+   detail:"Revenue Rs 3,455 Cr +25.2% YoY. Off-highway tyre (agri/OTR) export demand strong."},
+  {title:"Waaree Energies Q1: Revenue +79% to Rs 7,932 Cr, PAT +14% to Rs 850 Cr, EBITDA +44% to Rs 1,440 Cr.",
+   source:"Upstox",link:"https://upstox.com/news/market-news/earnings/waaree-energies-q1-fy-27-results-net-profit-rises-14-to-850-crore-revenue-grows-to-7-932-crore/article-197793/",
+   pubDate:"2026-07-29",tag:"company",tagLabel:"Waaree Energies",
+   impact:"bullish",impactText:"+79% Revenue",
+   stocks:["Waaree Energies"],
+   detail:"Solar manufacturing scale-up on track. US arm won 236 MW Kentucky module supply (Jun 30). PAT growth lagging revenue = margin compression to watch."},
+  {title:"Bajaj Housing Finance Q1: PAT +23% to Rs 715 Cr; AUM crosses Rs 1.49 L Cr (+24%); record disbursements.",
+   source:"Upstox",link:"https://upstox.com/news/market-news/earnings/bajaj-housing-finance-q1-results-net-profit-rises-23-yo-y-to-715-crore-interest-income-climbs-14-details-here/article-197785/",
+   pubDate:"2026-07-29",tag:"company",tagLabel:"Bajaj Housing",
+   impact:"bullish",impactText:"+23% PAT",
+   stocks:["Bajaj Housing Finance"],
+   detail:"Record quarterly AUM addition Rs 8,918 Cr, all-time-high disbursements Rs 19,509 Cr. NII +9% vs AUM +24% = margin pressure to monitor."},
+  {title:"IDFC First Bank Q1: Highest-ever PAT Rs 1,075 Cr, up 132.4% YoY from Rs 463 Cr.",
+   source:"The Tribune",link:"https://www.tribuneindia.com/news/business/idfc-first-bank-q1fy27-results-highest-ever-pat-of-%E2%82%B91075-crore-up-132-4-yoy/",
+   pubDate:"2026-07-25",tag:"company",tagLabel:"IDFC First Bank",
+   impact:"bullish",impactText:"+132% PAT",
+   stocks:["IDFC First Bank"],
+   detail:"Credit-cost normalization + operating leverage kicking in. Private-bank Q1 season strong: ICICI +16%, Kotak +26%, IDFC First +132%."},
+  {title:"KPIT Technologies Q1 WEAK: PAT -28% QoQ to Rs 117 Cr; revenue slips 2.1% QoQ to Rs 1,675 Cr.",
+   source:"Prokerala / PTI",link:"https://www.prokerala.com/news/articles/a1793885.html",
+   pubDate:"2026-07-29",tag:"company",tagLabel:"KPIT Tech",
+   impact:"bearish",impactText:"Q1 Miss",
+   stocks:["KPIT Technologies"],
+   detail:"Auto ER&D demand soft. IT tape stays selective post-Infosys guide cut — engineering services not immune."},
+  {title:"Q1 marathon: Vedanta TODAY (Jul 30, concall 5 PM); Maruti, TVS Motor, Ambuja, JSW Energy, PB Fintech on Jul 31.",
+   source:"Business Standard",link:"https://www.business-standard.com/companies/quarterly-results/q1-results-hul-swiggy-vedanta-adani-enterprises-pb-fintech-maruti-suzuki-125073100121_1.html",
+   pubDate:"2026-07-30",tag:"india",tagLabel:"Results Calendar",
+   impact:"neutral",impactText:"Q1 Watch",
+   stocks:[],
+   detail:"Jul 31 is the heaviest single day of the season — auto (Maruti, TVS), cement (Ambuja), power (JSW Energy) reads. Vedanta = metals cycle + demerger progress."},
+  // ═══ STILL RELEVANT (Jul 23) ═══
   {title:"Infosys Q1 FY27: Revenue Rs 48,211 Cr (+14%), PAT Rs 7,775 Cr (+12%). BUT FY27 guidance CUT to 1.5-3.0%. AI at 8.2% of revenue.",
    source:"Infosys IR",link:"https://upstox.com/news/market-news/earnings/infosys-q1-results-fy-27-revenue-growth-guidance-narrowed-to-1-5-3-0-in-constant-currency/article-197461/",
    pubDate:"2026-07-23",tag:"company",tagLabel:"Infosys",
    impact:"bearish",impactText:"Guide Cut",
    stocks:["Infosys"],
-   detail:"TCV $3.6B (61% net new) is strong. But guide cut from 1.5-3.5% to 1.5-3.0% signals demand uncertainty. AI re-rating catalyst did NOT fire. IT sector remains selective."},
-  {title:"Eternal (Zomato) Q1 BLOWOUT: PAT Rs 92 Cr (+268% YoY), Revenue Rs 20,211 Cr (+182%). Blinkit driving explosive quick-commerce growth.",
-   source:"BSE Filing",link:"https://www.republicworld.com/business/eternal-q1-results-fy27-net-profit-rises-blinkit-revenue-soars-2026-07-22-133098",
-   pubDate:"2026-07-22",tag:"company",tagLabel:"Eternal",
-   impact:"bullish",impactText:"268% PAT Growth",
-   stocks:[],
-   detail:"EBITDA +417% to Rs 594 Cr. Blinkit GMV growth accelerating. Quick-commerce thesis playing out. Sequential profit decline -47% is noise vs massive YoY beat."},
-  {title:"IndusInd Bank Q1 RECOVERY: PAT Rs 1,037 Cr (+72% YoY). Provisions down 21%. Stock fell 6% post results on profit booking.",
-   source:"BSE Filing",link:"https://www.business-standard.com/markets/news/indusind-bank-share-price-falls-6-post-q1-analysts-stay-bullish-see-up-to-13-upside-126072300326_1.html",
-   pubDate:"2026-07-22",tag:"company",tagLabel:"IndusInd Bank",
-   impact:"bullish",impactText:"Recovery Q1",
-   stocks:[],
-   detail:"Analysts stay bullish — see up to 13% upside despite the 6% post-results drop. Turnaround trajectory intact after derivative book issues."},
-  {title:"HPCL catastrophic loss Rs 11,526 Cr in Q1 FY27. BPCL loss Rs 3,962 Cr. OMC sector worst quarter in history as crude crosses $100.",
-   source:"BSE / Upstox",link:"https://upstox.com/news/market-news/earnings/hindustan-petroleum-corporation-reports-loss-of-11-526-crore-revenue-jumps-21-qo-q-check-q1-fy-27-numbers/article-197389/",
-   pubDate:"2026-07-22",tag:"company",tagLabel:"OMC Crisis",
-   impact:"bearish",impactText:"OMC Wipeout",
-   stocks:[],
-   detail:"Both HPCL and BPCL cratered. Under-recovery on auto fuels at crude $90+. Government may need to revise fuel prices or provide subsidy. Avoid entire OMC sector."},
+   detail:"TCV $3.6B (61% net new) is strong. But guide cut from 1.5-3.5% to 1.5-3.0% signals demand uncertainty. IT flows returning Jul 29-30 on rupee + global AI-stock stabilization."},
   {title:"Cyient Q1 BEAT: PAT Rs 104 Cr (+90% QoQ). EBIT margin 9% +90bps. Semiconductor arm valued at $500M. DLM record order book.",
    source:"BSE Filing",link:"https://www.business-standard.com/companies/quarterly-results/q1-results-adani-green-mazagon-bel-gail-indusind-bank-bajaj-healthcare-125072800091_1.html",
    pubDate:"2026-07-23",tag:"company",tagLabel:"Cyient",
    impact:"bullish",impactText:"Q1 Beat",
    stocks:[],
    detail:"IT selective tape — Cyient outperforming on engineering services. Semis arm valued at $500M is potential demerger/listing catalyst. DLM segment on fire."},
-  {title:"IndiGo Q1: Net loss Rs 238 Cr vs profit Rs 2,176 Cr YoY. Revenue +20% but fuel costs SURGED 86%. Cash buffer Rs 52,885 Cr.",
-   source:"BSE Filing",link:"https://www.goodreturns.in/news/indigo-q1-results-interglobe-aviation-swings-to-rs-238-crore-loss-despite-20-revenue-growth-due-to-1523925.html",
-   pubDate:"2026-07-23",tag:"company",tagLabel:"IndiGo",
-   impact:"bearish",impactText:"Crude Casualty",
-   stocks:[],
-   detail:"432 aircraft, 97 domestic + 46 international destinations. Strong demand but crude above $100 makes profitability impossible. Watch crude for aviation sector recovery."},
-  {title:"Adani Green Energy Q1: PAT Rs 983 Cr (+19%), capacity crosses 20 GW. BESS 3,551 MWh operational at Khavda.",
-   source:"BSE Filing",link:"https://upstox.com/news/market-news/earnings/adani-green-energy-q1-results-net-profit-jumps-over-19-yo-y-to-983-crore-revenue-rises-17/article-197373/",
-   pubDate:"2026-07-22",tag:"company",tagLabel:"Adani Green",
-   impact:"bullish",impactText:"20 GW Crossed",
-   stocks:[],
-   detail:"1,972 MWh BESS capacity added in Q1 at Khavda. Total RE operational capacity now 20.1 GW (+27% YoY). Stock slipped 4% despite good numbers — market weakness."},
-  // ═══ STILL RELEVANT (Jul 18-22) ═══
-  {title:"Bajaj Auto Q1 FY27 BLOWOUT: PAT Rs 3,226 Cr (+46% YoY), Revenue Rs 21,689 Cr ALL-TIME HIGH (+65%).",
-   source:"BSE Filing",link:"https://www.businesstoday.in/markets/stocks/story/bajaj-auto-q1-results-profit-rises-46-yoy-to-rs-3226-crore-revenue-climbs-65-544215-2026-07-21",
-   pubDate:"2026-07-21",tag:"company",tagLabel:"Bajaj Auto",
-   impact:"bullish",impactText:"Q1 Blowout",
-   stocks:["Bajaj Auto"],
-   detail:"Exports 700K units record. KTM+Triumph domestic +60% YoY. Auto sector broad-based strength."},
-  {title:"ICICI Bank Q1 BEAT: PAT Rs 14,805 Cr (+16% YoY). GNPA 1.38% (from 1.67%). ROA 2.49%.",
-   source:"BSE Filing",link:"https://www.business-standard.com/companies/quarterly-results/icici-bank-s-q1fy27-standalone-profit-rises-15-9-to-rs-14-804-cr-126071800665_1.html",
-   pubDate:"2026-07-18",tag:"company",tagLabel:"ICICI Bank",
-   impact:"bullish",impactText:"Q1 Beat",
-   stocks:["ICICI Bank"],
-   detail:"Clean asset quality. Advances +19.6%. HIGH conviction thesis intact."},
-  {title:"ECMS camera-module approvals: Kaynes, Syrma, Uno Minda, Dixon among 5 cleared — EMS policy tailwind stacking.",
-   source:"DPIIT / MeitY",link:"https://www.bseindia.com/corporates/ann.html",
-   pubDate:"2026-07-22",tag:"india",tagLabel:"EMS Policy",
-   impact:"bullish",impactText:"EMS Tailwind",
-   stocks:["Dixon Technologies"],
-   detail:"Dixon Vivo JV + ECMS approvals + Semicon 2.0 = triple tailwind for EMS sector. Kaynes and Syrma also beneficiaries."},
 ];
 
 // ---- MASTER LOAD: News Intelligence Tab ----
@@ -12475,6 +12454,7 @@ var JainPMS_Cloud = {
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function() { JainPMS_Cloud.init(); }, 3000); // Init after 3s to let page load first
   setTimeout(function() { LiveCatalystEngine.init(); }, 5000); // Load live catalysts after cloud sync
+  setTimeout(function() { AIAgentEngine.init(); }, 8000); // AI Agent after cloud + catalysts ready
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -12672,6 +12652,536 @@ var LiveCatalystEngine = {
     var earnings = this.getEarnings();
     var source = this._cloudSignals ? 'CLOUD' : 'HARDCODED';
     return { source: source, signals: signals.length, earnings: earnings.length, lastFetch: this._lastFetch };
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  AI AGENT ENGINE v1.0 [v18.0]
+//  Reads AI decisions from Cloud Sync (pushed by Claude scheduled tasks)
+//  Executes BUY/SELL decisions with conviction-based sizing
+//  All existing risk controls preserved (circuit breaker, cooldown, drawdown)
+//  Features: Sector correlation guard, partial profit exits, trailing stops
+// ═══════════════════════════════════════════════════════════════
+var AIAgentEngine = {
+  cloudUrl: JainPMS_Cloud.URL,
+  _lastDecisionTimestamp: null,
+  _executedIds: {},          // ticker+timestamp keys of already-executed decisions
+  _pollTimer: null,
+  _pollInterval: 60000,      // 60 seconds
+  _lastFetch: null,
+  _lastError: null,
+  _currentDecisions: null,   // latest fetched decision payload
+  _partialExits: {},         // ticker -> { sold50pct: bool, trailPeak: number }
+  _active: false,
+  MAX_POSITIONS: 3,
+
+  // ── Conviction → allocation % map ──
+  CONVICTION_SIZE: {
+    'HIGH': 0.30,
+    'MED-HIGH': 0.25,
+    'MEDIUM': 0.20,
+    'LOW': 0.15
+  },
+
+  MAX_SECTOR_POSITIONS: 2,
+
+  // ── Initialize engine ──
+  init: function() {
+    var self = this;
+    // Load previously executed decision IDs from localStorage
+    try {
+      var saved = localStorage.getItem('aiAgent_executedIds');
+      if (saved) self._executedIds = JSON.parse(saved);
+    } catch(e) {}
+    // Load partial exit state
+    try {
+      var pe = localStorage.getItem('aiAgent_partialExits');
+      if (pe) self._partialExits = JSON.parse(pe);
+    } catch(e) {}
+
+    console.log('[AI-AGENT] v1.0 init — starting cloud decision polling');
+    self.updateStatus('Initialized — waiting for market hours');
+
+    // First fetch after 8 seconds (let cloud sync + catalysts load first)
+    setTimeout(function() { self.fetchAndExecute(); }, 8000);
+
+    // Start polling timer
+    self.startPolling();
+    self._active = true;
+  },
+
+  // ── Start/stop market-hours polling ──
+  startPolling: function() {
+    var self = this;
+    if (self._pollTimer) clearInterval(self._pollTimer);
+    self._pollTimer = setInterval(function() {
+      if (!self.isMarketHours()) return;
+      self.fetchAndExecute();
+    }, self._pollInterval);
+  },
+
+  stopPolling: function() {
+    if (this._pollTimer) { clearInterval(this._pollTimer); this._pollTimer = null; }
+    this._active = false;
+    console.log('[AI-AGENT] Polling stopped');
+  },
+
+  // ── Market hours check (9:15-15:30, weekdays) ──
+  isMarketHours: function() {
+    var now = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
+    var day = now.getDay();
+    if (day === 0 || day === 6) return false;
+    var hhmm = now.getHours() * 100 + now.getMinutes();
+    return hhmm >= 915 && hhmm <= 1530;
+  },
+
+  // ── Fetch decisions from cloud and execute ──
+  fetchAndExecute: function() {
+    var self = this;
+    var url = self.cloudUrl + '?op=load&type=aiDecisions';
+    console.log('[AI-AGENT] Fetching AI decisions from cloud...');
+    self.updateStatus('Fetching decisions...');
+
+    fetch(url, { signal: AbortSignal.timeout(12000) })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        self._lastFetch = new Date().toISOString();
+        self._lastError = null;
+
+        if (!d.found || !d.data) {
+          console.log('[AI-AGENT] No AI decisions in cloud');
+          self.updateStatus('No decisions available');
+          self._currentDecisions = null;
+          return;
+        }
+
+        var payload = typeof d.data === 'string' ? JSON.parse(d.data) : d.data;
+        self._currentDecisions = payload;
+
+        // Check if this is a new decision set (compare timestamp)
+        if (payload.timestamp === self._lastDecisionTimestamp) {
+          console.log('[AI-AGENT] Same decision set — no new actions');
+          self.updateStatus('Up to date | ' + (payload.regime || 'UNKNOWN'));
+          return;
+        }
+
+        self._lastDecisionTimestamp = payload.timestamp;
+        console.log('[AI-AGENT] New decisions received: ' + payload.timestamp +
+          ' | Phase: ' + (payload.marketPhase || '?') +
+          ' | Regime: ' + (payload.regime || '?') +
+          ' | Buys: ' + ((payload.decisions || []).length) +
+          ' | Exits: ' + ((payload.exitDecisions || []).length));
+
+        // Process exit decisions first (free up capital + positions)
+        self.processExitDecisions(payload.exitDecisions || []);
+
+        // Process buy decisions
+        self.processBuyDecisions(payload.decisions || [], payload);
+
+        self.updateStatus('Executed | ' + (payload.regime || '') + ' | ' +
+          new Date(payload.timestamp).toLocaleTimeString('en-IN', {timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit'}));
+      })
+      .catch(function(e) {
+        self._lastError = e.message;
+        console.warn('[AI-AGENT] Fetch error:', e.message);
+        self.updateStatus('Error: ' + e.message.substring(0, 40));
+      });
+  },
+
+  // ── Process EXIT decisions ──
+  processExitDecisions: function(exits) {
+    if (!exits || exits.length === 0) return;
+    var self = this;
+    var w = getDT();
+
+    exits.forEach(function(ex) {
+      var decisionKey = 'EXIT_' + ex.ticker + '_' + (self._lastDecisionTimestamp || '');
+      if (self._executedIds[decisionKey]) {
+        console.log('[AI-AGENT] EXIT already executed: ' + ex.ticker);
+        return;
+      }
+
+      // Find matching position
+      var posIdx = -1;
+      for (var i = 0; i < w.positions.length; i++) {
+        if (w.positions[i].ticker === ex.ticker) { posIdx = i; break; }
+      }
+      if (posIdx < 0) {
+        console.log('[AI-AGENT] EXIT skip — no position in ' + ex.ticker);
+        return;
+      }
+
+      var pos = w.positions[posIdx];
+      var livePrice = pos.currentPrice || pos.buyPrice;
+      var pnl = (livePrice - pos.buyPrice) * pos.qty;
+      var returnPct = pos.buyPrice > 0 ? ((livePrice - pos.buyPrice) / pos.buyPrice * 100) : 0;
+
+      w.cash += livePrice * pos.qty;
+      w.trades.push({
+        type: 'SELL', ticker: pos.ticker, name: pos.name || pos.ticker,
+        qty: pos.qty, price: livePrice, buyPrice: pos.buyPrice,
+        pnl: Math.round(pnl), pnlPct: returnPct.toFixed(2),
+        reason: 'AI-AGENT EXIT: ' + (ex.reason || 'AI decision') + ' [' + (ex.urgency || 'NORMAL') + ']',
+        source: 'daytrade-ai-agent', time: new Date().toISOString()
+      });
+
+      console.log('[AI-AGENT] SOLD ' + pos.ticker + ' ' + pos.qty + 'qty @ ' +
+        livePrice.toFixed(2) + ' | P&L: ' + (returnPct >= 0 ? '+' : '') + returnPct.toFixed(2) + '% (₹' + Math.round(pnl) + ')');
+
+      // Update risk controls
+      try { updateRiskStateOnExit(pnl, returnPct); } catch(re) {}
+
+      w.positions.splice(posIdx, 1);
+      // Clean up partial exit tracking
+      delete self._partialExits[pos.ticker];
+      self._executedIds[decisionKey] = true;
+    });
+
+    saveDT(w);
+    self._saveState();
+  },
+
+  // ── Process BUY decisions ──
+  processBuyDecisions: function(decisions, payload) {
+    if (!decisions || decisions.length === 0) return;
+    var self = this;
+    var w = getDT();
+
+    // Pre-checks
+    var riskGate = checkRiskGate();
+    if (!riskGate.allowed) {
+      console.log('[AI-AGENT] BUY blocked by risk gate: ' + riskGate.reason);
+      return;
+    }
+
+    // Build re-entry ban list
+    var todayStr = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'})).toISOString().slice(0, 10);
+    var bannedTickers = [];
+    (w.trades || []).forEach(function(t) {
+      if (t.type === 'SELL' && t.time && t.time.slice(0, 10) === todayStr) {
+        if (bannedTickers.indexOf(t.ticker) < 0) bannedTickers.push(t.ticker);
+      }
+    });
+
+    // Current sector counts for correlation guard
+    var sectorCounts = {};
+    w.positions.forEach(function(p) {
+      var sec = (p.sector || 'UNKNOWN').toUpperCase();
+      sectorCounts[sec] = (sectorCounts[sec] || 0) + 1;
+    });
+
+    // Sort by conviction (HIGH first)
+    var convOrder = { 'HIGH': 4, 'MED-HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+    var sorted = decisions.slice().sort(function(a, b) {
+      return (convOrder[b.conviction] || 0) - (convOrder[a.conviction] || 0);
+    });
+
+    var bought = 0;
+
+    sorted.forEach(function(dec) {
+      var decisionKey = 'BUY_' + dec.ticker + '_' + (self._lastDecisionTimestamp || '');
+      if (self._executedIds[decisionKey]) {
+        console.log('[AI-AGENT] BUY already executed: ' + dec.ticker);
+        return;
+      }
+
+      // Position limit check
+      if (w.positions.length >= self.MAX_POSITIONS) {
+        console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — max ' + self.MAX_POSITIONS + ' positions reached');
+        return;
+      }
+
+      // Already holding this ticker
+      var alreadyHolding = w.positions.some(function(p) { return p.ticker === dec.ticker; });
+      if (alreadyHolding) {
+        console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — already in position');
+        self._executedIds[decisionKey] = true;
+        return;
+      }
+
+      // Re-entry ban
+      if (bannedTickers.indexOf(dec.ticker) >= 0) {
+        console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — re-entry ban (sold today)');
+        self._executedIds[decisionKey] = true;
+        return;
+      }
+
+      // Jainism compliance check
+      var sectorStr = (dec.sector || '') + ' ' + (dec.name || '');
+      if (isEthicallyExcluded(sectorStr)) {
+        console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — Jainism excluded sector: ' + dec.sector);
+        self._executedIds[decisionKey] = true;
+        return;
+      }
+
+      // Sector correlation guard — max 2 stocks from same sector
+      var decSector = (dec.sector || 'UNKNOWN').toUpperCase();
+      if ((sectorCounts[decSector] || 0) >= self.MAX_SECTOR_POSITIONS) {
+        console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — sector guard: already ' +
+          sectorCounts[decSector] + ' positions in ' + decSector);
+        self._executedIds[decisionKey] = true;
+        return;
+      }
+
+      // Conviction-based position sizing
+      var allocPct = self.CONVICTION_SIZE[dec.conviction] || 0.20;
+      var walletValue = w.cash + w.positions.reduce(function(s, p) {
+        return s + (p.currentPrice || p.buyPrice) * p.qty;
+      }, 0);
+      var positionBudget = walletValue * allocPct * (riskGate.sizeMultiplier || 1.0);
+
+      // Don't exceed available cash
+      if (positionBudget > w.cash * 0.95) positionBudget = w.cash * 0.95;
+      if (positionBudget < 10000) {
+        console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — insufficient budget: ' + Math.round(positionBudget));
+        return;
+      }
+
+      var entryPrice = dec.entryPrice;
+      if (!entryPrice || entryPrice <= 0) {
+        console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — no valid entry price');
+        return;
+      }
+
+      var qty = Math.floor(positionBudget / entryPrice);
+      if (qty < 1) {
+        console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — qty would be 0');
+        return;
+      }
+
+      var cost = qty * entryPrice;
+      if (cost > w.cash) {
+        qty = Math.floor(w.cash / entryPrice);
+        cost = qty * entryPrice;
+      }
+      if (qty < 1) return;
+
+      // Execute the buy
+      w.cash -= cost;
+      var nowIST = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
+      var entryTimeMin = nowIST.getHours() * 60 + nowIST.getMinutes();
+
+      w.positions.push({
+        ticker: dec.ticker,
+        name: dec.name || dec.ticker,
+        sector: dec.sector || '',
+        buyPrice: entryPrice,
+        currentPrice: entryPrice,
+        qty: qty,
+        hasCatalyst: true,
+        source: 'ai-agent',
+        buyTime: new Date().toISOString(),
+        entryTimeMin: entryTimeMin,
+        entryQuality: dec.conviction,
+        allocPct: Math.round(allocPct * 100),
+        signals: dec.signals || [],
+        stopLoss: dec.stopLoss || (entryPrice * 0.985),
+        target1: dec.target1 || (entryPrice * 1.015),
+        target2: dec.target2 || (entryPrice * 1.025),
+        target3: dec.target3 || (entryPrice * 1.04),
+        peakPrice: entryPrice,
+        aiConviction: dec.conviction,
+        aiReasoning: (dec.reasoning || '').substring(0, 120),
+        aiCatalystType: dec.catalystType || '',
+        tier1Booked: false,
+        tier2Booked: false
+      });
+
+      w.trades.push({
+        type: 'BUY', ticker: dec.ticker, name: dec.name || dec.ticker,
+        qty: qty, price: entryPrice, cost: Math.round(cost),
+        reason: 'AI-AGENT: ' + dec.conviction + ' conviction | ' + (dec.reasoning || '').substring(0, 80),
+        source: 'daytrade-ai-agent', time: new Date().toISOString()
+      });
+
+      // Initialize partial exit tracking
+      self._partialExits[dec.ticker] = { sold50pct: false, trailPeak: entryPrice };
+
+      sectorCounts[decSector] = (sectorCounts[decSector] || 0) + 1;
+      self._executedIds[decisionKey] = true;
+      bought++;
+
+      console.log('[AI-AGENT] BOUGHT ' + dec.ticker + ' ' + qty + 'qty @ ' +
+        entryPrice.toFixed(2) + ' | ' + dec.conviction + ' conviction' +
+        ' | Alloc ' + Math.round(allocPct * 100) + '% (₹' + Math.round(cost) + ')' +
+        ' | SL: ' + (dec.stopLoss || '-') + ' | T1: ' + (dec.target1 || '-') +
+        ' | Reason: ' + (dec.reasoning || '').substring(0, 60));
+    });
+
+    if (bought > 0) {
+      saveDT(w);
+      self._saveState();
+      console.log('[AI-AGENT] Executed ' + bought + ' buy(s) | Cash remaining: ₹' + Math.round(w.cash));
+      try { updateDTDisplay(w); } catch(e) {}
+    }
+  },
+
+  // ── Partial Profit Exit: sell 50% at +1.5%, trail remaining with stop 0.5% below peak ──
+  // Called from runDayTradeSmartExits loop for AI-agent positions
+  checkPartialExit: function(pos, livePrice, w) {
+    var self = this;
+    if (pos.source !== 'ai-agent') return null; // Only for AI-agent positions
+
+    var pe = self._partialExits[pos.ticker];
+    if (!pe) {
+      pe = { sold50pct: false, trailPeak: pos.buyPrice };
+      self._partialExits[pos.ticker] = pe;
+    }
+
+    var returnPct = pos.buyPrice > 0 ? ((livePrice - pos.buyPrice) / pos.buyPrice * 100) : 0;
+
+    // Update trailing peak
+    if (livePrice > pe.trailPeak) pe.trailPeak = livePrice;
+
+    // STEP 1: At +1.5%, sell 50% to lock profit
+    if (!pe.sold50pct && returnPct >= 1.5 && pos.qty >= 2) {
+      var sellQty = Math.max(1, Math.floor(pos.qty * 0.5));
+      var pnl = (livePrice - pos.buyPrice) * sellQty;
+      w.cash += livePrice * sellQty;
+      w.trades.push({
+        type: 'SELL', ticker: pos.ticker, name: pos.name || pos.ticker,
+        qty: sellQty, price: livePrice, buyPrice: pos.buyPrice,
+        pnl: Math.round(pnl), pnlPct: returnPct.toFixed(2),
+        reason: 'AI-PARTIAL: +' + returnPct.toFixed(1) + '% — 50% profit lock (' + sellQty + 'qty)',
+        source: 'daytrade-ai-agent', time: new Date().toISOString()
+      });
+      pos.qty -= sellQty;
+      pe.sold50pct = true;
+      pe.trailPeak = livePrice;
+      self._saveState();
+      try { updateRiskStateOnExit(pnl, returnPct); } catch(re) {}
+
+      console.log('[AI-AGENT] PARTIAL PROFIT: ' + pos.ticker + ' sold ' + sellQty +
+        'qty @ +' + returnPct.toFixed(1) + '% — trailing remaining ' + pos.qty + 'qty');
+
+      return {
+        action: 'PARTIAL_SELL',
+        ticker: pos.ticker,
+        qty: sellQty,
+        returnPct: returnPct,
+        pnl: pnl
+      };
+    }
+
+    // STEP 2: After 50% sold, trail remaining with stop 0.5% below peak
+    if (pe.sold50pct && pe.trailPeak > 0) {
+      var trailStopPrice = pe.trailPeak * 0.995; // 0.5% below peak
+      if (livePrice <= trailStopPrice && pos.qty > 0) {
+        var trailPnl = (livePrice - pos.buyPrice) * pos.qty;
+        var trailReturnPct = pos.buyPrice > 0 ? ((livePrice - pos.buyPrice) / pos.buyPrice * 100) : 0;
+        w.cash += livePrice * pos.qty;
+        w.trades.push({
+          type: 'SELL', ticker: pos.ticker, name: pos.name || pos.ticker,
+          qty: pos.qty, price: livePrice, buyPrice: pos.buyPrice,
+          pnl: Math.round(trailPnl), pnlPct: trailReturnPct.toFixed(2),
+          reason: 'AI-TRAIL-STOP: Peak ' + pe.trailPeak.toFixed(1) + ', stop ' +
+            trailStopPrice.toFixed(1) + ' | P&L ' + (trailReturnPct >= 0 ? '+' : '') + trailReturnPct.toFixed(1) + '%',
+          source: 'daytrade-ai-agent', time: new Date().toISOString()
+        });
+
+        console.log('[AI-AGENT] TRAIL STOP: ' + pos.ticker + ' ' + pos.qty +
+          'qty @ ' + livePrice.toFixed(2) + ' (peak: ' + pe.trailPeak.toFixed(2) +
+          ', stop: ' + trailStopPrice.toFixed(2) + ')');
+
+        var remainQty = pos.qty;
+        pos.qty = 0; // Mark for removal by caller
+        delete self._partialExits[pos.ticker];
+        self._saveState();
+        try { updateRiskStateOnExit(trailPnl, trailReturnPct); } catch(re) {}
+
+        return {
+          action: 'TRAIL_STOP_SELL',
+          ticker: pos.ticker,
+          qty: remainQty,
+          returnPct: trailReturnPct,
+          pnl: trailPnl
+        };
+      }
+    }
+
+    self._partialExits[pos.ticker] = pe;
+    return null;
+  },
+
+  // ── Persist state to localStorage ──
+  _saveState: function() {
+    try {
+      localStorage.setItem('aiAgent_executedIds', JSON.stringify(this._executedIds));
+      localStorage.setItem('aiAgent_partialExits', JSON.stringify(this._partialExits));
+    } catch(e) {}
+  },
+
+  // ── Check if AI decisions are active (for priority over rule-based triggers) ──
+  hasActiveDecisions: function() {
+    if (!this._currentDecisions) return false;
+    var ts = this._currentDecisions.timestamp;
+    if (!ts) return false;
+    // Decisions are "active" if received within last 30 minutes
+    var age = Date.now() - new Date(ts).getTime();
+    return age < 1800000; // 30 minutes
+  },
+
+  // ── Get pending (unexecuted) buy decisions count ──
+  getPendingCount: function() {
+    if (!this._currentDecisions || !this._currentDecisions.decisions) return 0;
+    var self = this;
+    var pending = 0;
+    (self._currentDecisions.decisions || []).forEach(function(dec) {
+      var key = 'BUY_' + dec.ticker + '_' + (self._lastDecisionTimestamp || '');
+      if (!self._executedIds[key]) pending++;
+    });
+    return pending;
+  },
+
+  // ── Get executed decision count for current batch ──
+  getExecutedCount: function() {
+    if (!this._currentDecisions || !this._currentDecisions.decisions) return 0;
+    var self = this;
+    var executed = 0;
+    (self._currentDecisions.decisions || []).forEach(function(dec) {
+      var key = 'BUY_' + dec.ticker + '_' + (self._lastDecisionTimestamp || '');
+      if (self._executedIds[key]) executed++;
+    });
+    return executed;
+  },
+
+  // ── Update UI status badge ──
+  updateStatus: function(msg) {
+    var el = document.getElementById('dtAIAgentStatus');
+    if (!el) return;
+    var color = '#a78bfa'; // default purple
+    if (msg.indexOf('Error') >= 0) color = '#ef4444';
+    else if (msg.indexOf('Executed') >= 0 || msg.indexOf('BOUGHT') >= 0) color = '#22c55e';
+    else if (msg.indexOf('Fetching') >= 0) color = '#60a5fa';
+    el.style.color = color;
+    el.innerHTML = '&#129302; AI-AGENT: ' + msg;
+  },
+
+  // ── Full status for debugging ──
+  getStatus: function() {
+    return {
+      active: this._active,
+      lastFetch: this._lastFetch,
+      lastError: this._lastError,
+      lastDecisionTime: this._lastDecisionTimestamp,
+      hasDecisions: this.hasActiveDecisions(),
+      pending: this.getPendingCount(),
+      executed: this.getExecutedCount(),
+      regime: this._currentDecisions ? this._currentDecisions.regime : null,
+      marketPhase: this._currentDecisions ? this._currentDecisions.marketPhase : null,
+      partialExits: Object.keys(this._partialExits).length,
+      nextCheck: this._active ? 'Every 60s during market hours' : 'Stopped'
+    };
+  },
+
+  // ── Reset daily state (call at start of new day) ──
+  resetDaily: function() {
+    this._executedIds = {};
+    this._lastDecisionTimestamp = null;
+    this._currentDecisions = null;
+    this._partialExits = {};
+    this._saveState();
+    console.log('[AI-AGENT] Daily state reset');
   }
 };
 
@@ -16365,6 +16875,26 @@ async function runDayTradeSmartExits() {
     var shouldExit = false;
     var exitReason = '';
 
+    // ═══ v18.0: AI-AGENT PARTIAL PROFIT EXIT ═══
+    // For AI-agent positions: 50% at +1.5%, trail remaining with 0.5% trailing stop
+    if (pos.source === 'ai-agent' && typeof AIAgentEngine !== 'undefined') {
+      var partialResult = AIAgentEngine.checkPartialExit(pos, livePrice, w);
+      if (partialResult) {
+        if (partialResult.action === 'TRAIL_STOP_SELL') {
+          // Full exit — remove position
+          w.positions.splice(i, 1);
+          exitCount++;
+          exitLog.push(pos.ticker + ': AI-TRAIL-STOP +' + partialResult.returnPct.toFixed(1) + '%');
+        } else if (partialResult.action === 'PARTIAL_SELL') {
+          // Partial exit — qty already reduced in checkPartialExit
+          exitCount++;
+          exitLog.push(pos.ticker + ': AI-PARTIAL 50% +' + partialResult.returnPct.toFixed(1) + '%');
+        }
+        saveDT(w);
+        continue; // Skip normal exit checks for this cycle
+      }
+    }
+
     // Update peak price tracking
     if (!pos.peakPrice || livePrice > pos.peakPrice) pos.peakPrice = livePrice;
     var peakReturn = pos.peakPrice > pos.buyPrice ? ((pos.peakPrice - pos.buyPrice) / pos.buyPrice * 100) : 0;
@@ -16652,6 +17182,20 @@ function checkDayTradeAutoTrigger() {
 
   // Skip if insufficient cash
   if (w.cash < 15000) return;
+
+  // ═══ v18.0: AI AGENT PRIORITY ═══
+  // When AIAgentEngine has active decisions (from Claude scheduled tasks),
+  // it takes priority over rule-based T0/T1/T2 triggers.
+  // AI Agent handles its own buy/sell cycle via cloud sync polling.
+  // Rule-based triggers only fire as FALLBACK when no AI decisions available.
+  if (typeof AIAgentEngine !== 'undefined' && AIAgentEngine.hasActiveDecisions()) {
+    var agentStatus = AIAgentEngine.getStatus();
+    console.log('[DT-AUTO] v18.0: AI Agent has active decisions (' +
+      agentStatus.executed + ' executed, ' + agentStatus.pending + ' pending) — rule-based triggers suppressed');
+    updateDTAutoStatus('AI-AGENT active: ' + agentStatus.regime + ' | ' +
+      agentStatus.executed + ' executed, ' + agentStatus.pending + ' pending', '#a78bfa');
+    return; // AI Agent handles everything
+  }
 
   // v13.4: Skip if risk controls block trading
   var riskGateAuto = checkRiskGate();
