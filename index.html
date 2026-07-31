@@ -6020,8 +6020,8 @@ function updatePTDisplay(w) {
     holdingsVal += p.marketValue;
     todayPnl += p.dayPnl;
   });
-  // v18.2.1: Persist auto-healed avgPrice so it doesn't reset every render
-  if (needsSave) { try { savePT(w); console.log('[PT] v18.2.1: Auto-healed avgPrice for positions, saved to localStorage'); } catch(e) {} }
+  // v18.2.2: Persist auto-healed avgPrice DIRECTLY to localStorage (skip cloud sync to prevent overwrite race)
+  if (needsSave) { try { localStorage.setItem(PT_KEY, JSON.stringify(w)); console.log('[PT] v18.2.2: Auto-healed avgPrice for ' + w.positions.filter(p=>p.avgPrice).length + ' positions — saved directly to localStorage'); } catch(e) {} }
   // Update mover badge
   const badge = document.getElementById('ptMoverBadge');
   if (badge) {
