@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v18.1 &mdash; AI-Agentic Wealth Fund</span></h1>
+  <h1>Jain PMS <span>v18.2 &mdash; AI-Agentic Wealth Fund</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -1754,7 +1754,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v18.0 &mdash; AI-Agentic Wealth Fund (₹1 Cr) + AI Agent Engine (Claude LLM brain + Cloud Sync decisions) + Conviction Sizing + Partial Profit Exits + Sector Correlation Guard + Catalyst-Direct Entry + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v18.2 &mdash; AI-Agentic Wealth Fund (₹1 Cr) + AI Agent Engine (Claude LLM brain + Cloud Sync decisions) + Primary Device Lock + Conviction Sizing + Partial Profit Exits + Sector Correlation Guard + Catalyst-Direct Entry + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
   <span id="cloudSyncBadge" style="color:#f59e0b;font-weight:600;cursor:pointer;margin-right:8px" onclick="JainPMS_Cloud.forceLoad()" title="Click to force reload from cloud">☁ Connecting...</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
@@ -12419,6 +12419,15 @@ var JainPMS_Cloud = {
   _loaded: { dayTrade: false, paperTrade: false },
   enabled: true,
 
+  // ═══ v18.2: PRIMARY DEVICE LOCK ═══
+  // Only ONE browser runs auto-trades. Others display cloud state read-only.
+  // Primary claim expires after 30 min of no sync activity.
+  isPrimary: false,
+  primaryDeviceId: null,
+  primaryLastSeen: null,
+  PRIMARY_LOCK_EXPIRY: 30 * 60 * 1000, // 30 minutes
+  _secondaryPollInterval: null,
+
   init: function() {
     this.deviceId = localStorage.getItem('jainpms_deviceId');
     if (!this.deviceId) {
@@ -12426,9 +12435,132 @@ var JainPMS_Cloud = {
       localStorage.setItem('jainpms_deviceId', this.deviceId);
     }
     this.updateBadge('connecting');
+    this.checkPrimaryLock(); // v18.2: Check who owns the trading lock
     this.loadFromCloud('dayTrade');
     this.loadFromCloud('paperTrade');
-    console.log('[Cloud] v1.0 init — device: ' + this.deviceId);
+    console.log('[Cloud] v1.1 init — device: ' + this.deviceId);
+  },
+
+  // v18.2: Check cloud for primary device lock
+  checkPrimaryLock: function() {
+    var self = this;
+    fetch(this.URL + '?op=load&type=tradingLock', { signal: AbortSignal.timeout(8000) })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.found && d.data) {
+          var lock = typeof d.data === 'string' ? JSON.parse(d.data) : d.data;
+          self.primaryDeviceId = lock.deviceId;
+          self.primaryLastSeen = new Date(lock.ts).getTime();
+          var age = Date.now() - self.primaryLastSeen;
+
+          if (lock.deviceId === self.deviceId) {
+            // This device IS the primary
+            self.isPrimary = true;
+            console.log('[Cloud] v18.2: This device IS primary (lock held)');
+          } else if (age > self.PRIMARY_LOCK_EXPIRY) {
+            // Lock expired — claim primary
+            self.claimPrimary();
+            console.log('[Cloud] v18.2: Previous primary expired (' + Math.round(age/60000) + 'm ago) — claiming');
+          } else {
+            // Another device is primary — this is secondary (read-only)
+            self.isPrimary = false;
+            self.startSecondaryPolling();
+            console.log('[Cloud] v18.2: Another device is primary (' + lock.deviceId + ', ' + Math.round(age/1000) + 's ago) — secondary mode');
+          }
+        } else {
+          // No lock exists — claim primary
+          self.claimPrimary();
+          console.log('[Cloud] v18.2: No lock found — claiming primary');
+        }
+        self.updatePrimaryBadge();
+      })
+      .catch(function(e) {
+        // Can't check lock — assume primary (safe default for single-device users)
+        self.isPrimary = true;
+        console.warn('[Cloud] v18.2: Lock check failed, assuming primary:', e.message);
+      });
+  },
+
+  // v18.2: Claim this device as primary
+  claimPrimary: function() {
+    this.isPrimary = true;
+    this.primaryDeviceId = this.deviceId;
+    this.primaryLastSeen = Date.now();
+    this.stopSecondaryPolling();
+    var payload = JSON.stringify({
+      type: 'tradingLock',
+      data: { deviceId: this.deviceId, ts: new Date().toISOString(), name: navigator.userAgent.slice(0, 40) },
+      device: this.deviceId, v: '18.2'
+    });
+    fetch(this.URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: payload });
+    this.updatePrimaryBadge();
+    console.log('[Cloud] v18.2: Claimed primary trading lock');
+  },
+
+  // v18.2: Refresh primary lock (called on every save)
+  refreshPrimaryLock: function() {
+    if (!this.isPrimary) return;
+    this.primaryLastSeen = Date.now();
+    var payload = JSON.stringify({
+      type: 'tradingLock',
+      data: { deviceId: this.deviceId, ts: new Date().toISOString(), name: navigator.userAgent.slice(0, 40) },
+      device: this.deviceId, v: '18.2'
+    });
+    fetch(this.URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: payload });
+  },
+
+  // v18.2: Secondary mode — poll cloud every 60s for latest state
+  startSecondaryPolling: function() {
+    if (this._secondaryPollInterval) return;
+    var self = this;
+    this._secondaryPollInterval = setInterval(function() {
+      if (self.isPrimary) { self.stopSecondaryPolling(); return; }
+      console.log('[Cloud] v18.2: Secondary poll — loading latest state');
+      self.loadFromCloud('dayTrade');
+      self.loadFromCloud('paperTrade');
+      // Re-check if primary expired
+      self.checkPrimaryLock();
+    }, 60000);
+  },
+
+  stopSecondaryPolling: function() {
+    if (this._secondaryPollInterval) {
+      clearInterval(this._secondaryPollInterval);
+      this._secondaryPollInterval = null;
+    }
+  },
+
+  // v18.2: Can this device run auto-trades?
+  canAutoTrade: function() {
+    return this.isPrimary;
+  },
+
+  // v18.2: Update primary/secondary badge in UI
+  updatePrimaryBadge: function() {
+    var badge = document.getElementById('primaryDeviceBadge');
+    if (!badge) {
+      // Create badge next to cloudSyncBadge
+      var csb = document.getElementById('cloudSyncBadge');
+      if (csb) {
+        badge = document.createElement('span');
+        badge.id = 'primaryDeviceBadge';
+        badge.style.cssText = 'font-weight:600;margin-left:8px;cursor:pointer;font-size:12px';
+        badge.title = 'Click to claim this device as primary trader';
+        badge.onclick = function() { JainPMS_Cloud.claimPrimary(); };
+        csb.parentNode.insertBefore(badge, csb.nextSibling);
+      }
+    }
+    if (badge) {
+      if (this.isPrimary) {
+        badge.textContent = '🏠 Primary';
+        badge.style.color = '#22c55e';
+        badge.title = 'This device runs auto-trades. Other devices display cloud state.';
+      } else {
+        badge.textContent = '👁 Secondary (click to claim)';
+        badge.style.color = '#f59e0b';
+        badge.title = 'Click to claim this device as primary trader';
+      }
+    }
   },
 
   slimWallet: function(w, type) {
@@ -12490,6 +12622,7 @@ var JainPMS_Cloud = {
     .then(function() {
       self.lastSync = new Date().toISOString();
       self.updateBadge('synced');
+      self.refreshPrimaryLock(); // v18.2: Keep primary lock alive on every save
       console.log('[Cloud] Saved ' + type + ' via POST (' + payload.length + ' bytes)');
     })
     .catch(function(e) {
@@ -12875,6 +13008,14 @@ var AIAgentEngine = {
   // ── Fetch decisions from cloud and execute ──
   fetchAndExecute: function() {
     var self = this;
+
+    // ═══ v18.2: PRIMARY DEVICE GATE ═══
+    if (window.JainPMS_Cloud && !JainPMS_Cloud.canAutoTrade()) {
+      console.log('[AI-AGENT] v18.2: Secondary device — skipping execution');
+      self.updateStatus('Secondary device — read-only');
+      return;
+    }
+
     var url = self.cloudUrl + '?op=load&type=aiDecisions';
     console.log('[AI-AGENT] Fetching AI decisions from cloud...');
     self.updateStatus('Fetching decisions...');
@@ -17309,6 +17450,14 @@ function checkDayTradeAutoTrigger() {
   var autoState = getDTAutoState();
   if (!autoState.autoEnabled) return; // User disabled auto-trade
 
+  // ═══ v18.2: PRIMARY DEVICE GATE ═══
+  // Only the primary device runs auto-trades. Secondary devices display cloud state.
+  if (window.JainPMS_Cloud && !JainPMS_Cloud.canAutoTrade()) {
+    console.log('[DT-AUTO] v18.2: Secondary device — skipping auto-trigger (primary: ' + JainPMS_Cloud.primaryDeviceId + ')');
+    updateDTAutoStatus('Secondary device — displaying cloud state', '#6b7280');
+    return;
+  }
+
   var w = getDT();
   var nowIST = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
   var hhmm = nowIST.getHours() * 100 + nowIST.getMinutes();
@@ -17502,6 +17651,12 @@ var PT_AUTO_KEY = 'ptAutoTrigger_v1';
 var _ptAutoInterval = null;
 
 function checkPaperTradeAutoTrigger() {
+  // ═══ v18.2: PRIMARY DEVICE GATE ═══
+  if (window.JainPMS_Cloud && !JainPMS_Cloud.canAutoTrade()) {
+    console.log('[PT-AUTO] v18.2: Secondary device — skipping auto-trigger');
+    return;
+  }
+
   var now = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
   var hrs = now.getHours();
   var mins = now.getMinutes();
