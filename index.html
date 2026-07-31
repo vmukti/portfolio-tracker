@@ -2029,9 +2029,30 @@ function applyPriceData(stock, price, prevClose, volume, high52, low52, dayHigh,
 }
 
 // ---- PRIMARY: Apps Script batch fetch (all stocks in 1 call) ----
+// v18.2.1: Extra price store for Paper Trade / Day Trade held positions not in portfolio
+window._extraPrices = window._extraPrices || {};
+
 async function fetchViaAppsScript() {
   if (!appsScriptUrl) return false;
-  const symbols = stocks.map(s => s.yf).join(',');
+  // v18.2.1: Also fetch prices for Paper Trade + Day Trade held positions
+  const portfolioSymbols = new Set(stocks.map(s => s.yf));
+  const extraTickers = new Set();
+  try {
+    const ptW = JSON.parse(localStorage.getItem('paperTradeWallet_v1') || '{}');
+    (ptW.positions || []).forEach(p => {
+      const yf = (p.ticker || p.stock) + '.NS';
+      if (!portfolioSymbols.has(yf)) extraTickers.add(yf);
+    });
+  } catch(e) {}
+  try {
+    const dtW = JSON.parse(localStorage.getItem('dayTradeWallet_v1') || '{}');
+    (dtW.positions || []).forEach(p => {
+      const yf = (p.ticker || p.stock) + '.NS';
+      if (!portfolioSymbols.has(yf)) extraTickers.add(yf);
+    });
+  } catch(e) {}
+  const allSymbols = [...portfolioSymbols, ...extraTickers].join(',');
+  const symbols = allSymbols;
   try {
     const resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(symbols) + '&mode=all', {signal: AbortSignal.timeout(20000)});
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -2044,6 +2065,15 @@ async function fetchViaAppsScript() {
         const d = data.data.stocks[s.yf];
         if (d) { applyPriceData(s, d.price, d.prevClose, d.volume, d.high52, d.low52, d.dayHigh, d.dayLow); loadedCount++; }
       });
+      // v18.2.1: Store extra prices for non-portfolio held positions
+      extraTickers.forEach(yf => {
+        const d = data.data.stocks[yf];
+        if (d && d.price > 0) {
+          const ticker = yf.replace('.NS', '');
+          window._extraPrices[ticker] = { cmp: d.price, prevClose: d.prevClose || d.price, volume: d.volume, high52: d.high52, low52: d.low52, dayHigh: d.dayHigh, dayLow: d.dayLow, ts: Date.now() };
+        }
+      });
+      if (extraTickers.size > 0) console.log('[PRICE] v18.2.1: Fetched ' + extraTickers.size + ' extra prices for PT/DT held positions');
     }
 
     // Apply indices + macro data
@@ -2156,6 +2186,11 @@ async function fetchAllPrices() {
   updateApiBadge();
   updateMarketStatus();
   renderTable(getFilteredStocks());
+  // v18.2.1: Refresh Paper Trade display with new prices (including extra prices for non-portfolio positions)
+  try {
+    var ptTab = document.getElementById('papertrade');
+    if (ptTab && ptTab.style.display !== 'none') { loadPaperTrade(); }
+  } catch(e) {}
   fetchInProgress = false;
 }
 
@@ -5961,13 +5996,18 @@ function updatePTDisplay(w) {
     if (!p.avgPrice && stock && stock.cmp > 0) { p.avgPrice = stock.cmp; p.peakPrice = stock.cmp; } // Auto-heal missing avgPrice
     let livePrice = stock ? (stock.cmp || p.avgPrice || 0) : (p.avgPrice || 0);
     let prevClose = stock ? (stock.prevClose || livePrice) : livePrice;
+    // v18.2.1: Check extra prices store for non-portfolio held positions
+    if ((!stock || !stock.cmp) && window._extraPrices && window._extraPrices[p.ticker]) {
+      const ep = window._extraPrices[p.ticker];
+      if (ep.cmp > 0) { livePrice = ep.cmp; prevClose = ep.prevClose || livePrice; }
+    }
     // For mover-sourced positions, try mover scan data for price
-    if ((!stock || !stock.cmp) && moverFresh && window._moverScan) {
+    if ((!stock || !stock.cmp) && !window._extraPrices?.[p.ticker] && moverFresh && window._moverScan) {
       const ms = window._moverScan.scored.find(m => m.ticker === p.ticker);
       if (ms && ms.cmp > 0) { livePrice = ms.cmp; prevClose = ms.prevClose || livePrice; }
     }
     // For screener/universe positions, try screener results for price
-    if ((!stock || livePrice === (p.avgPrice||0)) && window._screenerResults) {
+    if ((!stock || livePrice === (p.avgPrice||0)) && !window._extraPrices?.[p.ticker] && window._screenerResults) {
       const sr = window._screenerResults.find(r => r.ticker === p.ticker);
       if (sr && (sr.price || sr.cmp) > 0) { livePrice = sr.price || sr.cmp; }
     }
@@ -6234,6 +6274,14 @@ async function runAIAutoTrade() {
     const pos = w.positions[i];
     let stock = stocks.find(s => s.ticker === pos.ticker);
     let sellPrice = stock ? stock.cmp : 0;
+    // v18.2.1: Check extra prices for non-portfolio held positions
+    if ((!stock || !sellPrice) && window._extraPrices && window._extraPrices[pos.ticker]) {
+      const ep = window._extraPrices[pos.ticker];
+      if (ep.cmp > 0) {
+        sellPrice = ep.cmp;
+        stock = { ticker: pos.ticker, cmp: ep.cmp, changePct: 0, prevClose: ep.prevClose, vol: ep.volume || 0, high52: ep.high52, low52: ep.low52 };
+      }
+    }
     if ((!stock || !stock.cmp) && moverActive) {
       const moverStock = window._moverScan.scored.find(m => m.ticker === pos.ticker);
       if (moverStock && moverStock.cmp > 0) {
