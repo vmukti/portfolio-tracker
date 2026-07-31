@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v18.0 &mdash; AI-Agentic Wealth Fund</span></h1>
+  <h1>Jain PMS <span>v18.1 &mdash; AI-Agentic Wealth Fund</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -3481,23 +3481,33 @@ var AI_RESEARCH_LAST_UPDATE = '2026-07-30 (CATALYST REFRESH + CLOUD SYNC PUSH: 1
 
 // ── Earnings Calendar (stocks reporting today/tomorrow) ──
 var EARNINGS_CALENDAR = [
-  // ═══ Jul 25-29 REPORTED (updated 2026-07-30 by AI Research Agent) ═══
+  // ═══ Jul 30 REPORTED (updated 2026-07-31 by AI Research Agent) ═══
+  {ticker:'VEDL', name:'Vedanta', date:'2026-07-30', status:'REPORTED', result:'BEAT', patGrowth:72, keyNote:'PAT Rs 5,473 Cr +71.8%; Rev Rs 24,205 Cr +53.6%; Aluminium arm PAT +216% w/ Rs 8 div; O&G back to profit Rs 945 Cr'},
+  {ticker:'M&M', name:'Mahindra & Mahindra', date:'2026-07-30', status:'REPORTED', result:'BEAT', patGrowth:34, keyNote:'PAT Rs 5,455 Cr +34%; Rev Rs 58,188 Cr +28%; SUV + tractor momentum'},
+  {ticker:'COALINDIA', name:'Coal India', date:'2026-07-30', status:'REPORTED', result:'BEAT', keyNote:'PAT Rs 8,850 Cr; Rev Rs 46,255 Cr +7.8%; Rs 5.50 interim dividend; offtake improving'},
+  {ticker:'IRFC', name:'IRFC', date:'2026-07-30', status:'REPORTED', result:'BEAT', patGrowth:10, keyNote:'PAT Rs 1,927 Cr +10.4%; Total income Rs 8,391 Cr +21.3%; zero NPA'},
+  {ticker:'NTPC', name:'NTPC', date:'2026-07-30', status:'REPORTED', result:'MIXED', keyNote:'Standalone PAT Rs 5,342 Cr; consol PAT Rs 6,896 Cr; Rev Rs 43,832 Cr ~+3%'},
+  // ═══ Jul 25-29 REPORTED (still in scoring window) ═══
   {ticker:'ASIANPAINT', name:'Asian Paints', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:40, keyNote:'PAT Rs 1,539 Cr +40%; Rev Rs 10,521 Cr +17.9%; PBDIT margin 20.6% (+240bps); intl sales +27.2%'},
   {ticker:'BALKRISIND', name:'Balkrishna Industries', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:56, keyNote:'PAT Rs 451 Cr +56.4%; Rev Rs 3,455 Cr +25.2%; Rs 4/share dividend; off-highway tyre demand strong'},
   {ticker:'WAAREEENER', name:'Waaree Energies', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:14, keyNote:'PAT Rs 850 Cr +14%; Rev Rs 7,932 Cr +79%; EBITDA Rs 1,440 Cr +44%; US 236 MW order'},
   {ticker:'BAJAJHFL', name:'Bajaj Housing Finance', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:23, keyNote:'PAT Rs 715 Cr +23%; AUM Rs 1.50 L Cr +24%; record disbursements Rs 19,509 Cr; NII +9% margin watch'},
   {ticker:'IDFCFIRSTB', name:'IDFC First Bank', date:'2026-07-25', status:'REPORTED', result:'BEAT', patGrowth:132, keyNote:'Highest-ever PAT Rs 1,075 Cr +132.4% YoY (vs Rs 463 Cr); turnaround accelerating'},
   {ticker:'KPITTECH', name:'KPIT Technologies', date:'2026-07-29', status:'REPORTED', result:'MISS', patGrowth:-28, keyNote:'PAT Rs 117 Cr -28.1% QoQ; Rev Rs 1,675 Cr -2.1% QoQ; auto-ER&D demand soft'},
-  // ═══ Jul 23 REPORTED (still in scoring window) ═══
-  {ticker:'INFY', name:'Infosys', date:'2026-07-23', status:'REPORTED', result:'MIXED', patGrowth:12, keyNote:'PAT Rs 7,775 Cr +12.3%; Rev Rs 48,211 Cr +14%; TCV $3.6B; FY27 guide CUT to 1.5-3.0%; AI 8.2% of rev'},
-  {ticker:'INDIGO', name:'IndiGo', date:'2026-07-23', status:'REPORTED', result:'MISS', patGrowth:-111, keyNote:'Net loss Rs 238 Cr vs profit Rs 2,176 Cr YoY; Revenue +20% but fuel costs +86%; Cash Rs 52,885 Cr'},
-  {ticker:'CYIENT', name:'Cyient', date:'2026-07-23', status:'REPORTED', result:'BEAT', patGrowth:90, keyNote:'PAT Rs 104 Cr +90% QoQ; EBIT margin 9% +90bps; Semis arm valued $500M; DLM record order book'},
   // ═══ UPCOMING ═══
-  {ticker:'VEDL', name:'Vedanta', date:'2026-07-30', status:'UPCOMING', keyNote:'Results TODAY; concall 5:00-6:30 PM IST; metals cycle + demerger progress watch'},
-  {ticker:'MARUTI', name:'Maruti Suzuki', date:'2026-07-31', status:'UPCOMING', keyNote:'Auto demand read; exports + SUV mix; follows Bajaj Auto +46% blowout'},
+  {ticker:'MARUTI', name:'Maruti Suzuki', date:'2026-07-31', status:'UPCOMING', keyNote:'Results TODAY; auto demand read after M&M +34% beat; exports + SUV mix'},
   {ticker:'TVSMOTOR', name:'TVS Motor', date:'2026-07-31', status:'UPCOMING', keyNote:'2W momentum check; EV (iQube) trajectory'},
   {ticker:'AMBUJACEM', name:'Ambuja Cements', date:'2026-07-31', status:'UPCOMING', keyNote:'Cement pricing + monsoon demand; Adani cement capex'},
-  {ticker:'JSWENERGY', name:'JSW Energy', date:'2026-07-31', status:'UPCOMING', keyNote:'Recovery check after Q1 FY26 PAT -36%; power demand cycle'}
+  {ticker:'JSWENERGY', name:'JSW Energy', date:'2026-07-31', status:'UPCOMING', keyNote:'Recovery check after Q1 FY26 PAT -36%; power demand cycle'},
+  {ticker:'ABB', name:'ABB India', date:'2026-07-31', status:'UPCOMING', keyNote:'Capex/electrification cycle read'},
+  {ticker:'BAJAJFINSV', name:'Bajaj Finserv', date:'2026-07-31', status:'UPCOMING', keyNote:'Lending + insurance combo print'},
+  {ticker:'GAIL', name:'GAIL (India)', date:'2026-07-31', status:'UPCOMING', keyNote:'Gas transmission volumes; crude >$90 backdrop'},
+  {ticker:'IOC', name:'Indian Oil Corp', date:'2026-07-31', status:'UPCOMING', keyNote:'OMC margin squeeze watch with Brent back above $90'},
+  {ticker:'SHREECEM', name:'Shree Cement', date:'2026-07-31', status:'UPCOMING', keyNote:'Cement pricing discipline read'},
+  {ticker:'KAJARIACER', name:'Kajaria Ceramics', date:'2026-07-31', status:'UPCOMING', keyNote:'Tiles demand + gas cost trend'},
+  {ticker:'GHCL', name:'GHCL', date:'2026-08-01', status:'UPCOMING', keyNote:'Soda ash pricing cycle'},
+  {ticker:'SARDAEN', name:'Sarda Energy & Minerals', date:'2026-08-01', status:'UPCOMING', keyNote:'Steel/ferro + power mix'},
+  {ticker:'LATENTVIEW', name:'Latent View Analytics', date:'2026-08-01', status:'UPCOMING', keyNote:'Data analytics demand read'}
 ];
 
 function runPreMarketIntel() {
@@ -6363,6 +6373,129 @@ async function runAIAutoTrade() {
     if (p.source === 'mover' && p.sector) heldSectors[p.sector] = (heldSectors[p.sector] || 0) + 1;
   });
 
+  // ═══ v18.0: AI AGENT PAPER TRADE INTEGRATION ═══
+  // Fetch AI decisions from Cloud Sync and execute with PT-specific sizing
+  // AI decisions get PRIORITY over rule-based scoring — smarter picks first
+  // PT differences: ₹1Cr wallet, max 15 positions, swing-trade sizing (wider SL, higher targets)
+  let aiAgentPTBuys = 0;
+  try {
+    const aiDecUrl = JainPMS_Cloud.URL + '?op=load&type=aiDecisions';
+    const aiDecResp = await fetch(aiDecUrl, { signal: AbortSignal.timeout(10000) });
+    const aiDecData = await aiDecResp.json();
+
+    if (aiDecData.found && aiDecData.data) {
+      const aiPayload = typeof aiDecData.data === 'string' ? JSON.parse(aiDecData.data) : aiDecData.data;
+      const decisionAge = aiPayload.timestamp ? (now.getTime() - new Date(aiPayload.timestamp).getTime()) / 60000 : 9999;
+
+      // PT uses 2-hour window (swing trades held across days, not intraday)
+      if (decisionAge <= 120 && aiPayload.decisions && aiPayload.decisions.length > 0) {
+        aiLog.push('🤖 AI-AGENT: ' + aiPayload.decisions.length + ' decisions (' + Math.round(decisionAge) + 'm old) | ' + (aiPayload.regime || ''));
+
+        // PT-specific executed IDs (separate from Day Trade to avoid interference)
+        let ptAgentExecuted = {};
+        try { ptAgentExecuted = JSON.parse(localStorage.getItem('ptAgent_executedIds') || '{}'); } catch(e) {}
+        const todayKeyPT = now.toISOString().split('T')[0];
+        const ptAgentDate = localStorage.getItem('ptAgent_date');
+        if (ptAgentDate !== todayKeyPT) {
+          ptAgentExecuted = {};
+          localStorage.setItem('ptAgent_date', todayKeyPT);
+        }
+
+        // Sort by conviction (highest first)
+        const ptConvOrder = { 'HIGH': 4, 'MED-HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+        // PT conviction sizing: smaller % per position (15 positions vs DT's 3)
+        // HIGH=12%, MED-HIGH=10%, MEDIUM=8%, LOW=5% of wallet
+        const ptConvictionSize = { 'HIGH': 0.12, 'MED-HIGH': 0.10, 'MEDIUM': 0.08, 'LOW': 0.05 };
+        const sortedPTDecs = aiPayload.decisions.slice().sort((a, b) => (ptConvOrder[b.conviction] || 0) - (ptConvOrder[a.conviction] || 0));
+
+        for (const dec of sortedPTDecs) {
+          const decKey = 'PT_' + dec.ticker + '_' + aiPayload.timestamp;
+          if (ptAgentExecuted[decKey]) continue;
+
+          // Position limit (PT max 15)
+          if (w.positions.length >= 15) { ptAgentExecuted[decKey] = true; continue; }
+
+          // Already holding
+          if (heldTickers.has(dec.ticker)) { ptAgentExecuted[decKey] = true; continue; }
+
+          // Sold this run — prevent re-buy loop
+          if (soldThisRun.has(dec.ticker)) { ptAgentExecuted[decKey] = true; continue; }
+
+          // Jainism compliance gate
+          const ptSectorStr = (dec.sector || '') + ' ' + (dec.name || '');
+          if (isEthicallyExcluded(ptSectorStr) || isEthicallyExcluded(dec.sector || '') || isEthicallyExcluded(dec.name || '')) {
+            ptAgentExecuted[decKey] = true; continue;
+          }
+
+          // Sector correlation guard (max 3 per sector for PT swing portfolio)
+          const ptDecSector = (dec.sector || 'UNKNOWN').toUpperCase();
+          if ((heldSectors[ptDecSector] || 0) >= 3) { ptAgentExecuted[decKey] = true; continue; }
+
+          // Conviction-based position sizing for PT wallet
+          const ptAllocPct = (ptConvictionSize[dec.conviction] || 0.08) * regime.sizeMultiplier * timing.multiplier;
+          const ptWalletValue = w.cash + w.positions.reduce((s, p) => {
+            const st = stocks.find(x => x.ticker === p.ticker);
+            return s + ((st ? st.cmp : p.avgPrice) * p.qty);
+          }, 0);
+          let ptPosBudget = ptWalletValue * ptAllocPct;
+          if (ptPosBudget > w.cash * 0.30) ptPosBudget = w.cash * 0.30; // Never more than 30% of free cash
+          if (ptPosBudget < 20000) { ptAgentExecuted[decKey] = true; continue; }
+
+          const ptEntryPrice = dec.entryPrice;
+          if (!ptEntryPrice || ptEntryPrice <= 0) { ptAgentExecuted[decKey] = true; continue; }
+
+          let ptQty = Math.floor(ptPosBudget / ptEntryPrice);
+          if (ptQty < 1) { ptAgentExecuted[decKey] = true; continue; }
+          let ptCost = ptQty * ptEntryPrice;
+          if (ptCost > w.cash) {
+            ptQty = Math.floor(w.cash / ptEntryPrice);
+            ptCost = ptQty * ptEntryPrice;
+          }
+          if (ptQty < 1 || ptCost > w.cash) continue;
+
+          // Execute Paper Trade buy
+          w.cash -= ptCost;
+          w.positions.push({
+            ticker: dec.ticker, qty: ptQty, avgPrice: ptEntryPrice, buyDate: now.toISOString(),
+            peakPrice: ptEntryPrice, entryScore: 0,
+            source: 'ai-agent-pt', sector: dec.sector || '', name: dec.name || dec.ticker,
+            signalCats: ['AI_AGENT'],
+            aiConviction: dec.conviction,
+            aiReasoning: (dec.reasoning || '').substring(0, 120),
+            // PT swing trade parameters — WIDER stops, HIGHER targets (held days/weeks, not intraday)
+            stopLoss: dec.stopLoss ? dec.stopLoss * 0.97 : ptEntryPrice * 0.95,  // 5% SL
+            target1: dec.target1 ? dec.target1 * 1.03 : ptEntryPrice * 1.05,      // 5% T1
+            target2: dec.target2 ? dec.target2 * 1.05 : ptEntryPrice * 1.10,      // 10% T2
+            target3: ptEntryPrice * 1.15                                           // 15% T3
+          });
+          w.trades.push({
+            type: 'BUY', ticker: dec.ticker, qty: ptQty, price: ptEntryPrice,
+            aiScore: 0, reason: '🤖 AI-AGENT PT: ' + dec.conviction + ' conviction | ' + (dec.reasoning || '').substring(0, 80),
+            source: 'ai-agent-pt', time: now.toISOString()
+          });
+
+          heldTickers.add(dec.ticker);
+          heldSectors[ptDecSector] = (heldSectors[ptDecSector] || 0) + 1;
+          ptAgentExecuted[decKey] = true;
+          aiAgentPTBuys++;
+          tradesMade++;
+          log.push('🤖 AI-AGENT BUY ' + dec.ticker + ' [' + dec.conviction + '] ' + ptQty + ' @ ₹' + ptEntryPrice.toFixed(0));
+          console.log('[PT-AI-AGENT] BOUGHT ' + dec.ticker + ' ' + ptQty + 'qty @ ' + ptEntryPrice.toFixed(2) +
+            ' | ' + dec.conviction + ' conviction | Alloc ' + Math.round(ptAllocPct * 100) + '% (₹' + Math.round(ptCost) + ')');
+        }
+
+        localStorage.setItem('ptAgent_executedIds', JSON.stringify(ptAgentExecuted));
+        if (aiAgentPTBuys > 0) {
+          aiLog.push('🤖 AI-AGENT executed ' + aiAgentPTBuys + ' Paper Trade buy(s)');
+          savePT(w); // Save immediately after AI agent buys
+        }
+      }
+    }
+  } catch(e) {
+    console.log('[PT-AI-AGENT] Cloud fetch error (continuing with rule-based): ' + (e.message || e));
+  }
+  // ═══ END AI AGENT PAPER TRADE INTEGRATION ═══
+
   const portfolioScored = stocks
     .filter(s => s.cmp && s.cmp > 0 && !heldTickers.has(s.ticker) && !isEthicallyExcluded(s.sector) && !isEthicallyExcluded(s.name || s.ticker))
     .map(s => {
@@ -6944,19 +7077,21 @@ async function runAIAutoTrade() {
 
   const moverCount = w.positions.filter(p => p.source === 'mover').length;
   const screenerCount = w.positions.filter(p => p.source === 'screener' || p.source === 'universe').length;
-  const portfolioCount = w.positions.length - moverCount - screenerCount;
+  const aiAgentPTCount = w.positions.filter(p => p.source === 'ai-agent-pt').length;
+  const portfolioCount = w.positions.length - moverCount - screenerCount - aiAgentPTCount;
   const regimeIcon = regime.mode === 'BULL' ? '🟢' : regime.mode === 'BEAR' ? '🔴' : '🟡';
 
   const intelTag = intelSources.length > 0 ? ' | 📊' + intelSources.join('+') : '';
-  const posBreakdown = portfolioCount + ' core' + (moverCount > 0 ? ' + ' + moverCount + ' mover' : '') + (screenerCount > 0 ? ' + ' + screenerCount + ' screener' : '');
-  const universeTag = (screenerScored.length > 0 || universeScored.length > 0) ? ' | 🎯 300-Universe' : (moverActive ? ' | 🔥 Mover-Powered' : '');
+  const aiAgentTag = aiAgentPTCount > 0 ? ' + ' + aiAgentPTCount + ' AI-agent' : '';
+  const posBreakdown = portfolioCount + ' core' + aiAgentTag + (moverCount > 0 ? ' + ' + moverCount + ' mover' : '') + (screenerCount > 0 ? ' + ' + screenerCount + ' screener' : '');
+  const universeTag = aiAgentPTBuys > 0 ? ' | 🤖 AI-Agent' : (screenerScored.length > 0 || universeScored.length > 0) ? ' | 🎯 300-Universe' : (moverActive ? ' | 🔥 Mover-Powered' : '');
   if (tradesMade === 0) {
-    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' <b>' + regime.mode + '</b> | ' + posBreakdown + ' | ⏰' + timing.window + universeTag + intelTag + ' | 🧠 360° v8.4';
+    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' <b>' + regime.mode + '</b> | ' + posBreakdown + ' | ⏰' + timing.window + universeTag + intelTag + ' | 🧠 v18.1 AI-Agentic';
   } else {
-    const tradeBreakdown = tradesMade + ' AI trades' + (moverBuys > 0 ? ' (' + moverBuys + ' mover)' : '') + (screenerBuys > 0 ? ' (' + screenerBuys + ' screener)' : '');
-    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' ' + tradeBreakdown + ' | ' + regime.mode + ' | ⏰' + timing.window + universeTag + intelTag + ' | Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0}) + ' | 🧠 360° v8.4';
+    const tradeBreakdown = tradesMade + ' AI trades' + (aiAgentPTBuys > 0 ? ' (' + aiAgentPTBuys + ' AI-agent)' : '') + (moverBuys > 0 ? ' (' + moverBuys + ' mover)' : '') + (screenerBuys > 0 ? ' (' + screenerBuys + ' screener)' : '');
+    document.getElementById('ptLastTrade').innerHTML = regimeIcon + ' ' + tradeBreakdown + ' | ' + regime.mode + ' | ⏰' + timing.window + universeTag + intelTag + ' | Cash: ₹' + w.cash.toLocaleString('en-IN',{maximumFractionDigits:0}) + ' | 🧠 v18.1 AI-Agentic';
   }
-  console.log('[AI-ENGINE v8.4 360°] Intel:' + intelSources.join(',') + ' | ' + aiLog.join(' | ') + ' | Trades: ' + tradesMade);
+  console.log('[AI-ENGINE v18.1] Intel:' + intelSources.join(',') + ' | ' + aiLog.join(' | ') + ' | Trades: ' + tradesMade + (aiAgentPTBuys > 0 ? ' (AI-Agent: ' + aiAgentPTBuys + ')' : ''));
   // Force full UI refresh so positions table renders immediately
   loadPaperTrade();
 }
@@ -8763,21 +8898,23 @@ function renderNSEAnnouncements(announcements) {
 //  Sources: BSE filings, SEBI bulk deals, VAHAN, promoter txns
 // ============================================================
 const PRIMARY_SIGNALS = [
-  // ═══ FRESH Jul 29-30 Q1 FY27 Results (updated 2026-07-30 by AI Research Agent) ═══
-  {type:"EARNINGS",company:"Asian Paints",ticker:"ASIANPAINT",signal:"Q1 FY27 STRONG BEAT: PAT Rs 1,539 Cr (+40% YoY), Revenue Rs 10,521 Cr (+17.9%). PBDIT margin 20.6% (from 18.2%). International net sales +27.2% — Egypt/UAE/Oman/Nepal driving; intl PBT +94.9%.",source:"BSE Filing / Business Standard",date:"2026-07-29",severity:"HIGH",icon:"💹"},
+  // ═══ FRESH Jul 30 Q1 FY27 Results (updated 2026-07-31 by AI Research Agent) ═══
+  {type:"EARNINGS",company:"Vedanta",ticker:"VEDL",signal:"Q1 FY27 BLOWOUT: Consolidated PAT Rs 5,473 Cr (+71.8% YoY), Revenue Rs 24,205 Cr (+53.6%). Demerged arms strong: Vedanta Aluminium PAT Rs 5,629 Cr (+216%, Rs 8/sh dividend); Oil & Gas PAT Rs 945 Cr vs prior-quarter loss. Metal prices + weak rupee tailwind.",source:"BSE Filing / Business Standard",date:"2026-07-30",severity:"HIGH",icon:"💹"},
+  {type:"EARNINGS",company:"Mahindra & Mahindra",ticker:"M&M",signal:"Q1 FY27 BEAT: Consolidated PAT Rs 5,455 Cr (+34% YoY vs Rs 4,083 Cr), Revenue Rs 58,188 Cr (+28%). SUV + tractor momentum — positive read-through for Maruti/TVS reporting Jul 31.",source:"BSE Filing / Business Standard",date:"2026-07-30",severity:"HIGH",icon:"💹"},
+  {type:"EARNINGS",company:"Coal India",ticker:"COALINDIA",signal:"Q1 FY27: Consolidated PAT Rs 8,850 Cr, Revenue Rs 46,255 Cr (+7.8% YoY). Rs 5.50/share interim dividend; coal offtake improving. Strong PSU results day alongside NTPC + IRFC.",source:"BSE Filing / Indian Masterminds",date:"2026-07-30",severity:"MEDIUM",icon:"💹"},
+  {type:"EARNINGS",company:"IRFC",ticker:"IRFC",signal:"Q1 FY27: PAT Rs 1,927 Cr (+10.4% YoY), Total income Rs 8,391 Cr (+21.3%). Zero NPA maintained; record net worth.",source:"BSE Filing / Indian Masterminds",date:"2026-07-30",severity:"MEDIUM",icon:"💹"},
+  {type:"ORDER_WIN",company:"J Kumar Infraprojects",ticker:"JKIL",signal:"Bags Rs 2,360 Cr NHAI EPC order; shares jumped on the win. Order-book visibility strengthens. RVNL also got Rs 358.97 Cr East Central Railway doubling LoA same week.",source:"NSE Filing / HDFC Sky",date:"2026-07-29",severity:"HIGH",icon:"🏗️"},
+  // ═══ Jul 25-29 Results (still in scoring window) ═══
+  {type:"EARNINGS",company:"Asian Paints",ticker:"ASIANPAINT",signal:"Q1 FY27 STRONG BEAT: PAT Rs 1,539 Cr (+40% YoY), Revenue Rs 10,521 Cr (+17.9%). PBDIT margin 20.6% (from 18.2%). International net sales +27.2% — Egypt/UAE/Oman/Nepal driving; intl PBT +94.9%. New watch: crude back above $90.",source:"BSE Filing / Business Standard",date:"2026-07-29",severity:"HIGH",icon:"💹"},
   {type:"EARNINGS",company:"Balkrishna Industries",ticker:"BALKRISIND",signal:"Q1 FY27 BEAT: PAT Rs 451 Cr (+56.4% YoY), Revenue Rs 3,455 Cr (+25.2%). Rs 4/share dividend declared. Off-highway tyre (agri/OTR) export demand strong.",source:"BSE Filing / Sahi",date:"2026-07-29",severity:"HIGH",icon:"💹"},
   {type:"EARNINGS",company:"Waaree Energies",ticker:"WAAREEENER",signal:"Q1 FY27: Revenue Rs 7,932 Cr (+79% YoY), PAT Rs 850 Cr (+14%), EBITDA Rs 1,440 Cr (+44%). Solar scale-up + US arm's 236 MW Kentucky supply win. Margin compression is the watch item.",source:"BSE Filing / Upstox",date:"2026-07-29",severity:"HIGH",icon:"💹"},
   {type:"EARNINGS",company:"Bajaj Housing Finance",ticker:"BAJAJHFL",signal:"Q1 FY27: PAT Rs 715 Cr (+23% YoY). AUM Rs 1.50 L Cr (+24%). Record AUM addition Rs 8,918 Cr; all-time-high disbursements Rs 19,509 Cr. NII +9% vs AUM +24% = margin pressure.",source:"BSE Filing / Upstox",date:"2026-07-29",severity:"HIGH",icon:"💹"},
   {type:"EARNINGS",company:"IDFC First Bank",ticker:"IDFCFIRSTB",signal:"Q1 FY27 BLOWOUT: Highest-ever PAT Rs 1,075 Cr (+132.4% YoY vs Rs 463 Cr). Credit-cost normalization + operating leverage. Private-bank Q1 season strong across the board.",source:"BSE Filing / The Tribune",date:"2026-07-25",severity:"HIGH",icon:"💹"},
   {type:"EARNINGS_MISS",company:"KPIT Technologies",ticker:"KPITTECH",signal:"Q1 FY27 WEAK: PAT Rs 117 Cr (-28.1% QoQ vs Rs 163 Cr). Revenue Rs 1,675 Cr (-2.1% QoQ). Auto-ER&D demand soft; IT tape stays selective post-Infosys guide cut.",source:"BSE Filing / PTI",date:"2026-07-29",severity:"MEDIUM",icon:"📉"},
-  // ═══ MARKET CONTEXT Jul 29-30 ═══
-  {type:"FII_FLOW",company:"FII+DII Both Buyers",ticker:"",signal:"Jul 29: FII net BUY +Rs 2,982 Cr cash; DII net BUY +Rs 998 Cr. Short covering of 2.63L net-short index-futures position underway. Flow regime flipping bullish from -2,999 Cr Jul 23.",source:"NSE / 5paisa",date:"2026-07-29",severity:"HIGH",icon:"🌍"},
-  {type:"POLICY",company:"Market Rebound + Fed Hold",ticker:"",signal:"Sensex +889 pts (+1.16%) to 77,655; Nifty +265 to 24,250 Jul 29 — sharp rebound from 23,870. US Fed HELD rates. Rupee stronger ~95.7/USD; crude eased to ~$85 from $100+ panic. IT flows returning.",source:"Investing.com / Goodreturns",date:"2026-07-30",severity:"HIGH",icon:"📈"},
-  {type:"EARNINGS_UPCOMING",company:"Vedanta",ticker:"VEDL",signal:"Q1 FY27 results TODAY Jul 30, concall 5:00-6:30 PM IST. Metals/mining cycle read + demerger progress watch.",source:"BSE Filing / Upstox",date:"2026-07-30",severity:"MEDIUM",icon:"📋"},
-  {type:"EARNINGS_UPCOMING",company:"Jul 31 Heavyweights",ticker:"MARUTI",signal:"TOMORROW Jul 31: Maruti Suzuki, TVS Motor, Ambuja Cements, JSW Energy, PB Fintech report Q1 FY27. Auto demand + cement pricing + power reads — heaviest day of the season.",source:"Business Standard",date:"2026-07-30",severity:"HIGH",icon:"📋"},
-  // ═══ STILL ACTIVE (Jul 23) ═══
-  {type:"EARNINGS",company:"Infosys",ticker:"INFY",signal:"Q1 FY27: Revenue Rs 48,211 Cr (+14% YoY), PAT Rs 7,775 Cr (+12.3%). Large-deal TCV $3.6B. BUT FY27 guide CUT to 1.5-3.0% (from 1.5-3.5%). AI 8.2% of rev.",source:"BSE Filing / Infosys IR",date:"2026-07-23",severity:"HIGH",icon:"📉"},
-  {type:"EARNINGS_MISS",company:"IndiGo",ticker:"INDIGO",signal:"Q1 FY27: Net loss Rs 238 Cr vs profit Rs 2,176 Cr YoY. Revenue +20% to Rs 24,584 Cr but fuel costs surged 86%. Cash Rs 52,885 Cr cushion. Crude easing to ~$85 = recovery watch.",source:"BSE Filing",date:"2026-07-23",severity:"HIGH",icon:"📉"},
+  // ═══ MARKET CONTEXT Jul 30-31 ═══
+  {type:"FII_FLOW",company:"FII 3rd Straight Buy Day",ticker:"",signal:"Jul 30: FII net BUY ~+Rs 3,624 Cr cash (provisional). Jul 29: FII +Rs 2,982 Cr, DII +Rs 998 Cr — both buyers. But FIIs still hold ~1.87L net-short index-futures contracts = hedged longs, caution layered on.",source:"NSE / NiftyTrader / 5paisa",date:"2026-07-30",severity:"HIGH",icon:"🌍"},
+  {type:"POLICY",company:"Macro: Crude Back Above $90",ticker:"",signal:"Nifty 24,317 (+0.28%), Sensex 77,928, Bank Nifty 57,148 Jul 30 — 2nd up day. WATCH: Brent back ABOVE $90/bbl (from ~$85 relief) — risk for OMCs, paints, aviation; rupee 95.59/USD. Fed held rates; Gift Nifty marginally positive for Jul 31.",source:"Univest / Goodreturns",date:"2026-07-31",severity:"HIGH",icon:"📈"},
+  {type:"EARNINGS_UPCOMING",company:"Jul 31 Heavyweights",ticker:"MARUTI",signal:"TODAY Jul 31 (heaviest day of season): Maruti Suzuki, TVS Motor, Ambuja Cements, JSW Energy, ABB India, Bajaj Finserv, GAIL, IOC, Shree Cement, Kajaria Ceramics report Q1 FY27. Aug 1: GHCL, Sarda Energy, Latent View.",source:"Goodreturns / Sahi",date:"2026-07-31",severity:"HIGH",icon:"📋"},
 ];
 
 function renderPrimaryResearch() {
