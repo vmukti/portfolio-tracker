@@ -5989,11 +5989,12 @@ function loadPaperTrade() {
 }
 
 function updatePTDisplay(w) {
-  let holdingsVal = 0, todayPnl = 0;
+  let holdingsVal = 0, todayPnl = 0, needsSave = false;
   const moverFresh = isMoverScanFresh();
   w.positions.forEach(p => {
     const stock = stocks.find(s => s.ticker === p.ticker);
-    if (!p.avgPrice && stock && stock.cmp > 0) { p.avgPrice = stock.cmp; p.peakPrice = stock.cmp; } // Auto-heal missing avgPrice
+    // v18.2.1: Auto-heal missing avgPrice AND persist to localStorage (one-time fix)
+    if (!p.avgPrice && stock && stock.cmp > 0) { p.avgPrice = stock.cmp; p.peakPrice = stock.cmp; needsSave = true; }
     let livePrice = stock ? (stock.cmp || p.avgPrice || 0) : (p.avgPrice || 0);
     let prevClose = stock ? (stock.prevClose || livePrice) : livePrice;
     // v18.2.1: Check extra prices store for non-portfolio held positions
@@ -6019,6 +6020,8 @@ function updatePTDisplay(w) {
     holdingsVal += p.marketValue;
     todayPnl += p.dayPnl;
   });
+  // v18.2.1: Persist auto-healed avgPrice so it doesn't reset every render
+  if (needsSave) { try { savePT(w); console.log('[PT] v18.2.1: Auto-healed avgPrice for positions, saved to localStorage'); } catch(e) {} }
   // Update mover badge
   const badge = document.getElementById('ptMoverBadge');
   if (badge) {
