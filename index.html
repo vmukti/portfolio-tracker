@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v18.3.1 &mdash; AI Brain First</span></h1>
+  <h1>Jain PMS <span>v18.3.2 &mdash; Circuit Guard</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -13312,6 +13312,24 @@ var AIAgentEngine = {
         return;
       }
 
+      // v18.3.2 UPPER CIRCUIT HARD GATE — reject AI Brain picks at circuit
+      if (dec.entryPrice > 0 && dec.stopLoss > 0) {
+        var prevCloseEst = dec.entryPrice / (1 + ((dec.entryPrice - dec.stopLoss) / dec.stopLoss));
+        // Better: use changePct from the decision if available
+        var aiChangePct = 0;
+        if (dec.reasoning && dec.reasoning.match && dec.reasoning.match(/[+](\d+\.?\d*)%/)) {
+          aiChangePct = parseFloat(dec.reasoning.match(/[+](\d+\.?\d*)%/)[1]);
+        }
+        if (aiChangePct > 0) {
+          var aiCircuit = isAtUpperCircuit(aiChangePct, dec.entryPrice, dec.entryPrice);
+          if (aiCircuit.atCircuit) {
+            console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — ' + aiCircuit.reason);
+            self._executedIds[decisionKey] = true;
+            return;
+          }
+        }
+      }
+
       // Sector correlation guard — max 2 stocks from same sector
       var decSector = (dec.sector || 'UNKNOWN').toUpperCase();
       if ((sectorCounts[decSector] || 0) >= self.MAX_SECTOR_POSITIONS) {
@@ -16373,6 +16391,40 @@ function renderDTEquityCurve(w) {
 //  A "live mover" = changePct >= 1.5% AND volume >= 2x avgVol
 //  (or > 500,000 shares if avgVol is unknown for that ticker).
 // ---------------------------------------------------------------
+
+// ═══════════════════════════════════════════════════════════════
+//  v18.3.2 UPPER CIRCUIT DETECTION — HARD GATE
+//  NSE circuit limits: 2%, 5%, 10%, 20% (varies by stock)
+//  F&O stocks have NO circuit — but most universe stocks do.
+//
+//  Logic: If changePct is within 0.5% of a circuit band AND
+//  price is at/near day's high (within 0.2%), the stock is
+//  AT CIRCUIT = zero upside = DO NOT BUY for day trade.
+//
+//  Also: any stock already up >15% is extremely extended —
+//  even if not at circuit, risk-reward is terrible for intraday.
+// ═══════════════════════════════════════════════════════════════
+function isAtUpperCircuit(changePct, price, dayHigh) {
+  // Standard NSE circuit bands
+  var circuitBands = [2, 5, 10, 20];
+  var atDayHigh = dayHigh > 0 && price > 0 && ((dayHigh - price) / price) < 0.002; // within 0.2% of day high
+
+  for (var i = 0; i < circuitBands.length; i++) {
+    var band = circuitBands[i];
+    // If change is within 0.5% of a circuit band AND at day's high
+    if (Math.abs(changePct - band) < 0.5 && atDayHigh) {
+      return { atCircuit: true, band: band, reason: 'AT UPPER CIRCUIT ~' + band + '% (change=' + changePct.toFixed(2) + '%, at day high)' };
+    }
+  }
+
+  // Extended beyond 15% — even if not at exact circuit, terrible R:R for intraday
+  if (changePct > 15 && atDayHigh) {
+    return { atCircuit: true, band: 20, reason: 'EXTENDED >15% at day high — no intraday upside' };
+  }
+
+  return { atCircuit: false };
+}
+
 function discoverLiveMovers(candidates) {
   var movers = [];
   Object.values(candidates).forEach(function(c) {
@@ -16384,6 +16436,13 @@ function discoverLiveMovers(candidates) {
 
     var changePct = ((c.price - c.prevClose) / c.prevClose) * 100;
     if (changePct < 1.5) return;
+
+    // v18.3.2 UPPER CIRCUIT HARD GATE — skip stocks at/near circuit
+    var circuitCheck = isAtUpperCircuit(changePct, c.price, c.dayHigh || c.price);
+    if (circuitCheck.atCircuit) {
+      console.log('[DT-CIRCUIT] SKIP ' + c.ticker + ': ' + circuitCheck.reason);
+      return;
+    }
 
     var volume = c.volume || 0;
     var avgVol = c.avgVol || 0;
@@ -16749,6 +16808,12 @@ async function runDayTradeAI() {
           if (isEthicallyExcluded(c.sector || '') || isEthicallyExcluded(c.name || '')) return;
           var changePct = ((c.price - c.prevClose) / c.prevClose) * 100;
           if (changePct < 0.3) return; // Must show SOME positive reaction
+          // v18.3.2 UPPER CIRCUIT HARD GATE — catalyst stocks at circuit = no upside
+          var catCircuit = isAtUpperCircuit(changePct, c.price, c.dayHigh || c.price);
+          if (catCircuit.atCircuit) {
+            console.log('[DT-CIRCUIT] SKIP catalyst-direct ' + c.ticker + ': ' + catCircuit.reason);
+            return;
+          }
           var volume = c.volume || 0;
           if (volume < 100000) return; // At least 1L shares traded
           var dayHigh = c.dayHigh || c.price;
