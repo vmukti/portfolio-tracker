@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v18.3 &mdash; Active Capital Deployment</span></h1>
+  <h1>Jain PMS <span>v18.3.1 &mdash; AI Brain First</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -16484,12 +16484,10 @@ async function runDayTradeAI() {
   }
 
   // ══════════════════════════════════════════════════════════
-  //  v18.3 PHASE 0c: MARKET HOURS GUARD — wait for market to settle
-  //  No new trades before 9:20 AM (need at least 5 min of price data)
-  //  or after 1:00 PM (afternoon entries still allowed for re-deployment).
-  //  v18.3: Relaxed from 9:30→9:20 to catch opening momentum,
-  //  and from 11:30→1:00 PM to allow re-entry after exits.
-  //  Evidence: Friday's 9:26 AM buys = +₹1.3L. Today's 9:45 AM buys = -₹1.2K.
+  //  v18.3.1 PHASE 0c: MARKET HOURS GUARD — only block pre-market
+  //  AI Brain decides WHEN to trade. Tracker is executor, not gatekeeper.
+  //  Only hard block: market not open yet (no prices available).
+  //  All other timing decisions belong to AI Brain.
   // ══════════════════════════════════════════════════════════
   var nowIST = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
   var hhmm = nowIST.getHours() * 100 + nowIST.getMinutes();
@@ -16497,12 +16495,8 @@ async function runDayTradeAI() {
     alert('Market opens at 9:15 AM IST. Day Trade AI needs live prices to scan.\n\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + '\n\nTip: Use Pre-Market Intel tab for pre-market analysis!');
     return;
   }
-  if (hhmm < 920) {
-    alert('v18.3: Waiting for 5 minutes of price data to form.\n\nCurrent time: ' + nowIST.getHours() + ':' + String(nowIST.getMinutes()).padStart(2,'0') + '\n\nFirst 5 minutes = auction noise. Entry from 9:20 AM once real price action begins.');
-    return;
-  }
-  if (hhmm > 1300) {
-    alert('v18.3 TIME GUARD: No new day trades after 1:00 PM.\n\nAfternoon entries have less room to run. Use "Square Off All" to close open positions before 3:30 PM.');
+  if (hhmm >= 1510) {
+    alert('Square-off time (3:10 PM). No new entries — exit open positions before 3:30 PM.');
     return;
   }
 
@@ -17539,16 +17533,16 @@ async function runDayTradeSmartExits() {
 
 // (OLD exit monitor moved into Auto Day Trade Engine below)
 // ---------------------------------------------------------------
-//  AUTO DAY TRADE ENGINE v4.0 — Active Capital Deployment [v18.3]
-//  Trigger Points:
+//  AUTO DAY TRADE ENGINE v5.0 — AI Brain First [v18.3.1]
+//  Architecture:
+//    PRIMARY: AI Brain (scheduled task) → Cloud Sync → AIAgentEngine executes
+//    FALLBACK: Rule-based auto-trigger ONLY when AI Brain has no active decisions
+//  Trigger Points (fallback only):
 //    T0: 9:20 AM — Pre-Market Prep (build catalyst shortlist + Predator init)
-//    T1: 9:25 AM — Early Entry Scan (catch opening momentum, not ORB delay)
-//    T2: 11:00-1:00 PM — Smart Re-Entry (re-deploy after exits, if T1 cleared)
-//    T3: REMOVED — No late afternoon buys
+//    T1: 9:20+ AM — First scan (AI Brain decides timing, no hardcoded window)
+//    T2: Continuous — Re-deploy idle cash whenever positions exited
 //    T4: 3:10 PM — Auto Square-Off (in exit monitor)
-//  v18.3: T1 moved from 9:45→9:25 (Friday 9:26 AM = +₹1.3L vs Monday 9:45 = -₹1.2K)
-//  v18.3: T2 re-enabled with guards (idle cash = 0% return = worst outcome)
-//  v18.3: MAX_DAILY_BUYS raised 3→15 (Friday had 36 trades = +₹1.3L)
+//  v18.3.1: ALL timing decisions belong to AI Brain. No hardcoded time gates.
 // ---------------------------------------------------------------
 var DT_AUTO_KEY = 'dtAutoTrigger_v1';
 
@@ -17631,11 +17625,11 @@ function checkDayTradeAutoTrigger() {
     return;
   }
 
-  // ── T1: EARLY ENTRY SCAN — 9:25 to 11:25 AM [v18.3 — moved from 9:45 to 9:25] ──
-  // v18.3: Evidence shows 9:26 AM entries (Friday) = +₹1.3L, 9:45 AM entries (Monday) = -₹1.2K
-  // Opening momentum fades by 9:45. Enter at 9:25 to catch the initial pop.
-  // The catalyst gate + scoring engine ensures quality, not the entry delay.
-  if (!autoState.t1_morning && hhmm >= 925 && hhmm <= 1125 && w.positions.length === 0) {
+  // ── T1: FIRST SCAN — anytime after 9:20 when no positions [v18.3.1] ──
+  // v18.3.1: AI Brain decides timing. No hardcoded window.
+  // Fallback fires once when market is open and no positions held.
+  // Quality comes from catalyst gate + scoring, not from time restrictions.
+  if (!autoState.t1_morning && hhmm >= 920 && hhmm < 1510 && w.positions.length === 0) {
     // Auto-run T0 prep first if it was missed
     if (!autoState.t0_prep) {
       autoState.t0_prep = true;
@@ -17663,18 +17657,11 @@ function checkDayTradeAutoTrigger() {
     return;
   }
 
-  // ── T2: v18.3 SMART RE-ENTRY — Re-deploy idle cash after exits ──
-  // v16.0 disabled T2 because midday entries lost money with scattered picks.
-  // v18.3: Re-enabled with STRICT guards:
-  //   1. All previous positions must have been exited (cash sitting idle)
-  //   2. Must be between 11:00 AM and 1:00 PM (still enough time to run)
-  //   3. T1 must have already fired (we already tried the morning)
-  //   4. Risk controls must still allow trading
-  //   5. Scoring engine + catalyst gate ensure quality (not just any stock)
-  // Evidence: Friday re-entries at 9:40-9:55 AM made money because stocks
-  // were STILL trending. Idle cash = guaranteed 0% return = worst outcome.
-  if (!autoState.t2_midday && autoState.t1_morning && hhmm >= 1100 && hhmm <= 1300 && w.positions.length === 0) {
-    // Check if T1 positions were all exited (cash was deployed and returned)
+  // ── T2: v18.3.1 CONTINUOUS RE-ENTRY — Re-deploy idle cash anytime ──
+  // v18.3.1: No time window restriction. AI Brain decides timing.
+  // If T1 fired, positions exited, and cash is idle — re-scan immediately.
+  // Idle cash = 0% return = worst outcome. Always redeploy if quality exists.
+  if (!autoState.t2_midday && autoState.t1_morning && hhmm < 1510 && w.positions.length === 0) {
     var todayStr2 = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'})).toISOString().slice(0, 10);
     var hadTrades = (w.trades || []).some(function(t) {
       return t.type === 'SELL' && t.time && t.time.slice(0, 10) === todayStr2;
@@ -17682,18 +17669,16 @@ function checkDayTradeAutoTrigger() {
     if (hadTrades) {
       autoState.t2_midday = true;
       saveDTAutoState(autoState);
-      console.log('[DT-AUTO] T2 SMART RE-ENTRY: All T1 positions exited, re-scanning with fresh eyes...');
-      updateDTAutoStatus('T2: Smart Re-Entry — re-deploying idle cash...', '#f59e0b');
+      console.log('[DT-AUTO] T2 RE-ENTRY: Positions exited, re-scanning...');
+      updateDTAutoStatus('T2: Re-deploying idle cash...', '#f59e0b');
       runDayTradeAI();
       return;
     }
   }
-  // Mark T2 as done if past window
-  if (!autoState.t2_midday && hhmm >= 1300) {
+  // Mark T2 as done at square-off
+  if (!autoState.t2_midday && hhmm >= 1510) {
     autoState.t2_midday = true;
     saveDTAutoState(autoState);
-    console.log('[DT-AUTO] T2 window closed (past 1:00 PM) — no re-entry needed');
-    updateDTAutoStatus('T2: Window closed — past 1:00 PM', '#6b7280');
   }
 
   // ── T3: REMOVED — afternoon buys historically lose money ──
