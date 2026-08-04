@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v18.3.4 &mdash; Smart Guard</span></h1>
+  <h1>Jain PMS <span>v18.3.5 &mdash; Price Fix</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -1754,7 +1754,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v18.3.4 &mdash; AI-Agentic Wealth Fund (₹1 Cr) + AI Agent Engine (Claude LLM brain + Cloud Sync decisions) + Primary Device Lock + Conviction Sizing + Partial Profit Exits + Sector Correlation Guard + Catalyst-Direct Entry + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v18.3.5 &mdash; AI-Agentic Wealth Fund (₹1 Cr) + AI Agent Engine (Claude LLM brain + Cloud Sync decisions) + Primary Device Lock + Conviction Sizing + Partial Profit Exits + Sector Correlation Guard + Catalyst-Direct Entry + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
   <span id="cloudSyncBadge" style="color:#f59e0b;font-weight:600;cursor:pointer;margin-right:8px" onclick="JainPMS_Cloud.forceLoad()" title="Click to force reload from cloud">☁ Connecting...</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
@@ -13413,9 +13413,38 @@ var AIAgentEngine = {
         return;
       }
 
-      var entryPrice = dec.entryPrice;
+      // v18.3.5: Use LIVE CMP from price API, NOT AI Brain's web-search price
+      // AI Brain gets prices from web search which can be stale/wrong by 10-20%
+      var aiPrice = dec.entryPrice;
+      var liveCMP = 0;
+      // Try portfolio stocks first
+      if (typeof stocks !== 'undefined') {
+        var liveStock = stocks.find(function(s) { return s.ticker === dec.ticker; });
+        if (liveStock && liveStock.cmp && liveStock.cmp > 0) liveCMP = liveStock.cmp;
+      }
+      // Try extra prices store (for non-portfolio stocks)
+      if (!liveCMP && window._extraPrices && window._extraPrices[dec.ticker]) {
+        var ep = window._extraPrices[dec.ticker];
+        if (ep.cmp && ep.cmp > 0) liveCMP = ep.cmp;
+      }
+      // Try day trade positions that already have currentPrice
+      if (!liveCMP && w.positions) {
+        var existing = w.positions.find(function(p) { return p.ticker === dec.ticker && p.currentPrice > 0; });
+        if (existing) liveCMP = existing.currentPrice;
+      }
+
+      var entryPrice = liveCMP || aiPrice;
+
+      // If live CMP available, log correction when AI Brain price was significantly off
+      if (liveCMP && aiPrice && Math.abs(liveCMP - aiPrice) / liveCMP > 0.02) {
+        var pctDiff = ((liveCMP - aiPrice) / liveCMP * 100).toFixed(1);
+        console.log('[AI-AGENT] v18.3.5 PRICE FIX: ' + dec.ticker +
+          ' AI Brain=' + aiPrice + ' vs LiveCMP=' + liveCMP +
+          ' (diff ' + pctDiff + '%) — using LIVE price');
+      }
+
       if (!entryPrice || entryPrice <= 0) {
-        console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — no valid entry price');
+        console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — no valid price (AI=' + aiPrice + ', Live=' + liveCMP + ')');
         return;
       }
 
