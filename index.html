@@ -406,7 +406,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v18.3.2 &mdash; Circuit Guard</span></h1>
+  <h1>Jain PMS <span>v18.3.4 &mdash; Smart Guard</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -1754,7 +1754,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v18.2 &mdash; AI-Agentic Wealth Fund (₹1 Cr) + AI Agent Engine (Claude LLM brain + Cloud Sync decisions) + Primary Device Lock + Conviction Sizing + Partial Profit Exits + Sector Correlation Guard + Catalyst-Direct Entry + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v18.3.4 &mdash; AI-Agentic Wealth Fund (₹1 Cr) + AI Agent Engine (Claude LLM brain + Cloud Sync decisions) + Primary Device Lock + Conviction Sizing + Partial Profit Exits + Sector Correlation Guard + Catalyst-Direct Entry + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
   <span id="cloudSyncBadge" style="color:#f59e0b;font-weight:600;cursor:pointer;margin-right:8px" onclick="JainPMS_Cloud.forceLoad()" title="Click to force reload from cloud">☁ Connecting...</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
@@ -3508,7 +3508,8 @@ var PRE_MARKET_GLOBAL = {
 };
 
 // ── AI Research Agent — last automated scan ──
-var AI_RESEARCH_LAST_UPDATE = '2026-08-03 (CATALYST REFRESH + CLOUD SYNC PUSH OK: 10 signals + 20 earnings + 9 news pushed; Jul 31 Q1: TVS Motor +51% RECORD, GAIL +96%, Maruti PAT -11% (rev +36%) on input costs, Ambuja -37%, JSW Energy -36%, IEX +11.6%; FII +277 Cr + DII +2,260 Cr Jul 31 BOTH BUYERS; BEST WEEK OF JULY: Nifty +2.5% WoW to 24,383.60, Sensex 78,094.64; Brent eased ~$88 / WTI $82 on Mideast shipping reopen; rupee 95.39; UPCOMING: PTC India Aug 4, Cummins India Aug 5)';
+var AI_RESEARCH_LAST_UPDATE = '2026-08-04 (CATALYST REFRESH + CLOUD SYNC PUSH: Aug 3 RALLY 4th straight day — Nifty +1.60% (+390.70) to 24,774.30 first close above 24,700, Bank Nifty FRESH HIGH 58,247.95 (+1.72%), Sensex +544.39 to 78,639.03; Nifty IT +3% led (TCS/Infosys), new CAS closing-auction boosted late gains; CRUDE CRASH: WTI -5.97% to $79.62 / Brent -4.68% to $83.82 as Trump says Iran peace talks resume after canceled strike — OMC/paints/aviation/tyres tailwind; FII +922 Cr cash Aug 3 but net short 1,50,816 index-fut contracts; Q1 FY27: Dixon PAT Rs 717.83 Cr +156% rev +50% to Rs 16,076 Cr (Jul 31), IOC net LOSS Rs 2,661 Cr vs Rs 11,378 Cr profit prev qtr (Aug 1); RESULTS WEEK: 350+ cos Aug 3-8 incl SBI, Airtel, ONGC; PTC Aug 4, Cummins Aug 5)';
+// Previous: '2026-08-03 (CATALYST REFRESH + CLOUD SYNC PUSH OK: 10 signals + 20 earnings + 9 news pushed; Jul 31 Q1: TVS Motor +51% RECORD, GAIL +96%, Maruti PAT -11% (rev +36%) on input costs, Ambuja -37%, JSW Energy -36%, IEX +11.6%; FII +277 Cr + DII +2,260 Cr Jul 31 BOTH BUYERS; BEST WEEK OF JULY: Nifty +2.5% WoW to 24,383.60, Sensex 78,094.64; Brent eased ~$88 / WTI $82 on Mideast shipping reopen; rupee 95.39; UPCOMING: PTC India Aug 4, Cummins India Aug 5)';
 // Previous: '2026-07-30 (CATALYST REFRESH + CLOUD SYNC PUSH: 12 signals + 14 earnings entries + 12 news items; Q1 results: Asian Paints +40%, Balkrishna +56%, IDFC First +132% highest-ever, Waaree rev +79%, Bajaj Housing +23%, KPIT -28% QoQ miss; MARKET REBOUND: Sensex +889 to 77,655, Nifty 24,250 +1.1%; FII +2,982 Cr + DII +998 Cr BOTH BUYERS Jul 29; Fed HOLDS rates; crude eased ~$85 from $100+; rupee 95.7; TODAY: Vedanta; TOMORROW Jul 31: Maruti, TVS, Ambuja, JSW Energy)';
 // Previous: '2026-07-24 (CATALYST REFRESH: 23 fresh PRIMARY_SIGNALS + 20 EARNINGS_CALENDAR entries + 14 CURATED_NEWS items updated; Q1 results: INFY guide cut 1.5-3%, Eternal +268%, IndusInd +72%, Nestle +48%, Adani Power +42%, HPCL loss Rs11,526 Cr, BPCL loss Rs3,962 Cr, IndiGo loss Rs238 Cr; Brent $101; FII -2,999 Cr; regime BEAR; Nifty 23,870 4th decline; TODAY: Shriram Finance + NTPC results; TOMORROW: Tata Motors + Titan)';
 // Previous: '2026-07-23 (daily scan: regime BULL→SIDEWAYS — Nifty 23,996 broke 24,050 support; Brent $94-95 Iran escalation, $100 risk; FII -819 Cr + DII -418 Cr Jul 22 both sellers; Semicon 2.0 Rs 1.9L Cr = DIXON/KAYNES tailwind; INFY Q1 today; Ather QIP Rs 1,300 Cr dilution; JIOFIN drifting to 52wk low; new candidates: Syrma 74, Amber 70, PGEL 68)';
@@ -3517,6 +3518,9 @@ var AI_RESEARCH_LAST_UPDATE = '2026-08-03 (CATALYST REFRESH + CLOUD SYNC PUSH OK
 
 // ── Earnings Calendar (stocks reporting today/tomorrow) ──
 var EARNINGS_CALENDAR = [
+  // ═══ Jul 31 - Aug 1 REPORTED (updated 2026-08-04 by AI Research Agent) ═══
+  {ticker:'DIXON', name:'Dixon Technologies', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:156, keyNote:'PAT Rs 717.83 Cr +156.3% YoY (+140.9% QoQ); Rev Rs 16,076 Cr +50%; electronics mfg scale-up'},
+  {ticker:'IOC', name:'Indian Oil Corporation', date:'2026-08-01', status:'REPORTED', result:'MISS', keyNote:'Q1 FY27 net LOSS Rs 2,661 Cr vs Rs 11,378 Cr profit prev qtr — July crude surge/inventory hit; crude now easing below $80'},
   // ═══ Jul 31 REPORTED (updated 2026-08-03 by AI Research Agent) ═══
   {ticker:'TVSMOTOR', name:'TVS Motor', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:51, keyNote:'PAT Rs 1,174 Cr +51%; Rev Rs 13,896 Cr +38%; record EBITDA Rs 1,779 Cr +41%, margin 12.8%'},
   {ticker:'GAIL', name:'GAIL (India)', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:96, keyNote:'PAT Rs 4,670 Cr +96%; total income Rs 41,482 Cr +16%; transmission volumes + marketing margins'},
@@ -3540,7 +3544,10 @@ var EARNINGS_CALENDAR = [
   {ticker:'KPITTECH', name:'KPIT Technologies', date:'2026-07-29', status:'REPORTED', result:'MISS', patGrowth:-28, keyNote:'PAT Rs 117 Cr -28.1% QoQ; Rev Rs 1,675 Cr -2.1% QoQ; auto-ER&D demand soft'},
   // ═══ UPCOMING ═══
   {ticker:'PTC', name:'PTC India', date:'2026-08-04', status:'UPCOMING', keyNote:'Board meets Aug 4 for Q1 FY27; investor call Aug 5'},
-  {ticker:'CUMMINSIND', name:'Cummins India', date:'2026-08-05', status:'UPCOMING', keyNote:'Q1 FY27 on Aug 5; capex/electrification cycle read'}
+  {ticker:'CUMMINSIND', name:'Cummins India', date:'2026-08-05', status:'UPCOMING', keyNote:'Q1 FY27 on Aug 5; capex/electrification cycle read'},
+  {ticker:'SBIN', name:'State Bank of India', date:'2026-08-08', status:'UPCOMING', keyNote:'Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); 350+ cos reporting this week'},
+  {ticker:'BHARTIARTL', name:'Bharti Airtel', date:'2026-08-08', status:'UPCOMING', keyNote:'Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); ARPU trajectory watch'},
+  {ticker:'ONGC', name:'ONGC', date:'2026-08-08', status:'UPCOMING', keyNote:'Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); crude crash below $80 = realisation watch'}
 ];
 
 function runPreMarketIntel() {
@@ -7360,6 +7367,14 @@ function checkCircuitBreaker(w) {
   }
 
   // Check today's P&L
+  // v18.3.4 FIX: Skip P&L check if ANY position has currentPrice=0 (prices not loaded yet).
+  // Without this fix, positions with price=0 compute phantom -336% loss and lock Paper Trade
+  // for the entire day (Aug 4 2026 race condition bug).
+  const hasMissingPrices = w.positions.some(p => !p.currentPrice || p.currentPrice <= 0);
+  if (hasMissingPrices && w.positions.length > 0) {
+    console.log('[PT-CIRCUIT] Skipping circuit breaker — prices not loaded for all positions');
+    return cb;
+  }
   const todayPnl = w.positions.reduce((s, p) => {
     const stock = stocks.find(st => st.ticker === p.ticker);
     const prevClose = stock ? (stock.prevClose || p.avgPrice || 0) : (p.avgPrice || 0);
@@ -8947,7 +8962,14 @@ function renderNSEAnnouncements(announcements) {
 //  Sources: BSE filings, SEBI bulk deals, VAHAN, promoter txns
 // ============================================================
 const PRIMARY_SIGNALS = [
-  // ═══ FRESH Jul 31 Q1 FY27 Results (updated 2026-08-03 by AI Research Agent) ═══
+  // ═══ FRESH Aug 1-3 Intelligence (updated 2026-08-04 by AI Research Agent) ═══
+  {type:"POLICY",company:"Aug 3 Rally: Bank Nifty Fresh High",ticker:"",signal:"4th straight up day: Nifty +1.60% (+390.70) to 24,774.30 — first close above 24,700; Bank Nifty FRESH HIGH 58,247.95 (+1.72%); Sensex +544.39 to 78,639.03. Nifty IT +3% led (TCS, Infosys); new Closing Auction Session (CAS) rollout drove late-session surge. Drivers: FII inflows, crude crash, steady Q1 earnings.",source:"HDFC Sky / India Infoline",date:"2026-08-03",severity:"HIGH",icon:"📈"},
+  {type:"POLICY",company:"Crude CRASH Below $80",ticker:"",signal:"Crude plunged >5% on Aug 3: WTI -5.97% to $79.62/bbl, Brent -4.68% to $83.82 — after surging 20%+ in July — as Trump announced Iran peace talks will resume following canceled military strike. Big tailwind for OMCs, paints (Asian Paints), aviation, tyres (Balkrishna); reverses the input-cost squeeze hitting Maruti/IOC.",source:"TradingEconomics / Fortune",date:"2026-08-03",severity:"HIGH",icon:"🛢️"},
+  {type:"EARNINGS",company:"Dixon Technologies",ticker:"DIXON",signal:"Q1 FY27 BLOWOUT (Jul 31): Consolidated PAT Rs 717.83 Cr (+156.3% YoY, +140.9% QoQ); Revenue Rs 16,076 Cr (+50% YoY). Electronics manufacturing scale-up + PLI momentum intact.",source:"BSE Filing / EquityBulls",date:"2026-07-31",severity:"HIGH",icon:"💹"},
+  {type:"EARNINGS_MISS",company:"Indian Oil Corporation",ticker:"IOC",signal:"Q1 FY27 SHARP LOSS (Aug 1 slides): Net loss Rs 2,661 Cr vs Rs 11,378 Cr profit in prior quarter — July crude volatility/inventory losses. Watch: crude now crashing below $80 flips the driver positive for Q2.",source:"Investing.com / IOC Investor Presentation",date:"2026-08-01",severity:"HIGH",icon:"📉"},
+  {type:"FII_FLOW",company:"FII Cash Buying Extends Aug 3",ticker:"",signal:"FII net BOUGHT +Rs 922 Cr in cash on Aug 3 — buy streak extends (Jul 29 +2,982, Jul 30 +3,624, Jul 31 +277). Caution: FII holds net short 1,50,816 index-futures contracts — profit-taking with downside cover.",source:"5paisa / NSE provisional",date:"2026-08-03",severity:"MEDIUM",icon:"🌍"},
+  {type:"EARNINGS_UPCOMING",company:"Results Week: 350+ Companies Aug 3-8",ticker:"SBIN",signal:"UPCOMING: 350+ companies report Q1 FY27 during Aug 3-8 week incl SBI, Bharti Airtel, ONGC. PTC India board Aug 4 (call Aug 5); Cummins India Aug 5 — capex/industrials read.",source:"Goodreturns / BSE Calendar",date:"2026-08-04",severity:"MEDIUM",icon:"📋"},
+  // ═══ Jul 31 Q1 FY27 Results (updated 2026-08-03 by AI Research Agent) ═══
   {type:"EARNINGS",company:"TVS Motor",ticker:"TVSMOTOR",signal:"Q1 FY27 RECORD BEAT: PAT Rs 1,174 Cr (+51% YoY), Revenue Rs 13,896 Cr (+38%). All-time-high EBITDA Rs 1,779 Cr (+41%), margin 12.8% (+30bps). 2W momentum + EV (iQube) trajectory strong — confirms M&M/Bajaj auto strength.",source:"BSE Filing / ScanX",date:"2026-07-31",severity:"HIGH",icon:"💹"},
   {type:"EARNINGS",company:"GAIL (India)",ticker:"GAIL",signal:"Q1 FY27 BLOWOUT: PAT Rs 4,670 Cr (+96% YoY), total income Rs 41,482 Cr (+16%). Higher gas transmission volumes + improved marketing margins.",source:"BSE Filing / Business Standard",date:"2026-07-31",severity:"HIGH",icon:"💹"},
   {type:"EARNINGS_MISS",company:"Maruti Suzuki",ticker:"MARUTI",signal:"Q1 FY27 MIXED: Standalone PAT Rs 3,352 Cr (-11% YoY vs Rs 3,758 Cr) on higher raw-material costs; Revenue Rs 52,456 Cr (+36%). EBITDA Rs 4,312 Cr (-7%). Volumes/SUV mix strong; margin squeeze the watch item vs M&M +34%, TVS +51%.",source:"BSE Filing / Upstox / Business Today",date:"2026-07-31",severity:"HIGH",icon:"📉"},
@@ -8998,7 +9020,44 @@ function renderPrimaryResearch() {
 //  Last updated: 30 Jul 2026 by AI Research Agent
 // ============================================================
 const CURATED_NEWS = [
-  // ═══ FRESH Jul 31 - Aug 3 Intelligence (updated 2026-08-03 by AI Research Agent) ═══
+  // ═══ FRESH Aug 3-4 Intelligence (updated 2026-08-04 by AI Research Agent) ═══
+  {title:"Nifty settles above 24,700 for first time — +1.6% to 24,774.30; Bank Nifty hits fresh high 58,247.95; IT +3% leads 4th straight up day.",
+   source:"HDFC Sky / India Infoline",link:"https://hdfcsky.com/news/market-close-report-today-august-3-2026-nifty-sensex-rise-fourth-day-it-stocks-lead-rally",
+   pubDate:"2026-08-03",tag:"india",tagLabel:"Rally Extends",
+   impact:"bullish",impactText:"+1.6% / BN High",
+   stocks:[],
+   detail:"Sensex +544.39 (+0.70%) to 78,639.03. TCS/Infosys led IT surge; financials +1.47% on FII buying, stable credit growth, supportive RBI expectations. New Closing Auction Session (CAS) rollout drove a sharp late-session surge."},
+  {title:"Crude crashes below $80: WTI -5.97% to $79.62, Brent $83.82 as Trump says Iran peace talks resume after canceled strike.",
+   source:"TradingEconomics / Fortune",link:"https://tradingeconomics.com/commodity/crude-oil",
+   pubDate:"2026-08-03",tag:"global",tagLabel:"Crude Crash",
+   impact:"bullish",impactText:"WTI < $80",
+   stocks:[],
+   detail:"Oil dropped >5% after surging 20%+ in July. Reverses the input-cost squeeze that hit Maruti and drove IOC's Rs 2,661 Cr loss. Tailwind for OMCs, paints, aviation, tyres, chemicals."},
+  {title:"Dixon Technologies Q1 BLOWOUT: PAT surges 156% YoY to Rs 717.83 Cr; revenue +50% to Rs 16,076 Cr.",
+   source:"EquityBulls",link:"https://www.equitybulls.com/category.php?id=373771",
+   pubDate:"2026-07-31",tag:"company",tagLabel:"Dixon Tech",
+   impact:"bullish",impactText:"+156% PAT",
+   stocks:["Dixon Technologies"],
+   detail:"PAT +140.9% QoQ. Electronics manufacturing scale-up + PLI momentum. Earnings call held Jul 31."},
+  {title:"Indian Oil Q1 FY27: sharp swing to Rs 2,661 Cr net loss (vs Rs 11,378 Cr profit prev qtr) amid July crude volatility.",
+   source:"Investing.com",link:"https://www.investing.com/news/company-news/indian-oil-q1-fy27-slides-show-sharp-loss-amid-crude-volatility-93CH-4829578",
+   pubDate:"2026-08-01",tag:"company",tagLabel:"Indian Oil",
+   impact:"bearish",impactText:"Rs 2,661 Cr Loss",
+   stocks:["Indian Oil Corporation"],
+   detail:"Investor slides presented Aug 1. July's $100+ Brent spike drove inventory/marketing losses. Crude crashing below $80 on Aug 3 flips the driver positive for Q2."},
+  {title:"FII net buy +Rs 922 Cr cash Aug 3 — but holds net short 1,50,816 index-futures contracts; profit-taking with downside cover.",
+   source:"5paisa / NSE provisional",link:"https://www.5paisa.com/share-market-today/fii-dii-data",
+   pubDate:"2026-08-03",tag:"india",tagLabel:"FII Flow",
+   impact:"bullish",impactText:"FII +922 Cr",
+   stocks:[],
+   detail:"Cash buy streak extends: Jul 29 +2,982 Cr, Jul 30 +3,624 Cr, Jul 31 +277 Cr, Aug 3 +922 Cr. Derivatives positioning stays hedged."},
+  {title:"Results week: 350+ companies report Q1 FY27 Aug 3-8 — SBI, Bharti Airtel, ONGC among them; PTC Aug 4, Cummins Aug 5.",
+   source:"Goodreturns",link:"https://www.goodreturns.in/amphtml/news/q1-results-next-week-august-3-8-check-full-list-of-350-companies-including-sbi-airtel-ongc-marico-1525711.html",
+   pubDate:"2026-08-04",tag:"india",tagLabel:"Results Calendar",
+   impact:"neutral",impactText:"Q1 Watch",
+   stocks:[],
+   detail:"Peak earnings week. Early season read: healthy revenue/operating growth, softer PAT as costs squeeze margins — crude crash may ease that pressure from Q2."},
+  // ═══ Jul 31 - Aug 3 Intelligence (updated 2026-08-03 by AI Research Agent) ═══
   {title:"Best week of July: Nifty +2.5% WoW to 24,383.60, Sensex 78,094.64 — crude easing + strong rupee + FII buying drive rebound.",
    source:"Kotak Neo / TS2",link:"https://www.kotakneo.com/news/stocks/stock-market-update-sensex-nifty-31july-2026/",
    pubDate:"2026-07-31",tag:"india",tagLabel:"Weekly Rebound",
@@ -13028,6 +13087,7 @@ var AIAgentEngine = {
   _currentDecisions: null,   // latest fetched decision payload
   _partialExits: {},         // ticker -> { sold50pct: bool, trailPeak: number }
   _active: false,
+  _lastExecuteTime: null,   // v18.3.4: Track when last buy was executed (for fallback cooldown)
   MAX_POSITIONS: 3,
 
   // ── Conviction → allocation % map ──
@@ -13415,6 +13475,7 @@ var AIAgentEngine = {
 
       sectorCounts[decSector] = (sectorCounts[decSector] || 0) + 1;
       self._executedIds[decisionKey] = true;
+      self._lastExecuteTime = new Date().toISOString(); // v18.3.4: Track for fallback cooldown
       bought++;
 
       console.log('[AI-AGENT] BOUGHT ' + dec.ticker + ' ' + qty + 'qty @ ' +
@@ -13580,6 +13641,7 @@ var AIAgentEngine = {
       lastFetch: this._lastFetch,
       lastError: this._lastError,
       lastDecisionTime: this._lastDecisionTimestamp,
+      lastExecuteTime: this._lastExecuteTime,  // v18.3.4: For fallback cooldown
       hasDecisions: this.hasActiveDecisions(),
       pending: this.getPendingCount(),
       executed: this.getExecutedCount(),
@@ -13693,20 +13755,29 @@ function updateRiskStateOnExit(pnl, pnlPct) {
   } else {
     // LOSS
     risk.lossesToday++;
-    risk.consecutiveLosses++;
+    // v18.3.4 FIX: Stagnation exits (|pnl%| < 0.5%) are HEALTHY exits from dead stocks,
+    // NOT real losses. Don't count them toward consecutive-loss circuit breaker.
+    // Without this fix, 3 tiny stagnation exits (-0.12%, -0.28%, -0.43%) trip the
+    // circuit breaker on days with +₹1L profit (Aug 4 2026 bug).
+    var isRealLoss = Math.abs(pnlPct) >= 0.5;
+    if (isRealLoss) {
+      risk.consecutiveLosses++;
+    } else {
+      console.log('[RISK-CTRL] STAGNATION exit ' + pnlPct.toFixed(2) + '% — not counted as consecutive loss');
+    }
     risk.lastLossTime = new Date().toISOString();
     if (pnlPct < risk.biggestLoss) risk.biggestLoss = pnlPct;
 
     // Revenge Trading Cooldown Logic
-    if (risk.consecutiveLosses >= 3) {
+    if (isRealLoss && risk.consecutiveLosses >= 3) {
       // 3+ consecutive losses → DONE FOR THE DAY
       risk.circuitBreakerTripped = true;
       risk.cooldownActive = true;
       risk.cooldownUntil = null; // Permanent for today
       risk.positionSizeReduction = 0;
       console.log('[RISK-CTRL] ⛔ 3 CONSECUTIVE LOSSES — TRADING DISABLED FOR TODAY');
-    } else if (risk.consecutiveLosses === 2) {
-      // 2 consecutive losses → 30-minute cooldown + half position size
+    } else if (isRealLoss && risk.consecutiveLosses === 2) {
+      // 2 consecutive REAL losses → 30-minute cooldown + half position size
       var cd2 = new Date();
       cd2.setMinutes(cd2.getMinutes() + 30);
       risk.cooldownUntil = cd2.toISOString();
@@ -17655,18 +17726,35 @@ function checkDayTradeAutoTrigger() {
   // Skip if insufficient cash
   if (w.cash < 15000) return;
 
-  // ═══ v18.0: AI AGENT PRIORITY ═══
-  // When AIAgentEngine has active decisions (from Claude scheduled tasks),
-  // it takes priority over rule-based T0/T1/T2 triggers.
-  // AI Agent handles its own buy/sell cycle via cloud sync polling.
-  // Rule-based triggers only fire as FALLBACK when no AI decisions available.
-  if (typeof AIAgentEngine !== 'undefined' && AIAgentEngine.hasActiveDecisions()) {
+  // ═══ v18.3.4: AI AGENT PRIORITY + POST-EXECUTION COOLDOWN ═══
+  // When AIAgentEngine has active decisions OR has recently executed trades,
+  // suppress rule-based triggers. The old behavior let rule-based fallback fire
+  // immediately after AI Brain picks were done — those picks were inferior and
+  // caused 3 stagnation losses that tripped the circuit breaker (Aug 4 2026 bug).
+  //
+  // Now: After AI Agent executes ANY trade today, rule-based fallback is suppressed
+  // for 2 hours to give AI Brain time to push new decisions.
+  if (typeof AIAgentEngine !== 'undefined') {
     var agentStatus = AIAgentEngine.getStatus();
-    console.log('[DT-AUTO] v18.0: AI Agent has active decisions (' +
-      agentStatus.executed + ' executed, ' + agentStatus.pending + ' pending) — rule-based triggers suppressed');
-    updateDTAutoStatus('AI-AGENT active: ' + agentStatus.regime + ' | ' +
-      agentStatus.executed + ' executed, ' + agentStatus.pending + ' pending', '#a78bfa');
-    return; // AI Agent handles everything
+    if (AIAgentEngine.hasActiveDecisions()) {
+      console.log('[DT-AUTO] v18.3.4: AI Agent has active decisions (' +
+        agentStatus.executed + ' executed, ' + agentStatus.pending + ' pending) — rule-based triggers suppressed');
+      updateDTAutoStatus('AI-AGENT active: ' + agentStatus.regime + ' | ' +
+        agentStatus.executed + ' executed, ' + agentStatus.pending + ' pending', '#a78bfa');
+      return; // AI Agent handles everything
+    }
+    // v18.3.4: Even after AI Brain picks are done, suppress fallback for 2 hours
+    // to prevent inferior rule-based picks from wasting capital
+    if (agentStatus.executed > 0 && agentStatus.lastExecuteTime) {
+      var msSinceLastAI = Date.now() - new Date(agentStatus.lastExecuteTime).getTime();
+      var AI_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours
+      if (msSinceLastAI < AI_COOLDOWN_MS) {
+        var minsLeft = Math.ceil((AI_COOLDOWN_MS - msSinceLastAI) / 60000);
+        console.log('[DT-AUTO] v18.3.4: AI Agent executed ' + agentStatus.executed + ' trades — fallback suppressed for ' + minsLeft + 'min');
+        updateDTAutoStatus('AI-AGENT cooldown: ' + minsLeft + 'min until fallback allowed', '#a78bfa');
+        return;
+      }
+    }
   }
 
   // v13.4: Skip if risk controls block trading
