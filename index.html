@@ -401,12 +401,45 @@ tbody tr.flash-up{animation:flashGreen .8s ease}
 tbody tr.flash-down{animation:flashRed .8s ease}
 .fetch-speed{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
 
+/* ═══ v19.0 COMMAND CENTER ═══ */
+.cmd-center{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px}
+@media(max-width:1100px){.cmd-center{grid-template-columns:1fr}}
+.cmd-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden}
+.cmd-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.cmd-panel.panel-day::before{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.cmd-panel.panel-paper::before{background:linear-gradient(90deg,#a855f7,#c084fc)}
+.cmd-panel.panel-lt::before{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.cmd-panel-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.cmd-panel-title{font-size:16px;font-weight:700;letter-spacing:-0.3px}
+.cmd-panel-badge{padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:0.3px}
+.cmd-pnl-big{font-size:36px;font-weight:800;line-height:1;margin:8px 0}
+.cmd-pnl-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.cmd-stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.cmd-stat{background:var(--card2);border-radius:8px;padding:10px;text-align:center}
+.cmd-stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+.cmd-stat-val{font-size:16px;font-weight:700}
+.cmd-positions{max-height:180px;overflow-y:auto;font-size:12px}
+.cmd-pos-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.cmd-pos-row:last-child{border-bottom:none}
+.cmd-pos-ticker{font-weight:600;color:var(--accent)}
+.cmd-target-bar{background:var(--card2);border-radius:6px;height:20px;overflow:hidden;margin:8px 0}
+.cmd-target-fill{height:100%;border-radius:6px;transition:width 0.5s;display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+.cmd-target-fill span{font-size:9px;font-weight:700;color:#000}
+.cmd-intel-hub{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:24px}
+.cmd-intel-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+@media(max-width:900px){.cmd-intel-row{grid-template-columns:repeat(3,1fr)}}
+.cmd-intel-card{background:var(--card2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--border)}
+.cmd-intel-icon{font-size:20px;margin-bottom:4px}
+.cmd-intel-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px}
+.cmd-intel-val{font-size:14px;font-weight:700;margin-top:2px}
+.cmd-section-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px}
+
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v18.3.5 &mdash; Price Fix</span></h1>
+  <h1>Jain PMS <span>v19.0 &mdash; Command Center</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -424,15 +457,19 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- ═══ v12 CONSOLIDATED NAVIGATION ═══ -->
 <div class="tabs" id="tabBar" style="flex-wrap:wrap;gap:0;border-bottom:2px solid var(--border)">
-  <div class="tab active" onclick="switchMajorTab('dashboard',this)" data-group="dashboard" style="font-weight:700;font-size:13px">&#128202; Dashboard</div>
+  <div class="tab active" onclick="switchMajorTab('cmdcenter',this)" data-group="cmdcenter" style="font-weight:700;font-size:13px">&#127919; Command Center</div>
+  <div class="tab" onclick="switchMajorTab('dashboard',this)" data-group="dashboard" style="font-weight:700;font-size:13px">&#128202; Dashboard</div>
   <div class="tab" onclick="switchMajorTab('intelligence',this)" data-group="intelligence" style="font-weight:700;font-size:13px">&#129504; Intelligence</div>
   <div class="tab" onclick="switchMajorTab('scanner',this)" data-group="scanner" style="font-weight:700;font-size:13px">&#128269; Scanner</div>
   <div class="tab" onclick="switchMajorTab('tradelab',this)" data-group="tradelab" style="font-weight:700;font-size:13px">&#128176; Trade Lab</div>
   <div class="tab" onclick="switchMajorTab('shadowpre',this)" data-group="shadowpre" style="font-weight:700;font-size:13px">&#128737; Shadow & Pre-Market</div>
   <div class="tab" onclick="switchMajorTab('settings',this)" data-group="settings" style="font-weight:700;font-size:13px">&#9881;&#65039; Settings</div>
 </div>
+<div id="subtabs-cmdcenter" class="subtab-row" style="display:flex;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
+  <span class="subtab active" onclick="switchTab('cmdpanel',this)">&#127919; Fund Overview</span>
+</div>
 <!-- Sub-tab rows (shown per group) -->
-<div id="subtabs-dashboard" class="subtab-row" style="display:flex;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
+<div id="subtabs-dashboard" class="subtab-row" style="display:none;gap:2px;padding:4px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-wrap:wrap">
   <span class="subtab active" onclick="switchTab('portfolio',this)">Holdings</span>
   <span class="subtab" onclick="switchTab('alerts',this)" id="alertsTab">Alerts <span class="tab-badge" id="alertBadge" style="display:none">0</span></span>
   <span class="subtab" onclick="switchTab('portfolioai',this)">Portfolio AI</span>
@@ -478,8 +515,122 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     <div class="stat-card" style="border-left:3px solid #a855f7"><div class="stat-label">Fund Target</div><div class="stat-val" style="font-size:18px" id="sFundMTD">0.0%</div><div class="stat-sub" style="color:var(--amber)" id="sFundGoal">Goal: 10% / month</div></div>
   </div>
 
+  <!-- ═══════════ v19.0 COMMAND CENTER ═══════════ -->
+  <div id="tab-cmdpanel">
+
+    <!-- Intelligence Sync Hub -->
+    <div class="cmd-intel-hub">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:16px;font-weight:700">&#129504; Intelligence Sync Hub</div>
+        <div id="cmdIntelStatus" style="font-size:11px;color:var(--muted)">Syncing all engines...</div>
+      </div>
+      <div class="cmd-intel-row">
+        <div class="cmd-intel-card"><div class="cmd-intel-icon">&#128200;</div><div class="cmd-intel-label">Market Regime</div><div class="cmd-intel-val" id="cmdRegime">--</div></div>
+        <div class="cmd-intel-card"><div class="cmd-intel-icon">&#128161;</div><div class="cmd-intel-label">Catalysts Active</div><div class="cmd-intel-val" id="cmdCatalysts">0</div></div>
+        <div class="cmd-intel-card"><div class="cmd-intel-icon">&#129302;</div><div class="cmd-intel-label">AI Brain</div><div class="cmd-intel-val" id="cmdAIBrain">--</div></div>
+        <div class="cmd-intel-card"><div class="cmd-intel-icon">&#128270;</div><div class="cmd-intel-label">Scanner Hits</div><div class="cmd-intel-val" id="cmdScannerHits">0</div></div>
+        <div class="cmd-intel-card"><div class="cmd-intel-icon">&#128737;</div><div class="cmd-intel-label">Shadow Signals</div><div class="cmd-intel-val" id="cmdShadowSigs">0</div></div>
+        <div class="cmd-intel-card"><div class="cmd-intel-icon">&#127919;</div><div class="cmd-intel-label">Pre-Market Score</div><div class="cmd-intel-val" id="cmdPreMktScore">--</div></div>
+      </div>
+    </div>
+
+    <!-- 3-Panel Layout -->
+    <div class="cmd-center">
+
+      <!-- PANEL 1: DAY TRADE -->
+      <div class="cmd-panel panel-day">
+        <div class="cmd-panel-hdr">
+          <div class="cmd-panel-title">&#9889; Day Trade</div>
+          <div class="cmd-panel-badge" style="background:#22c55e22;color:#22c55e;border:1px solid #22c55e44" id="cmdDTStatus">IDLE</div>
+        </div>
+        <div class="cmd-pnl-big" id="cmdDTPnl" style="color:var(--green)">&#8377;0</div>
+        <div class="cmd-pnl-sub">Today's P&amp;L &bull; Target: 3% daily</div>
+        <div class="cmd-target-bar"><div class="cmd-target-fill" id="cmdDTBar" style="width:0%;background:linear-gradient(90deg,#22c55e,#4ade80)"><span id="cmdDTBarText">0%</span></div></div>
+        <div class="cmd-stats-row">
+          <div class="cmd-stat"><div class="cmd-stat-label">Cash</div><div class="cmd-stat-val" id="cmdDTCash">--</div></div>
+          <div class="cmd-stat"><div class="cmd-stat-label">Positions</div><div class="cmd-stat-val" id="cmdDTPos">0</div></div>
+          <div class="cmd-stat"><div class="cmd-stat-label">Win Rate</div><div class="cmd-stat-val" id="cmdDTWin">--</div></div>
+        </div>
+        <div class="cmd-section-title">Active Positions</div>
+        <div class="cmd-positions" id="cmdDTPositions">
+          <div style="color:var(--muted);text-align:center;padding:16px;font-size:11px">No day trade positions</div>
+        </div>
+        <div style="margin-top:12px;text-align:center">
+          <button onclick="switchMajorTab('tradelab',document.querySelector('[data-group=tradelab]'));setTimeout(function(){switchTab('daytrade',document.querySelector('#subtabs-tradelab .subtab:nth-child(2)'))},100)" style="padding:6px 16px;background:var(--card2);color:var(--accent);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px;font-weight:600">Open Day Trade &#8594;</button>
+        </div>
+      </div>
+
+      <!-- PANEL 2: PAPER TRADE -->
+      <div class="cmd-panel panel-paper">
+        <div class="cmd-panel-hdr">
+          <div class="cmd-panel-title">&#129504; Paper Trade</div>
+          <div class="cmd-panel-badge" style="background:#a855f722;color:#a855f7;border:1px solid #a855f744" id="cmdPTStatus">IDLE</div>
+        </div>
+        <div class="cmd-pnl-big" id="cmdPTPnl" style="color:var(--green)">0.0%</div>
+        <div class="cmd-pnl-sub">This Week &bull; Target: 30-35% monthly</div>
+        <div class="cmd-target-bar"><div class="cmd-target-fill" id="cmdPTBar" style="width:0%;background:linear-gradient(90deg,#a855f7,#c084fc)"><span id="cmdPTBarText">0%</span></div></div>
+        <div class="cmd-stats-row">
+          <div class="cmd-stat"><div class="cmd-stat-label">Cash</div><div class="cmd-stat-val" id="cmdPTCash">--</div></div>
+          <div class="cmd-stat"><div class="cmd-stat-label">Holdings</div><div class="cmd-stat-val" id="cmdPTHoldings">0</div></div>
+          <div class="cmd-stat"><div class="cmd-stat-label">Total Value</div><div class="cmd-stat-val" id="cmdPTTotal">--</div></div>
+        </div>
+        <div class="cmd-section-title">Active Positions</div>
+        <div class="cmd-positions" id="cmdPTPositions">
+          <div style="color:var(--muted);text-align:center;padding:16px;font-size:11px">No paper trade positions</div>
+        </div>
+        <div style="margin-top:12px;text-align:center">
+          <button onclick="switchMajorTab('tradelab',document.querySelector('[data-group=tradelab]'));setTimeout(function(){switchTab('papertrade',document.querySelector('#subtabs-tradelab .subtab:first-child'))},100)" style="padding:6px 16px;background:var(--card2);color:var(--accent);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px;font-weight:600">Open Paper Trade &#8594;</button>
+        </div>
+      </div>
+
+      <!-- PANEL 3: LONG-TERM PORTFOLIO -->
+      <div class="cmd-panel panel-lt">
+        <div class="cmd-panel-hdr">
+          <div class="cmd-panel-title">&#128176; Long-Term Portfolio</div>
+          <div class="cmd-panel-badge" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44" id="cmdLTStatus">61 STOCKS</div>
+        </div>
+        <div class="cmd-pnl-big" id="cmdLTValue" style="color:var(--amber)">&#8377;1 Cr</div>
+        <div class="cmd-pnl-sub">Fund Value &bull; Target: Multibagger (5Y)</div>
+        <div class="cmd-target-bar"><div class="cmd-target-fill" id="cmdLTBar" style="width:0%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"><span id="cmdLTBarText">0%</span></div></div>
+        <div class="cmd-stats-row">
+          <div class="cmd-stat"><div class="cmd-stat-label">MTD Return</div><div class="cmd-stat-val" id="cmdLTMTD">0%</div></div>
+          <div class="cmd-stat"><div class="cmd-stat-label">Top Sector</div><div class="cmd-stat-val" id="cmdLTSector" style="font-size:11px">--</div></div>
+          <div class="cmd-stat"><div class="cmd-stat-label">AI Score Avg</div><div class="cmd-stat-val" id="cmdLTAvgScore">--</div></div>
+        </div>
+        <div class="cmd-section-title">Top Movers Today</div>
+        <div class="cmd-positions" id="cmdLTMovers">
+          <div style="color:var(--muted);text-align:center;padding:16px;font-size:11px">Loading portfolio data...</div>
+        </div>
+        <div style="margin-top:12px;text-align:center">
+          <button onclick="switchMajorTab('dashboard',document.querySelector('[data-group=dashboard]'))" style="padding:6px 16px;background:var(--card2);color:var(--accent);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px;font-weight:600">Open Portfolio &#8594;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unified Fund Performance -->
+    <div class="cmd-intel-hub">
+      <div class="cmd-section-title" style="margin-bottom:14px">&#128176; Unified Fund Performance — Jain PMS</div>
+      <div class="cmd-stats-row" style="grid-template-columns:repeat(5,1fr)">
+        <div class="cmd-stat" style="border-left:3px solid var(--green)"><div class="cmd-stat-label">Day Trade MTD</div><div class="cmd-stat-val" id="cmdFundDT" style="color:var(--green)">0%</div></div>
+        <div class="cmd-stat" style="border-left:3px solid #a855f7"><div class="cmd-stat-label">Paper Trade MTD</div><div class="cmd-stat-val" id="cmdFundPT" style="color:#a855f7">0%</div></div>
+        <div class="cmd-stat" style="border-left:3px solid var(--amber)"><div class="cmd-stat-label">Long-Term MTD</div><div class="cmd-stat-val" id="cmdFundLT" style="color:var(--amber)">0%</div></div>
+        <div class="cmd-stat" style="border-left:3px solid var(--accent)"><div class="cmd-stat-label">Combined MTD</div><div class="cmd-stat-val" id="cmdFundTotal" style="color:var(--accent)">0%</div></div>
+        <div class="cmd-stat" style="border-left:3px solid var(--red)"><div class="cmd-stat-label">Target: 10%/mo</div><div class="cmd-stat-val" id="cmdFundTarget" style="font-size:12px">On track</div></div>
+      </div>
+    </div>
+
+    <!-- Intelligence Cross-Feed Summary -->
+    <div class="cmd-intel-hub">
+      <div class="cmd-section-title" style="margin-bottom:14px">&#128260; Cross-Strategy Intelligence Feed</div>
+      <div id="cmdCrossFeed" style="max-height:200px;overflow-y:auto;font-size:12px">
+        <div style="color:var(--muted);text-align:center;padding:20px">Intelligence sync will populate after first data load...</div>
+      </div>
+    </div>
+
+  </div>
+
   <!-- ==================== PORTFOLIO TAB ==================== -->
-  <div id="tab-portfolio">
+  <div id="tab-portfolio" style="display:none">
     <div id="scanSummary" style="display:flex;gap:16px;justify-content:center;padding:10px 0;margin-bottom:8px;font-size:13px;font-weight:600">
       <span style="color:#4caf50;cursor:pointer" onclick="document.getElementById('scanFilter').value='STRENGTHENING';filterTable()">&#8593; STRONG: <span id="scanStrong">0</span></span>
       <span style="color:#64b5f6;cursor:pointer" onclick="document.getElementById('scanFilter').value='INTACT';filterTable()">&#10003; INTACT: <span id="scanIntact">0</span></span>
@@ -1754,7 +1905,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v18.3.5 &mdash; AI-Agentic Wealth Fund (₹1 Cr) + AI Agent Engine (Claude LLM brain + Cloud Sync decisions) + Primary Device Lock + Conviction Sizing + Partial Profit Exits + Sector Correlation Guard + Catalyst-Direct Entry + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v19.0 &mdash; AI-Agentic Wealth Fund (₹1 Cr) + AI Agent Engine (Claude LLM brain + Cloud Sync decisions) + Primary Device Lock + Conviction Sizing + Partial Profit Exits + Sector Correlation Guard + Catalyst-Direct Entry + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
   <span id="cloudSyncBadge" style="color:#f59e0b;font-weight:600;cursor:pointer;margin-right:8px" onclick="JainPMS_Cloud.forceLoad()" title="Click to force reload from cloud">☁ Connecting...</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
@@ -2391,6 +2542,7 @@ document.getElementById('detailModal').addEventListener('click', e => { if(e.tar
 //  v12 TAB SYSTEM — Major Groups + Sub-tabs
 // ============================================================
 var TAB_GROUPS = {
+  cmdcenter:     ['cmdpanel'],
   dashboard:     ['portfolio','alerts','portfolioai','valuation','fundmgr'],
   intelligence:  ['technical','fundamental','earnings','newsint','sentiment','news'],
   scanner:       ['scorer','ranking','predictor','discovery'],
@@ -2398,8 +2550,8 @@ var TAB_GROUPS = {
   shadowpre:     ['energy'],
   settings:      ['config']
 };
-var _currentGroup = 'dashboard';
-var _currentTab = 'portfolio';
+var _currentGroup = 'cmdcenter';
+var _currentTab = 'cmdpanel';
 
 function switchMajorTab(group, el) {
   _currentGroup = group;
@@ -2440,8 +2592,9 @@ function switchTab(tab, el) {
   if (tab === 'signals') runSignalEngine();
   if (tab === 'fundmgr') loadFundManager();
   if (tab === 'surveillance') loadSurveillance();
+  if (tab === 'cmdpanel') refreshCommandCenter();
   // hide all tab content divs, show only selected
-  ['portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','daytrade','predictor','config','fundmgr','discovery','signals','surveillance'].forEach(t => {
+  ['cmdpanel','portfolio','alerts','energy','news','valuation','technical','fundamental','newsint','earnings','ranking','sentiment','scorer','portfolioai','papertrade','daytrade','predictor','config','fundmgr','discovery','signals','surveillance'].forEach(t => {
     var d = document.getElementById('tab-'+t);
     if(d) d.style.display = t===tab ? 'block' : 'none';
   });
@@ -3508,7 +3661,8 @@ var PRE_MARKET_GLOBAL = {
 };
 
 // ── AI Research Agent — last automated scan ──
-var AI_RESEARCH_LAST_UPDATE = '2026-08-04 (CATALYST REFRESH + CLOUD SYNC PUSH: Aug 3 RALLY 4th straight day — Nifty +1.60% (+390.70) to 24,774.30 first close above 24,700, Bank Nifty FRESH HIGH 58,247.95 (+1.72%), Sensex +544.39 to 78,639.03; Nifty IT +3% led (TCS/Infosys), new CAS closing-auction boosted late gains; CRUDE CRASH: WTI -5.97% to $79.62 / Brent -4.68% to $83.82 as Trump says Iran peace talks resume after canceled strike — OMC/paints/aviation/tyres tailwind; FII +922 Cr cash Aug 3 but net short 1,50,816 index-fut contracts; Q1 FY27: Dixon PAT Rs 717.83 Cr +156% rev +50% to Rs 16,076 Cr (Jul 31), IOC net LOSS Rs 2,661 Cr vs Rs 11,378 Cr profit prev qtr (Aug 1); RESULTS WEEK: 350+ cos Aug 3-8 incl SBI, Airtel, ONGC; PTC Aug 4, Cummins Aug 5)';
+var AI_RESEARCH_LAST_UPDATE = '2026-08-05 (CATALYST REFRESH + CLOUD SYNC PUSH OK: 10 signals + 23 earnings + 9 news pushed; Aug 4 RALLY SNAPPED — Nifty -0.64% to 24,614.90, Sensex -210 to 78,428.95, metals only gainer, caution pre-RBI; RBI MPC TODAY 10am — consensus HOLD 5.25% 4th straight (68/72 economists), 4 see HIKE; crude REBOUND Brent +2.9% to ~$86.20; BSE Q1 FY27 RECORD PAT Rs 872.7 Cr +62% rev +63% txn charges +80%; NSE Q1 PAT Rs 3,120 Cr +8.7% IPO momentum; KEC Rs 1,063 Cr orders Aug 3 (FY27 intake >5,200 Cr), NCC Rs 1,052.71 Cr July orders; SEBI restores exchange-route buybacks from Aug 1; FII +922 Cr + DII +1,571 Cr Aug 3 both buyers; TODAY: Cummins India Q1 + PTC investor call; Aug 3-8 week: SBI, Airtel, ONGC)';
+// Previous: '2026-08-04 (CATALYST REFRESH + CLOUD SYNC PUSH: Aug 3 RALLY 4th straight day — Nifty +1.60% (+390.70) to 24,774.30 first close above 24,700, Bank Nifty FRESH HIGH 58,247.95 (+1.72%), Sensex +544.39 to 78,639.03; Nifty IT +3% led (TCS/Infosys), new CAS closing-auction boosted late gains; CRUDE CRASH: WTI -5.97% to $79.62 / Brent -4.68% to $83.82 as Trump says Iran peace talks resume after canceled strike — OMC/paints/aviation/tyres tailwind; FII +922 Cr cash Aug 3 but net short 1,50,816 index-fut contracts; Q1 FY27: Dixon PAT Rs 717.83 Cr +156% rev +50% to Rs 16,076 Cr (Jul 31), IOC net LOSS Rs 2,661 Cr vs Rs 11,378 Cr profit prev qtr (Aug 1); RESULTS WEEK: 350+ cos Aug 3-8 incl SBI, Airtel, ONGC; PTC Aug 4, Cummins Aug 5)';
 // Previous: '2026-08-03 (CATALYST REFRESH + CLOUD SYNC PUSH OK: 10 signals + 20 earnings + 9 news pushed; Jul 31 Q1: TVS Motor +51% RECORD, GAIL +96%, Maruti PAT -11% (rev +36%) on input costs, Ambuja -37%, JSW Energy -36%, IEX +11.6%; FII +277 Cr + DII +2,260 Cr Jul 31 BOTH BUYERS; BEST WEEK OF JULY: Nifty +2.5% WoW to 24,383.60, Sensex 78,094.64; Brent eased ~$88 / WTI $82 on Mideast shipping reopen; rupee 95.39; UPCOMING: PTC India Aug 4, Cummins India Aug 5)';
 // Previous: '2026-07-30 (CATALYST REFRESH + CLOUD SYNC PUSH: 12 signals + 14 earnings entries + 12 news items; Q1 results: Asian Paints +40%, Balkrishna +56%, IDFC First +132% highest-ever, Waaree rev +79%, Bajaj Housing +23%, KPIT -28% QoQ miss; MARKET REBOUND: Sensex +889 to 77,655, Nifty 24,250 +1.1%; FII +2,982 Cr + DII +998 Cr BOTH BUYERS Jul 29; Fed HOLDS rates; crude eased ~$85 from $100+; rupee 95.7; TODAY: Vedanta; TOMORROW Jul 31: Maruti, TVS, Ambuja, JSW Energy)';
 // Previous: '2026-07-24 (CATALYST REFRESH: 23 fresh PRIMARY_SIGNALS + 20 EARNINGS_CALENDAR entries + 14 CURATED_NEWS items updated; Q1 results: INFY guide cut 1.5-3%, Eternal +268%, IndusInd +72%, Nestle +48%, Adani Power +42%, HPCL loss Rs11,526 Cr, BPCL loss Rs3,962 Cr, IndiGo loss Rs238 Cr; Brent $101; FII -2,999 Cr; regime BEAR; Nifty 23,870 4th decline; TODAY: Shriram Finance + NTPC results; TOMORROW: Tata Motors + Titan)';
@@ -3518,6 +3672,8 @@ var AI_RESEARCH_LAST_UPDATE = '2026-08-04 (CATALYST REFRESH + CLOUD SYNC PUSH: A
 
 // ── Earnings Calendar (stocks reporting today/tomorrow) ──
 var EARNINGS_CALENDAR = [
+  // ═══ Aug 4 REPORTED (updated 2026-08-05 by AI Research Agent) ═══
+  {ticker:'BSE', name:'BSE Ltd', date:'2026-08-04', status:'REPORTED', result:'BEAT', patGrowth:62, keyNote:'PAT Rs 872.7 Cr +62%; Rev Rs 1,706.8 Cr +63%; transaction charges +80%; EBITDA margin 67% — best quarter on record'},
   // ═══ Jul 31 - Aug 1 REPORTED (updated 2026-08-04 by AI Research Agent) ═══
   {ticker:'DIXON', name:'Dixon Technologies', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:156, keyNote:'PAT Rs 717.83 Cr +156.3% YoY (+140.9% QoQ); Rev Rs 16,076 Cr +50%; electronics mfg scale-up'},
   {ticker:'IOC', name:'Indian Oil Corporation', date:'2026-08-01', status:'REPORTED', result:'MISS', keyNote:'Q1 FY27 net LOSS Rs 2,661 Cr vs Rs 11,378 Cr profit prev qtr — July crude surge/inventory hit; crude now easing below $80'},
@@ -3525,7 +3681,6 @@ var EARNINGS_CALENDAR = [
   {ticker:'TVSMOTOR', name:'TVS Motor', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:51, keyNote:'PAT Rs 1,174 Cr +51%; Rev Rs 13,896 Cr +38%; record EBITDA Rs 1,779 Cr +41%, margin 12.8%'},
   {ticker:'GAIL', name:'GAIL (India)', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:96, keyNote:'PAT Rs 4,670 Cr +96%; total income Rs 41,482 Cr +16%; transmission volumes + marketing margins'},
   {ticker:'MARUTI', name:'Maruti Suzuki', date:'2026-07-31', status:'REPORTED', result:'MIXED', patGrowth:-11, keyNote:'PAT Rs 3,352 Cr -11% on raw-material costs; Rev Rs 52,456 Cr +36%; EBITDA Rs 4,312 Cr -7%'},
-  {ticker:'AMBUJACEM', name:'Ambuja Cements', date:'2026-07-28', status:'REPORTED', result:'MISS', patGrowth:-37, keyNote:'Consol PAT Rs 660 Cr vs 1,041 Cr YoY; Rev Rs 9,474 Cr; margins +27% QoQ on value strategy'},
   {ticker:'JSWENERGY', name:'JSW Energy', date:'2026-07-31', status:'REPORTED', result:'MISS', patGrowth:-36, keyNote:'PAT Rs 532 Cr -36% on finance costs; power sales -5% to 12.9 BU; 1,081 MW added, total 14,535 MW (61% RE)'},
   {ticker:'IEX', name:'Indian Energy Exchange', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:12, keyNote:'PAT Rs 134.76 Cr +11.6% YoY, +3.8% QoQ'},
   {ticker:'GULFPETRO', name:'GP Petroleums', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:220, keyNote:'PAT Rs 20.6 Cr +220%; Rev Rs 230.3 Cr +46%; lubricants demand strong'},
@@ -3543,8 +3698,8 @@ var EARNINGS_CALENDAR = [
   {ticker:'BAJAJHFL', name:'Bajaj Housing Finance', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:23, keyNote:'PAT Rs 715 Cr +23%; AUM Rs 1.50 L Cr +24%; record disbursements Rs 19,509 Cr; NII +9% margin watch'},
   {ticker:'KPITTECH', name:'KPIT Technologies', date:'2026-07-29', status:'REPORTED', result:'MISS', patGrowth:-28, keyNote:'PAT Rs 117 Cr -28.1% QoQ; Rev Rs 1,675 Cr -2.1% QoQ; auto-ER&D demand soft'},
   // ═══ UPCOMING ═══
-  {ticker:'PTC', name:'PTC India', date:'2026-08-04', status:'UPCOMING', keyNote:'Board meets Aug 4 for Q1 FY27; investor call Aug 5'},
-  {ticker:'CUMMINSIND', name:'Cummins India', date:'2026-08-05', status:'UPCOMING', keyNote:'Q1 FY27 on Aug 5; capex/electrification cycle read'},
+  {ticker:'PTC', name:'PTC India', date:'2026-08-04', status:'UPCOMING', keyNote:'Board met Aug 4 for Q1 FY27; investor call today Aug 5'},
+  {ticker:'CUMMINSIND', name:'Cummins India', date:'2026-08-05', status:'UPCOMING', keyNote:'Q1 FY27 TODAY Aug 5; capex/electrification cycle read'},
   {ticker:'SBIN', name:'State Bank of India', date:'2026-08-08', status:'UPCOMING', keyNote:'Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); 350+ cos reporting this week'},
   {ticker:'BHARTIARTL', name:'Bharti Airtel', date:'2026-08-08', status:'UPCOMING', keyNote:'Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); ARPU trajectory watch'},
   {ticker:'ONGC', name:'ONGC', date:'2026-08-08', status:'UPCOMING', keyNote:'Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); crude crash below $80 = realisation watch'}
@@ -8962,18 +9117,26 @@ function renderNSEAnnouncements(announcements) {
 //  Sources: BSE filings, SEBI bulk deals, VAHAN, promoter txns
 // ============================================================
 const PRIMARY_SIGNALS = [
-  // ═══ FRESH Aug 1-3 Intelligence (updated 2026-08-04 by AI Research Agent) ═══
+  // ═══ FRESH Aug 4-5 Intelligence (updated 2026-08-05 by AI Research Agent) ═══
+  {type:"EARNINGS",company:"BSE Ltd",ticker:"BSE",signal:"Q1 FY27 RECORD (Aug 4): Consolidated PAT Rs 872.7 Cr (+62% YoY), Revenue Rs 1,706.8 Cr (+63%). Transaction charges Rs 1,327.7 Cr (+80%) on derivatives surge; EBITDA margin 67% (from 65%), net margin 51%. Management: best quarter on record.",source:"BSE Q1 FY27 Investor Presentation / Investing.com",date:"2026-08-04",severity:"HIGH",icon:"💹"},
+  {type:"POLICY",company:"Aug 4: 4-Day Rally Snapped Ahead of RBI",ticker:"",signal:"Sensex -210.08 (-0.27%) to 78,428.95; Nifty -159.40 (-0.64%) to 24,614.90 in volatile session — partial giveback of Aug 3 CAS-driven surge. Metals only sectoral gainer; Realty and IT led decline. Caution ahead of RBI policy Aug 5 + weekly expiry.",source:"HDFC Sky / Liquide / APAC News",date:"2026-08-04",severity:"HIGH",icon:"📉"},
+  {type:"POLICY",company:"RBI MPC Decision TODAY 10am",ticker:"",signal:"Governor Sanjay Malhotra announces policy at 10am Aug 5. Consensus: HOLD at 5.25% for 4th straight meeting (Reuters poll: 68/72 economists; 4 see 25bps HIKE, none see cut). Context: resilient growth but rising inflation + elevated crude. Rate-sensitives (banks, NBFC, realty, autos) on watch.",source:"Business Standard / Angel One / NewsX",date:"2026-08-05",severity:"HIGH",icon:"🏦"},
+  {type:"POLICY",company:"Crude Rebounds: Brent Back to $86",ticker:"",signal:"Brent rebounded ~2.9% to ~$86.20 on Aug 4 after the Aug 3 crash to $83.82 — partial reversal of the Iran-peace-talks relief. OMC/paints/aviation/tyres tailwind intact but fading at the margin; watch $90 as regime trigger.",source:"Business Standard / HDFC Sky",date:"2026-08-04",severity:"MEDIUM",icon:"🛢️"},
+  {type:"ORDER_WIN",company:"KEC International",ticker:"KEC",signal:"Rs 1,063 Cr multi-business orders announced Aug 3 across Civil, T&D, Renewables, Cables & Conductors. ~Rs 6,300 Cr new business since early May; FY27 YTD order intake >Rs 5,200 Cr. Order-book visibility compounding.",source:"Trade Brains / company filing",date:"2026-08-03",severity:"HIGH",icon:"🏗️"},
+  {type:"ORDER_WIN",company:"NCC Ltd",ticker:"NCC",signal:"Received 3 orders totalling Rs 1,052.71 Cr (ex-GST) in July 2026 — Rs 590.38 Cr Buildings Division + Rs 462.33 Cr Water Division. Shares rose ~3% on disclosure.",source:"Trade Brains / NSE filing",date:"2026-08-03",severity:"MEDIUM",icon:"🏗️"},
+  {type:"POLICY",company:"SEBI Restores Exchange-Route Buybacks",ticker:"",signal:"From Aug 1, 2026 listed companies can again buy back shares via the stock-exchange route — faster alternative to tender offers, halted since Apr 2025. Expect a pickup in buyback announcements from cash-rich IT/mid-caps; sentiment support for the tape.",source:"Prism News / SEBI",date:"2026-08-01",severity:"MEDIUM",icon:"📜"},
+  {type:"EARNINGS",company:"NSE (unlisted) Q1 FY27",ticker:"",signal:"PAT Rs 3,120 Cr (+8.7% YoY) despite revenue -8.2% to Rs 4,560 Cr; EBITDA margin expands to 77.9% (from 73.1%). IPO plans gain momentum post-SEBI settlement. Read-across: exchange/capital-market plays (BSE, CDSL, depositories) in favour.",source:"Free Press Journal / Indian Masterminds",date:"2026-08-04",severity:"MEDIUM",icon:"💹"},
+  {type:"FII_FLOW",company:"FII + DII Both Buyers Aug 3",ticker:"",signal:"Aug 3 cash: FII net BUY +Rs 922.30 Cr, DII net BUY +Rs 1,571.20 Cr — both buyers. FII cash buy streak extends (Jul 29 +2,982, Jul 30 +3,624, Jul 31 +277) but FII stays net short index futures — hedged optimism.",source:"5paisa / NSE provisional",date:"2026-08-03",severity:"MEDIUM",icon:"🌍"},
+  // ═══ Aug 1-3 Intelligence (updated 2026-08-04 by AI Research Agent) ═══
   {type:"POLICY",company:"Aug 3 Rally: Bank Nifty Fresh High",ticker:"",signal:"4th straight up day: Nifty +1.60% (+390.70) to 24,774.30 — first close above 24,700; Bank Nifty FRESH HIGH 58,247.95 (+1.72%); Sensex +544.39 to 78,639.03. Nifty IT +3% led (TCS, Infosys); new Closing Auction Session (CAS) rollout drove late-session surge. Drivers: FII inflows, crude crash, steady Q1 earnings.",source:"HDFC Sky / India Infoline",date:"2026-08-03",severity:"HIGH",icon:"📈"},
   {type:"POLICY",company:"Crude CRASH Below $80",ticker:"",signal:"Crude plunged >5% on Aug 3: WTI -5.97% to $79.62/bbl, Brent -4.68% to $83.82 — after surging 20%+ in July — as Trump announced Iran peace talks will resume following canceled military strike. Big tailwind for OMCs, paints (Asian Paints), aviation, tyres (Balkrishna); reverses the input-cost squeeze hitting Maruti/IOC.",source:"TradingEconomics / Fortune",date:"2026-08-03",severity:"HIGH",icon:"🛢️"},
   {type:"EARNINGS",company:"Dixon Technologies",ticker:"DIXON",signal:"Q1 FY27 BLOWOUT (Jul 31): Consolidated PAT Rs 717.83 Cr (+156.3% YoY, +140.9% QoQ); Revenue Rs 16,076 Cr (+50% YoY). Electronics manufacturing scale-up + PLI momentum intact.",source:"BSE Filing / EquityBulls",date:"2026-07-31",severity:"HIGH",icon:"💹"},
   {type:"EARNINGS_MISS",company:"Indian Oil Corporation",ticker:"IOC",signal:"Q1 FY27 SHARP LOSS (Aug 1 slides): Net loss Rs 2,661 Cr vs Rs 11,378 Cr profit in prior quarter — July crude volatility/inventory losses. Watch: crude now crashing below $80 flips the driver positive for Q2.",source:"Investing.com / IOC Investor Presentation",date:"2026-08-01",severity:"HIGH",icon:"📉"},
-  {type:"FII_FLOW",company:"FII Cash Buying Extends Aug 3",ticker:"",signal:"FII net BOUGHT +Rs 922 Cr in cash on Aug 3 — buy streak extends (Jul 29 +2,982, Jul 30 +3,624, Jul 31 +277). Caution: FII holds net short 1,50,816 index-futures contracts — profit-taking with downside cover.",source:"5paisa / NSE provisional",date:"2026-08-03",severity:"MEDIUM",icon:"🌍"},
   {type:"EARNINGS_UPCOMING",company:"Results Week: 350+ Companies Aug 3-8",ticker:"SBIN",signal:"UPCOMING: 350+ companies report Q1 FY27 during Aug 3-8 week incl SBI, Bharti Airtel, ONGC. PTC India board Aug 4 (call Aug 5); Cummins India Aug 5 — capex/industrials read.",source:"Goodreturns / BSE Calendar",date:"2026-08-04",severity:"MEDIUM",icon:"📋"},
   // ═══ Jul 31 Q1 FY27 Results (updated 2026-08-03 by AI Research Agent) ═══
   {type:"EARNINGS",company:"TVS Motor",ticker:"TVSMOTOR",signal:"Q1 FY27 RECORD BEAT: PAT Rs 1,174 Cr (+51% YoY), Revenue Rs 13,896 Cr (+38%). All-time-high EBITDA Rs 1,779 Cr (+41%), margin 12.8% (+30bps). 2W momentum + EV (iQube) trajectory strong — confirms M&M/Bajaj auto strength.",source:"BSE Filing / ScanX",date:"2026-07-31",severity:"HIGH",icon:"💹"},
   {type:"EARNINGS",company:"GAIL (India)",ticker:"GAIL",signal:"Q1 FY27 BLOWOUT: PAT Rs 4,670 Cr (+96% YoY), total income Rs 41,482 Cr (+16%). Higher gas transmission volumes + improved marketing margins.",source:"BSE Filing / Business Standard",date:"2026-07-31",severity:"HIGH",icon:"💹"},
   {type:"EARNINGS_MISS",company:"Maruti Suzuki",ticker:"MARUTI",signal:"Q1 FY27 MIXED: Standalone PAT Rs 3,352 Cr (-11% YoY vs Rs 3,758 Cr) on higher raw-material costs; Revenue Rs 52,456 Cr (+36%). EBITDA Rs 4,312 Cr (-7%). Volumes/SUV mix strong; margin squeeze the watch item vs M&M +34%, TVS +51%.",source:"BSE Filing / Upstox / Business Today",date:"2026-07-31",severity:"HIGH",icon:"📉"},
-  {type:"EARNINGS_MISS",company:"Ambuja Cements",ticker:"AMBUJACEM",signal:"Q1 FY27 MISS: Consolidated PAT Rs 660 Cr vs Rs 1,041 Cr YoY (-37%); Revenue Rs 9,474 Cr. Value-led strategy lifted margins 27% QoQ; 140 MTPA roadmap intact.",source:"BSE Filing / EquityBulls / Investing.com",date:"2026-07-28",severity:"MEDIUM",icon:"📉"},
   {type:"EARNINGS_MISS",company:"JSW Energy",ticker:"JSWENERGY",signal:"Q1 FY27 WEAK: PAT Rs 532 Cr (-36% YoY) on higher finance costs; power sales -5% to 12.9 BU. But record 1,081 MW capacity added — total 14,535 MW, 61% renewable; growth capex intact, P&L pressured.",source:"BSE Filing / Business Standard / Upstox",date:"2026-07-31",severity:"MEDIUM",icon:"📉"},
   {type:"EARNINGS",company:"Indian Energy Exchange",ticker:"IEX",signal:"Q1 FY27: PAT Rs 134.76 Cr (+11.6% YoY, +3.8% QoQ). Steady volume-led exchange growth.",source:"BSE Filing / Kotak Neo",date:"2026-07-31",severity:"MEDIUM",icon:"💹"},
   // ═══ Jul 30 Q1 FY27 Results ═══
@@ -9020,7 +9183,56 @@ function renderPrimaryResearch() {
 //  Last updated: 30 Jul 2026 by AI Research Agent
 // ============================================================
 const CURATED_NEWS = [
-  // ═══ FRESH Aug 3-4 Intelligence (updated 2026-08-04 by AI Research Agent) ═══
+  // ═══ FRESH Aug 4-5 Intelligence (updated 2026-08-05 by AI Research Agent) ═══
+  {title:"BSE Q1 FY27 RECORD: PAT surges 62% to Rs 872.7 Cr, revenue +63% — derivatives-driven transaction charges +80%; best quarter ever.",
+   source:"Investing.com",link:"https://in.investing.com/news/company-news/bse-q1-fy27-presentation-derivatives-surge-drives-62-profit-growth-93CH-5534015",
+   pubDate:"2026-08-04",tag:"company",tagLabel:"BSE Ltd",
+   impact:"bullish",impactText:"+62% PAT",
+   stocks:["BSE Ltd"],
+   detail:"Consolidated EBITDA margin 67% (from 65%), net margin 51%. Presentation released Aug 4 — management calls it the exchange's best quarterly performance on record."},
+  {title:"Rally snapped: Sensex -210 to 78,428.95, Nifty -159 to 24,614.90 on Aug 4 — caution ahead of RBI policy; metals only gainer.",
+   source:"HDFC Sky / Liquide",link:"https://hdfcsky.com/news/market-close-today-august-4-nifty-sensexend-four-day-rallyasnew-closing-mechanism-rbi-policy-in-focus",
+   pubDate:"2026-08-04",tag:"india",tagLabel:"Market Close",
+   impact:"bearish",impactText:"-0.64% Nifty",
+   stocks:[],
+   detail:"Volatile session partially reversed Aug 3's CAS-driven surge. Rising crude + positioning ahead of weekly Nifty expiry added volatility. Realty and IT led the decline."},
+  {title:"RBI MPC decision TODAY 10am: consensus HOLD at 5.25% for 4th straight meet — 4 of 72 economists see a HIKE, none a cut.",
+   source:"Business Standard / Angel One",link:"https://www.business-standard.com/finance/news/rbi-mpc-august-meet-governor-monetary-policy-repo-rate-when-where-to-watch-126080300374_1.html",
+   pubDate:"2026-08-05",tag:"india",tagLabel:"RBI Policy",
+   impact:"neutral",impactText:"Hold @ 5.25%",
+   stocks:[],
+   detail:"Governor Sanjay Malhotra announces at 10am. Backdrop: resilient growth vs rising inflation, elevated crude, global uncertainty. Hawkish tilt = risk for rate-sensitives; dovish surprise = banks/NBFC/realty rally."},
+  {title:"KEC International bags Rs 1,063 Cr multi-business orders — ~Rs 6,300 Cr new business since May; FY27 intake tops Rs 5,200 Cr.",
+   source:"Trade Brains",link:"https://tradebrains.in/kec-international-wins-1063-cr-multi-business-orders-heres-how-many-orders-it-won-in-the-last-3-months/",
+   pubDate:"2026-08-03",tag:"company",tagLabel:"KEC Intl",
+   impact:"bullish",impactText:"Rs 1,063 Cr Orders",
+   stocks:["KEC International"],
+   detail:"Orders span Civil, T&D, Renewables and Cables & Conductors. T&D capex supercycle + order-book compounding thesis intact."},
+  {title:"NCC wins 3 orders worth Rs 1,052.71 Cr in July — Buildings Rs 590.38 Cr + Water Rs 462.33 Cr; stock jumps ~3%.",
+   source:"Trade Brains",link:"https://tradebrains.in/infra-stock-jumps-3-after-bagging-three-orders-worth-1053-cr-across-the-buildings-and-water-segments/",
+   pubDate:"2026-08-03",tag:"company",tagLabel:"NCC",
+   impact:"bullish",impactText:"Rs 1,053 Cr Orders",
+   stocks:["NCC"],
+   detail:"Ex-GST value. Infra order momentum broadening across mid-cap EPC names (KEC, NCC, HG Infra all announcing)."},
+  {title:"SEBI restores exchange-route buybacks from Aug 1 — faster alternative to tender offers after 15-month halt.",
+   source:"Prism News",link:"https://www.prismnews.com/news/india-approves-stock-exchange-buybacks-for-listed-companies",
+   pubDate:"2026-08-01",tag:"india",tagLabel:"SEBI Reform",
+   impact:"bullish",impactText:"Buybacks Back",
+   stocks:[],
+   detail:"Old route halted April 2025. Expect pickup in buyback announcements from cash-rich IT and mid-caps — sentiment + EPS support."},
+  {title:"NSE Q1 FY27: PAT +8.7% to Rs 3,120 Cr despite revenue -8.2%; EBITDA margin 77.9%; IPO momentum builds post-SEBI settlement.",
+   source:"Free Press Journal",link:"https://www.freepressjournal.in/business/nse-q1-fy27-results-revenue-falls-82-to-4560-crore-net-profit-rises-87",
+   pubDate:"2026-08-04",tag:"india",tagLabel:"NSE Results",
+   impact:"neutral",impactText:"+8.7% PAT",
+   stocks:[],
+   detail:"Read-across for listed capital-market plays: BSE, CDSL, AMC/broking names. NSE IPO chatter revived at ~Rs 2,000/share unlisted valuation."},
+  {title:"Crude rebounds: Brent +2.9% to ~$86.20 Aug 4 after Iran-talks crash — relief trade partially unwinds.",
+   source:"Business Standard",link:"https://www.business-standard.com/markets/news/stock-market-live-4-august-nse-bse-sensex-today-nifty50-gift-nifty-q1-results-today-ipo-rupee-brent-crude-prices-126080400069_1.html",
+   pubDate:"2026-08-04",tag:"global",tagLabel:"Crude Rebound",
+   impact:"bearish",impactText:"Brent $86",
+   stocks:[],
+   detail:"After WTI -5.97%/Brent -4.68% on Aug 3. OMC/paints/aviation/tyres tailwind intact but fading; $90 Brent = regime trigger to watch."},
+  // ═══ Aug 3-4 Intelligence (updated 2026-08-04 by AI Research Agent) ═══
   {title:"Nifty settles above 24,700 for first time — +1.6% to 24,774.30; Bank Nifty hits fresh high 58,247.95; IT +3% leads 4th straight up day.",
    source:"HDFC Sky / India Infoline",link:"https://hdfcsky.com/news/market-close-report-today-august-3-2026-nifty-sensex-rise-fourth-day-it-stocks-lead-rally",
    pubDate:"2026-08-03",tag:"india",tagLabel:"Rally Extends",
@@ -9082,12 +9294,6 @@ const CURATED_NEWS = [
    impact:"neutral",impactText:"Rev +36% / PAT -11%",
    stocks:["Maruti Suzuki"],
    detail:"EBITDA Rs 4,312 Cr (-7%). Strong volume/SUV mix but input-cost squeeze. Contrast: M&M +34%, TVS +51% — Maruti margin is the outlier."},
-  {title:"Ambuja Cements Q1: Consolidated PAT falls to Rs 660 Cr (vs Rs 1,041 Cr YoY); revenue Rs 9,474 Cr; margins +27% QoQ.",
-   source:"EquityBulls",link:"https://www.equitybulls.com/category.php?id=373611",
-   pubDate:"2026-07-28",tag:"company",tagLabel:"Ambuja Cements",
-   impact:"bearish",impactText:"-37% PAT",
-   stocks:["Ambuja Cements"],
-   detail:"Value-led strategy lifting QoQ margins; 140 MTPA capacity roadmap on track per management call."},
   {title:"JSW Energy Q1: PAT -36% to Rs 532 Cr on higher finance costs; record 1,081 MW capacity added, total 14,535 MW.",
    source:"Business Standard",link:"https://www.business-standard.com/companies/news/jsw-energy-q1fy27-profit-revenue-ebitda-capacity-126072201014_1.html",
    pubDate:"2026-07-31",tag:"company",tagLabel:"JSW Energy",
@@ -19002,6 +19208,207 @@ if (_origRefreshPortfolio) {
 
 console.log('[v13] AI Wealth Fund Manager + Discovery Engine + Trade Signals loaded');
 
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  v19.0 — COMMAND CENTER + INTELLIGENCE SYNC BUS
+// ═══════════════════════════════════════════════════════════
+
+// ── INTELLIGENCE SYNC BUS ──
+// Central hub that all engines write to and read from
+window._intelHub = {
+  regime: 'NEUTRAL',
+  catalystsActive: 0,
+  aiBrainStatus: 'IDLE',
+  aiBrainLastDecision: null,
+  scannerTopPicks: [],
+  shadowSignals: [],
+  preMarketScore: 0,
+  dtWinners: [],    // Day Trade winners inform Paper Trade
+  ptWinners: [],    // Paper Trade winners inform Long-Term
+  ltTopScores: [],  // Long-Term top scores inform Day Trade sector preference
+  crossFeed: [],    // Cross-strategy intelligence feed
+  lastSync: 0
+};
+
+// Push intelligence from any engine
+function intelHubPush(source, type, data) {
+  var entry = { ts: Date.now(), source: source, type: type, data: data };
+  window._intelHub.crossFeed.unshift(entry);
+  if (window._intelHub.crossFeed.length > 50) window._intelHub.crossFeed = window._intelHub.crossFeed.slice(0, 50);
+
+  // Cross-strategy learning
+  if (source === 'DAY_TRADE' && type === 'WIN') {
+    window._intelHub.dtWinners.push({ ticker: data.ticker, sector: data.sector, score: data.pnlPct, ts: Date.now() });
+    if (window._intelHub.dtWinners.length > 20) window._intelHub.dtWinners = window._intelHub.dtWinners.slice(-20);
+  }
+  if (source === 'PAPER_TRADE' && type === 'WIN') {
+    window._intelHub.ptWinners.push({ ticker: data.ticker, sector: data.sector, score: data.pnlPct, ts: Date.now() });
+    if (window._intelHub.ptWinners.length > 20) window._intelHub.ptWinners = window._intelHub.ptWinners.slice(-20);
+  }
+}
+
+// Check if a sector has been winning across strategies
+function intelHubSectorStrength(sector) {
+  if (!sector) return 0;
+  var s = sector.toLowerCase();
+  var boost = 0;
+  window._intelHub.dtWinners.forEach(function(w) { if (w.sector && w.sector.toLowerCase().includes(s)) boost += 1; });
+  window._intelHub.ptWinners.forEach(function(w) { if (w.sector && w.sector.toLowerCase().includes(s)) boost += 1; });
+  return Math.min(5, boost);
+}
+
+// ── COMMAND CENTER REFRESH ──
+function refreshCommandCenter() {
+  try {
+    // Day Trade Panel
+    var dtWallet = window._dayTradeWallet;
+    if (dtWallet) {
+      var dtPnl = (dtWallet.todayPnl || 0);
+      var dtPnlPct = dtWallet.initialCash > 0 ? (dtPnl / dtWallet.initialCash * 100) : 0;
+      var el = document.getElementById('cmdDTPnl');
+      if (el) { el.textContent = (dtPnl >= 0 ? '+' : '') + '₹' + Math.abs(dtPnl).toLocaleString('en-IN', {maximumFractionDigits:0}); el.style.color = dtPnl >= 0 ? 'var(--green)' : 'var(--red)'; }
+      var bar = document.getElementById('cmdDTBar');
+      if (bar) { var w = Math.min(100, Math.max(0, (dtPnlPct / 3) * 100)); bar.style.width = w + '%'; bar.style.background = dtPnlPct >= 0 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#ef4444,#f87171)'; }
+      var barText = document.getElementById('cmdDTBarText');
+      if (barText) barText.textContent = dtPnlPct.toFixed(1) + '%';
+      var cashEl = document.getElementById('cmdDTCash');
+      if (cashEl) cashEl.textContent = '₹' + (dtWallet.cash || 0).toLocaleString('en-IN', {maximumFractionDigits:0});
+      var posEl = document.getElementById('cmdDTPos');
+      if (posEl) posEl.textContent = (dtWallet.positions || []).length;
+      var winEl = document.getElementById('cmdDTWin');
+      if (winEl) winEl.textContent = document.getElementById('dtWinRate') ? document.getElementById('dtWinRate').textContent : '--';
+      var statusEl = document.getElementById('cmdDTStatus');
+      if (statusEl) {
+        if ((dtWallet.positions || []).length > 0) { statusEl.textContent = 'LIVE'; statusEl.style.background = '#22c55e22'; statusEl.style.color = '#22c55e'; }
+        else { statusEl.textContent = 'IDLE'; }
+      }
+      // Positions list
+      var posDiv = document.getElementById('cmdDTPositions');
+      if (posDiv && dtWallet.positions && dtWallet.positions.length > 0) {
+        posDiv.innerHTML = dtWallet.positions.map(function(p) {
+          var pnl = p.currentPrice ? ((p.currentPrice - p.entryPrice) / p.entryPrice * 100) : 0;
+          var clr = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+          return '<div class="cmd-pos-row"><span class="cmd-pos-ticker">' + p.ticker + '</span><span style="color:' + clr + ';font-weight:600">' + (pnl >= 0 ? '+' : '') + pnl.toFixed(1) + '%</span></div>';
+        }).join('');
+      }
+    }
+
+    // Paper Trade Panel
+    var ptWallet = window._paperWallet;
+    if (ptWallet) {
+      var ptTotal = (ptWallet.cash || 0) + (ptWallet.holdingsValue || 0);
+      var ptReturn = ptWallet.initialCash > 0 ? ((ptTotal - ptWallet.initialCash) / ptWallet.initialCash * 100) : 0;
+      var ptEl = document.getElementById('cmdPTPnl');
+      if (ptEl) { ptEl.textContent = (ptReturn >= 0 ? '+' : '') + ptReturn.toFixed(1) + '%'; ptEl.style.color = ptReturn >= 0 ? 'var(--green)' : 'var(--red)'; }
+      var ptBar = document.getElementById('cmdPTBar');
+      if (ptBar) { var pw = Math.min(100, Math.max(0, (Math.abs(ptReturn) / 35) * 100)); ptBar.style.width = pw + '%'; }
+      var ptBarText = document.getElementById('cmdPTBarText');
+      if (ptBarText) ptBarText.textContent = ptReturn.toFixed(1) + '%';
+      var ptCashEl = document.getElementById('cmdPTCash');
+      if (ptCashEl) ptCashEl.textContent = '₹' + (ptWallet.cash || 0).toLocaleString('en-IN', {maximumFractionDigits:0});
+      var ptHoldEl = document.getElementById('cmdPTHoldings');
+      if (ptHoldEl) ptHoldEl.textContent = (ptWallet.positions || []).length;
+      var ptTotalEl = document.getElementById('cmdPTTotal');
+      if (ptTotalEl) ptTotalEl.textContent = '₹' + ptTotal.toLocaleString('en-IN', {maximumFractionDigits:0});
+      var ptStatusEl = document.getElementById('cmdPTStatus');
+      if (ptStatusEl) ptStatusEl.textContent = (ptWallet.positions || []).length > 0 ? (ptWallet.positions.length + ' HELD') : 'IDLE';
+      // Positions
+      var ptPosDiv = document.getElementById('cmdPTPositions');
+      if (ptPosDiv && ptWallet.positions && ptWallet.positions.length > 0) {
+        ptPosDiv.innerHTML = ptWallet.positions.map(function(p) {
+          var pnl = p.currentPrice ? ((p.currentPrice - p.buyPrice) / p.buyPrice * 100) : 0;
+          var clr = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+          return '<div class="cmd-pos-row"><span class="cmd-pos-ticker">' + p.ticker + '</span><span style="color:' + clr + ';font-weight:600">' + (pnl >= 0 ? '+' : '') + pnl.toFixed(1) + '%</span></div>';
+        }).join('');
+      }
+    }
+
+    // Long-Term Portfolio Panel
+    var movers = [];
+    if (typeof stocks !== 'undefined' && stocks.length > 0) {
+      var loaded = stocks.filter(function(s) { return s.cmp && s.cmp > 0 && !s._watchlist; });
+      document.getElementById('cmdLTStatus').textContent = loaded.length + ' STOCKS';
+      // Top movers
+      movers = loaded.filter(function(s) { return typeof s.changePct === 'number'; }).sort(function(a, b) { return Math.abs(b.changePct) - Math.abs(a.changePct); }).slice(0, 5);
+      var moverDiv = document.getElementById('cmdLTMovers');
+      if (moverDiv && movers.length > 0) {
+        moverDiv.innerHTML = movers.map(function(s) {
+          var clr = s.changePct >= 0 ? 'var(--green)' : 'var(--red)';
+          return '<div class="cmd-pos-row"><span class="cmd-pos-ticker">' + s.ticker + '</span><span style="font-size:11px;color:var(--muted)">' + (s.sector || '').split('/')[0] + '</span><span style="color:' + clr + ';font-weight:600">' + (s.changePct >= 0 ? '+' : '') + s.changePct.toFixed(1) + '%</span></div>';
+        }).join('');
+      }
+      // Average AI score
+      var totalScore = 0, scoreCount = 0;
+      loaded.forEach(function(s) {
+        var sc = typeof aiScore === 'function' ? aiScore(s) : null;
+        if (sc && sc.total > 0) { totalScore += sc.total; scoreCount++; }
+      });
+      var avgEl = document.getElementById('cmdLTAvgScore');
+      if (avgEl && scoreCount > 0) avgEl.textContent = Math.round(totalScore / scoreCount) + '/100';
+      // Top sector
+      var sectorMap = {};
+      loaded.forEach(function(s) { var sec = (s.sector || 'Unknown').split('/')[0].trim(); sectorMap[sec] = (sectorMap[sec] || 0) + 1; });
+      var topSec = Object.entries(sectorMap).sort(function(a, b) { return b[1] - a[1]; })[0];
+      var secEl = document.getElementById('cmdLTSector');
+      if (secEl && topSec) secEl.textContent = topSec[0].substring(0, 10);
+    }
+
+    // Intel Hub cards
+    var regEl = document.getElementById('cmdRegime');
+    if (regEl) regEl.textContent = window._intelHub.regime || '--';
+    var catEl = document.getElementById('cmdCatalysts');
+    if (catEl) {
+      var catCount = 0;
+      try { catCount = (typeof LiveCatalystEngine !== 'undefined') ? LiveCatalystEngine.getSignals().length : (typeof PRIMARY_SIGNALS !== 'undefined' ? PRIMARY_SIGNALS.length : 0); } catch(e) {}
+      catEl.textContent = catCount;
+      window._intelHub.catalystsActive = catCount;
+    }
+    var brainEl = document.getElementById('cmdAIBrain');
+    if (brainEl) {
+      var agentEl = document.getElementById('dtAIAgentStatus');
+      brainEl.textContent = agentEl ? (agentEl.textContent.includes('ACTIVE') ? 'ACTIVE' : agentEl.textContent.includes('Polling') ? 'POLLING' : 'IDLE') : '--';
+    }
+
+    // Cross-feed
+    var feedDiv = document.getElementById('cmdCrossFeed');
+    if (feedDiv && window._intelHub.crossFeed.length > 0) {
+      feedDiv.innerHTML = window._intelHub.crossFeed.slice(0, 10).map(function(e) {
+        var ago = Math.floor((Date.now() - e.ts) / 60000);
+        var agoStr = ago < 1 ? 'just now' : ago + 'm ago';
+        var icon = e.source === 'DAY_TRADE' ? '⚡' : e.source === 'PAPER_TRADE' ? '🧠' : e.source === 'SCANNER' ? '🔍' : e.source === 'AI_BRAIN' ? '🤖' : '📊';
+        return '<div style="padding:4px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"><span>' + icon + ' <b>' + e.source + '</b>: ' + (e.data.message || e.type) + '</span><span style="color:var(--muted);font-size:10px">' + agoStr + '</span></div>';
+      }).join('');
+    }
+
+    // Intel status
+    var statusEl2 = document.getElementById('cmdIntelStatus');
+    if (statusEl2) statusEl2.textContent = 'Last sync: ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'}) + ' IST';
+
+    window._intelHub.lastSync = Date.now();
+  } catch(e) { console.log('[CMD CENTER] Refresh error:', e); }
+}
+
+// Auto-refresh command center every 30 seconds
+setInterval(function() {
+  var cmdPanel = document.getElementById('tab-cmdpanel');
+  if (cmdPanel && cmdPanel.style.display !== 'none') refreshCommandCenter();
+}, 30000);
+
+// Also update on tab switch
+var _origSwitchMajorTab = typeof switchMajorTab === 'function' ? switchMajorTab : null;
+// We'll hook into it after DOM load
+
+// Initial refresh after prices load
+var _cmdInitInterval = setInterval(function() {
+  if (typeof stocks !== 'undefined' && stocks.length > 0) {
+    clearInterval(_cmdInitInterval);
+    setTimeout(refreshCommandCenter, 2000);
+  }
+}, 1000);
+
+console.log('[v19.0] Command Center + Intelligence Sync Bus loaded');
 </script>
 </body>
 </html>
