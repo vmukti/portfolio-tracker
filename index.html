@@ -439,7 +439,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v19.0 &mdash; Command Center</span></h1>
+  <h1>Jain PMS <span>v19.0.2 &mdash; Command Center</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -12791,7 +12791,9 @@ var JainPMS_Cloud = {
     console.log('[Cloud] v1.1 init — device: ' + this.deviceId);
   },
 
-  // v18.2: Check cloud for primary device lock
+  // v19.0.2: STRICT primary device lock — NO auto-claim ever
+  // Only explicit user click on "Claim Primary" badge can make a device primary.
+  // This prevents secondary devices from stealing the trading lock.
   checkPrimaryLock: function() {
     var self = this;
     fetch(this.URL + '?op=load&type=tradingLock', { signal: AbortSignal.timeout(8000) })
@@ -12806,28 +12808,33 @@ var JainPMS_Cloud = {
           if (lock.deviceId === self.deviceId) {
             // This device IS the primary
             self.isPrimary = true;
-            console.log('[Cloud] v18.2: This device IS primary (lock held)');
-          } else if (age > self.PRIMARY_LOCK_EXPIRY) {
-            // Lock expired — claim primary
-            self.claimPrimary();
-            console.log('[Cloud] v18.2: Previous primary expired (' + Math.round(age/60000) + 'm ago) — claiming');
+            console.log('[Cloud] v19.0.2: This device IS primary (lock held)');
           } else {
-            // Another device is primary — this is secondary (read-only)
+            // Another device is primary — this device is ALWAYS secondary
+            // v19.0.2: NO auto-claim even if lock expired. User must click "Claim Primary".
             self.isPrimary = false;
             self.startSecondaryPolling();
-            console.log('[Cloud] v18.2: Another device is primary (' + lock.deviceId + ', ' + Math.round(age/1000) + 's ago) — secondary mode');
+            if (age > self.PRIMARY_LOCK_EXPIRY) {
+              console.log('[Cloud] v19.0.2: Primary lock expired (' + Math.round(age/60000) + 'm ago) but staying SECONDARY — click badge to claim');
+            } else {
+              console.log('[Cloud] v19.0.2: Another device is primary (' + lock.deviceId + ', ' + Math.round(age/1000) + 's ago) — secondary mode');
+            }
           }
         } else {
-          // No lock exists — claim primary
-          self.claimPrimary();
-          console.log('[Cloud] v18.2: No lock found — claiming primary');
+          // v19.0.2: No lock exists — still default to SECONDARY
+          // User must explicitly click "Claim Primary" to become primary.
+          // This ensures only the device with the full engine gets primary.
+          self.isPrimary = false;
+          self.startSecondaryPolling();
+          console.log('[Cloud] v19.0.2: No lock found — defaulting to SECONDARY (click badge to claim)');
         }
         self.updatePrimaryBadge();
       })
       .catch(function(e) {
-        // Can't check lock — assume primary (safe default for single-device users)
-        self.isPrimary = true;
-        console.warn('[Cloud] v18.2: Lock check failed, assuming primary:', e.message);
+        // v19.0.2: Can't check lock — default to SECONDARY (safe: prevents rogue trading)
+        self.isPrimary = false;
+        self.startSecondaryPolling();
+        console.warn('[Cloud] v19.0.2: Lock check failed, defaulting to SECONDARY:', e.message);
       });
   },
 
@@ -12885,7 +12892,7 @@ var JainPMS_Cloud = {
     return this.isPrimary;
   },
 
-  // v18.2: Update primary/secondary badge in UI
+  // v19.0.2: Update primary/secondary badge in UI — strict enforcement
   updatePrimaryBadge: function() {
     var badge = document.getElementById('primaryDeviceBadge');
     if (!badge) {
@@ -12896,7 +12903,11 @@ var JainPMS_Cloud = {
         badge.id = 'primaryDeviceBadge';
         badge.style.cssText = 'font-weight:600;margin-left:8px;cursor:pointer;font-size:12px';
         badge.title = 'Click to claim this device as primary trader';
-        badge.onclick = function() { JainPMS_Cloud.claimPrimary(); };
+        badge.onclick = function() {
+          if (confirm('Make THIS device the primary trader?\\nAll other devices will become secondary (read-only).\\n\\nOnly do this on the system running the full engine.')) {
+            JainPMS_Cloud.claimPrimary();
+          }
+        };
         csb.parentNode.insertBefore(badge, csb.nextSibling);
       }
     }
