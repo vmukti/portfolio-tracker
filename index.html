@@ -439,7 +439,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v19.0.2 &mdash; Command Center</span></h1>
+  <h1>Jain PMS <span>v19.0.3 &mdash; Command Center</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -13399,10 +13399,16 @@ var AIAgentEngine = {
         self._currentDecisions = payload;
 
         // Check if this is a new decision set (compare timestamp)
+        // v19.0.3: Only skip if ALL decisions have been executed or array is empty.
+        // If there are still pending unexecuted decisions, re-process them.
         if (payload.timestamp === self._lastDecisionTimestamp) {
-          console.log('[AI-AGENT] Same decision set — no new actions');
-          self.updateStatus('Up to date | ' + (payload.regime || 'UNKNOWN'));
-          return;
+          var pendingCount = self.getPendingCount();
+          if (pendingCount === 0) {
+            console.log('[AI-AGENT] Same decision set, 0 pending — skipping');
+            self.updateStatus('Up to date | ' + (payload.regime || 'UNKNOWN'));
+            return;
+          }
+          console.log('[AI-AGENT] v19.0.3: Same timestamp but ' + pendingCount + ' pending — retrying execution');
         }
 
         self._lastDecisionTimestamp = payload.timestamp;
@@ -13835,11 +13841,18 @@ var AIAgentEngine = {
   },
 
   // ── Check if AI decisions are active (for priority over rule-based triggers) ──
+  // v19.0.3: Fixed — empty decision sets no longer block rule-based triggers.
+  // Must have ACTUAL pending decisions, not just a recent timestamp.
   hasActiveDecisions: function() {
     if (!this._currentDecisions) return false;
     var ts = this._currentDecisions.timestamp;
     if (!ts) return false;
-    // Decisions are "active" if received within last 30 minutes
+    // v19.0.3: Empty decisions array = AI Brain sent "no picks" — don't suppress
+    var decs = this._currentDecisions.decisions || [];
+    if (decs.length === 0) return false;
+    // v19.0.3: All executed/skipped = nothing pending — don't suppress
+    if (this.getPendingCount() === 0) return false;
+    // Decisions are "active" if received within last 30 minutes AND have pending picks
     var age = Date.now() - new Date(ts).getTime();
     return age < 1800000; // 30 minutes
   },
