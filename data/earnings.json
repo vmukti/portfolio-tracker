@@ -1,0 +1,213 @@
+[
+ {
+  "ticker": "BSE",
+  "name": "BSE Ltd",
+  "date": "2026-08-04",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 62,
+  "keyNote": "PAT Rs 872.7 Cr +62%; Rev Rs 1,706.8 Cr +63%; transaction charges +80%; EBITDA margin 67% \u2014 best quarter on record"
+ },
+ {
+  "ticker": "DIXON",
+  "name": "Dixon Technologies",
+  "date": "2026-07-31",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 156,
+  "keyNote": "PAT Rs 717.83 Cr +156.3% YoY (+140.9% QoQ); Rev Rs 16,076 Cr +50%; electronics mfg scale-up"
+ },
+ {
+  "ticker": "IOC",
+  "name": "Indian Oil Corporation",
+  "date": "2026-08-01",
+  "status": "REPORTED",
+  "result": "MISS",
+  "keyNote": "Q1 FY27 net LOSS Rs 2,661 Cr vs Rs 11,378 Cr profit prev qtr \u2014 July crude surge/inventory hit; crude now easing below $80"
+ },
+ {
+  "ticker": "TVSMOTOR",
+  "name": "TVS Motor",
+  "date": "2026-07-31",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 51,
+  "keyNote": "PAT Rs 1,174 Cr +51%; Rev Rs 13,896 Cr +38%; record EBITDA Rs 1,779 Cr +41%, margin 12.8%"
+ },
+ {
+  "ticker": "GAIL",
+  "name": "GAIL (India)",
+  "date": "2026-07-31",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 96,
+  "keyNote": "PAT Rs 4,670 Cr +96%; total income Rs 41,482 Cr +16%; transmission volumes + marketing margins"
+ },
+ {
+  "ticker": "MARUTI",
+  "name": "Maruti Suzuki",
+  "date": "2026-07-31",
+  "status": "REPORTED",
+  "result": "MIXED",
+  "patGrowth": -11,
+  "keyNote": "PAT Rs 3,352 Cr -11% on raw-material costs; Rev Rs 52,456 Cr +36%; EBITDA Rs 4,312 Cr -7%"
+ },
+ {
+  "ticker": "JSWENERGY",
+  "name": "JSW Energy",
+  "date": "2026-07-31",
+  "status": "REPORTED",
+  "result": "MISS",
+  "patGrowth": -36,
+  "keyNote": "PAT Rs 532 Cr -36% on finance costs; power sales -5% to 12.9 BU; 1,081 MW added, total 14,535 MW (61% RE)"
+ },
+ {
+  "ticker": "IEX",
+  "name": "Indian Energy Exchange",
+  "date": "2026-07-31",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 12,
+  "keyNote": "PAT Rs 134.76 Cr +11.6% YoY, +3.8% QoQ"
+ },
+ {
+  "ticker": "GULFPETRO",
+  "name": "GP Petroleums",
+  "date": "2026-07-31",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 220,
+  "keyNote": "PAT Rs 20.6 Cr +220%; Rev Rs 230.3 Cr +46%; lubricants demand strong"
+ },
+ {
+  "ticker": "PFS",
+  "name": "PTC India Financial Services",
+  "date": "2026-07-31",
+  "status": "REPORTED",
+  "result": "MIXED",
+  "keyNote": "Consol PAT Rs 40.24 Cr; revenue from ops Rs 103.31 Cr"
+ },
+ {
+  "ticker": "VEDL",
+  "name": "Vedanta",
+  "date": "2026-07-30",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 72,
+  "keyNote": "PAT Rs 5,473 Cr +71.8%; Rev Rs 24,205 Cr +53.6%; Aluminium arm PAT +216% w/ Rs 8 div; O&G back to profit Rs 945 Cr"
+ },
+ {
+  "ticker": "M&M",
+  "name": "Mahindra & Mahindra",
+  "date": "2026-07-30",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 34,
+  "keyNote": "PAT Rs 5,455 Cr +34%; Rev Rs 58,188 Cr +28%; SUV + tractor momentum"
+ },
+ {
+  "ticker": "COALINDIA",
+  "name": "Coal India",
+  "date": "2026-07-30",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "keyNote": "PAT Rs 8,850 Cr; Rev Rs 46,255 Cr +7.8%; Rs 5.50 interim dividend; offtake improving"
+ },
+ {
+  "ticker": "IRFC",
+  "name": "IRFC",
+  "date": "2026-07-30",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 10,
+  "keyNote": "PAT Rs 1,927 Cr +10.4%; Total income Rs 8,391 Cr +21.3%; zero NPA"
+ },
+ {
+  "ticker": "NTPC",
+  "name": "NTPC",
+  "date": "2026-07-30",
+  "status": "REPORTED",
+  "result": "MIXED",
+  "keyNote": "Standalone PAT Rs 5,342 Cr; consol PAT Rs 6,896 Cr; Rev Rs 43,832 Cr ~+3%"
+ },
+ {
+  "ticker": "ASIANPAINT",
+  "name": "Asian Paints",
+  "date": "2026-07-29",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 40,
+  "keyNote": "PAT Rs 1,539 Cr +40%; Rev Rs 10,521 Cr +17.9%; PBDIT margin 20.6% (+240bps); intl sales +27.2%"
+ },
+ {
+  "ticker": "BALKRISIND",
+  "name": "Balkrishna Industries",
+  "date": "2026-07-29",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 56,
+  "keyNote": "PAT Rs 451 Cr +56.4%; Rev Rs 3,455 Cr +25.2%; Rs 4/share dividend; off-highway tyre demand strong"
+ },
+ {
+  "ticker": "WAAREEENER",
+  "name": "Waaree Energies",
+  "date": "2026-07-29",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 14,
+  "keyNote": "PAT Rs 850 Cr +14%; Rev Rs 7,932 Cr +79%; EBITDA Rs 1,440 Cr +44%; US 236 MW order"
+ },
+ {
+  "ticker": "BAJAJHFL",
+  "name": "Bajaj Housing Finance",
+  "date": "2026-07-29",
+  "status": "REPORTED",
+  "result": "BEAT",
+  "patGrowth": 23,
+  "keyNote": "PAT Rs 715 Cr +23%; AUM Rs 1.50 L Cr +24%; record disbursements Rs 19,509 Cr; NII +9% margin watch"
+ },
+ {
+  "ticker": "KPITTECH",
+  "name": "KPIT Technologies",
+  "date": "2026-07-29",
+  "status": "REPORTED",
+  "result": "MISS",
+  "patGrowth": -28,
+  "keyNote": "PAT Rs 117 Cr -28.1% QoQ; Rev Rs 1,675 Cr -2.1% QoQ; auto-ER&D demand soft"
+ },
+ {
+  "ticker": "PTC",
+  "name": "PTC India",
+  "date": "2026-08-04",
+  "status": "UPCOMING",
+  "keyNote": "Board met Aug 4 for Q1 FY27; investor call today Aug 5"
+ },
+ {
+  "ticker": "CUMMINSIND",
+  "name": "Cummins India",
+  "date": "2026-08-05",
+  "status": "UPCOMING",
+  "keyNote": "Q1 FY27 TODAY Aug 5; capex/electrification cycle read"
+ },
+ {
+  "ticker": "SBIN",
+  "name": "State Bank of India",
+  "date": "2026-08-08",
+  "status": "UPCOMING",
+  "keyNote": "Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); 350+ cos reporting this week"
+ },
+ {
+  "ticker": "BHARTIARTL",
+  "name": "Bharti Airtel",
+  "date": "2026-08-08",
+  "status": "UPCOMING",
+  "keyNote": "Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); ARPU trajectory watch"
+ },
+ {
+  "ticker": "ONGC",
+  "name": "ONGC",
+  "date": "2026-08-08",
+  "status": "UPCOMING",
+  "keyNote": "Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); crude crash below $80 = realisation watch"
+ }
+]
