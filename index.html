@@ -439,7 +439,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 <body>
 
 <div class="header">
-  <h1>Jain PMS <span>v19.0.3 &mdash; Command Center</span></h1>
+  <h1>Jain PMS <span>v20-P1 &mdash; Command Center</span></h1>
   <div class="hdr-right">
     <span id="regimeBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#2d314833;color:var(--muted);letter-spacing:0.5px;cursor:help" title="Market Regime Detection">REGIME: --</span>
     <div class="live-ind">
@@ -775,7 +775,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
     <!-- Sentiment Indicator Cards -->
     <div class="sent-grid" id="sentGrid">
       <div class="sent-card" id="vixCard"><div class="sent-label">India VIX</div><div class="sent-val" id="vixVal">--</div><div class="sent-sub" id="vixSub">Fear gauge</div></div>
-      <div class="sent-card" id="fiiCard"><div class="sent-label">FII Flow Signal</div><div class="sent-val" id="fiiVal">--</div><div class="sent-sub" id="fiiSub">Net buying/selling</div></div>
+      <div class="sent-card" id="fiiCard"><div class="sent-label">Large-Cap Flow Proxy</div><div class="sent-val" id="fiiVal">--</div><div class="sent-sub" id="fiiSub">Price-derived — NOT actual FII data</div></div>
       <div class="sent-card" id="breadthCard"><div class="sent-label">Market Breadth</div><div class="sent-val" id="breadthVal">--</div><div class="sent-sub" id="breadthSub">Advance/Decline</div></div>
       <div class="sent-card" id="niftyPECard"><div class="sent-label">Nifty 50 PE</div><div class="sent-val" id="niftyPEVal">--</div><div class="sent-sub" id="niftyPESub">Valuation level</div></div>
       <div class="sent-card" id="goldCard"><div class="sent-label">Gold (USD/oz)</div><div class="sent-val" id="goldVal">--</div><div class="sent-sub" id="goldSub">Safe haven</div></div>
@@ -1905,7 +1905,7 @@ tbody tr.flash-down{animation:flashRed .8s ease}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span>Jain PMS v19.0 &mdash; AI-Agentic Wealth Fund (₹1 Cr) + AI Agent Engine (Claude LLM brain + Cloud Sync decisions) + Primary Device Lock + Conviction Sizing + Partial Profit Exits + Sector Correlation Guard + Catalyst-Direct Entry + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
+  <span>Jain PMS v19.0-P0 (Integrity Patch: renormalized scoring &middot; risk-capped sizing &middot; &minus;2% circuit breaker &middot; Kelly n&ge;30 &middot; astro off) &mdash; AI-Agentic Wealth Fund (₹1 Cr) + AI Agent Engine (Claude LLM brain + Cloud Sync decisions) + Primary Device Lock + Conviction Sizing + Partial Profit Exits + Sector Correlation Guard + Catalyst-Direct Entry + Reaction Engine + ORB + Daily Trade Cap (3) + Re-Entry Ban + Structural Stop-Loss + Cloud Sync + Smart Exit Engine + Full Universe Scanner (694 stocks) + Jainism Compliance + Paper Trade Auto-Trigger + Bloomberg Surveillance + Legends Engine + Predator Detection + Institutional Risk Controls + 10% Monthly Mandate &mdash; Data via Yahoo Finance API</span>
   <span id="cloudSyncBadge" style="color:#f59e0b;font-weight:600;cursor:pointer;margin-right:8px" onclick="JainPMS_Cloud.forceLoad()" title="Click to force reload from cloud">☁ Connecting...</span>
   <span id="statusRight">Prices refresh every 60s during market hours (9:15 AM &ndash; 3:30 PM IST)</span>
 </div>
@@ -2845,524 +2845,218 @@ function renderBessChart() {
 // ============================================================
 
 // Universe of 300 high-liquidity Indian stocks across 50+ sectors (NO DEFENCE • NO PHARMA • NO FMCG)
-const MOVER_UNIVERSE = [
-  // ---- AUTO & AUTO ANCILLARY (24) ----
-  {t:'MARUTI',n:'Maruti Suzuki',s:'Automobile',c:'L',pe:28,ro:22,mc:370000},{t:'TATAMOTORS',n:'Tata Motors',s:'Automobile',c:'L',pe:8,ro:18,mc:270000},
-  {t:'M%26M',n:'Mahindra & Mahindra',s:'Automobile',c:'L',pe:30,ro:21,mc:400000},{t:'BAJAJ-AUTO',n:'Bajaj Auto',s:'Automobile',c:'L',pe:33,ro:35,mc:260000},
-  {t:'EICHERMOT',n:'Eicher Motors',s:'Automobile',c:'L',pe:35,ro:28,mc:145000},{t:'HEROMOTOCO',n:'Hero MotoCorp',s:'Automobile',c:'L',pe:25,ro:30,mc:110000},
-  {t:'TVSMOTOR',n:'TVS Motor',s:'Automobile',c:'L',pe:65,ro:30,mc:110000},{t:'ASHOKLEY',n:'Ashok Leyland',s:'Auto CV',c:'M',pe:22,ro:20,mc:48000},
-  {t:'MOTHERSON',n:'Motherson Sumi',s:'Auto Ancillary',c:'L',pe:45,ro:12,mc:100000},{t:'UNOMINDA',n:'UNO Minda',s:'Auto Ancillary',c:'M',pe:55,ro:20,mc:40000},
-  {t:'BHARATFORG',n:'Bharat Forge',s:'Auto Ancillary',c:'M',pe:50,ro:15,mc:32000},{t:'TIINDIA',n:'Tube Investments',s:'Auto Ancillary',c:'M',pe:42,ro:20,mc:45000},
-  {t:'SONACOMS',n:'Sona BLW',s:'Auto Ancillary',c:'M',pe:55,ro:16,mc:28000},{t:'EXIDEIND',n:'Exide Industries',s:'Auto Battery',c:'M',pe:38,ro:14,mc:30000},
-  {t:'APOLLOTYRE',n:'Apollo Tyres',s:'Tyres',c:'M',pe:18,ro:14,mc:28000},{t:'MRF',n:'MRF',s:'Tyres',c:'M',pe:28,ro:12,mc:48000},
-  {t:'BALKRISIND',n:'Balkrishna Industries',s:'Tyres',c:'M',pe:30,ro:18,mc:46000},{t:'FORCEMOT',n:'Force Motors',s:'Auto CV',c:'S',pe:18,ro:22,mc:7500},
-  {t:'ESCORTS',n:'Escorts Kubota',s:'Tractors',c:'M',pe:28,ro:16,mc:25000},{t:'CEATLTD',n:'CEAT',s:'Tyres',c:'M',pe:28,ro:12,mc:12000},
-  {t:'JKTYRE',n:'JK Tyre',s:'Tyres',c:'S',pe:12,ro:14,mc:5000},{t:'ENDURANCE',n:'Endurance Technologies',s:'Auto Ancillary',c:'M',pe:55,ro:18,mc:28000},
-  {t:'SUNDRMFAST',n:'Sundram Fasteners',s:'Auto Ancillary',c:'S',pe:32,ro:20,mc:9500},{t:'SCHAEFFLER',n:'Schaeffler India',s:'Auto Ancillary',c:'M',pe:45,ro:22,mc:35000},
-  // ---- AVIATION & TRAVEL (3) ----
-  {t:'INDIGO',n:'IndiGo',s:'Aviation',c:'L',pe:20,ro:55,mc:160000},{t:'SPICEJET',n:'SpiceJet',s:'Aviation',c:'S',pe:0,ro:0,mc:4000},
-  {t:'IRCTC',n:'IRCTC',s:'Travel/Railway',c:'L',pe:50,ro:45,mc:65000},
-  // ---- PRIVATE BANKING (10) ----
-  {t:'HDFCBANK',n:'HDFC Bank',s:'Private Banking',c:'L',pe:20,ro:16,mc:1350000},{t:'ICICIBANK',n:'ICICI Bank',s:'Private Banking',c:'L',pe:18,ro:16,mc:950000},
-  {t:'KOTAKBANK',n:'Kotak Mahindra Bank',s:'Private Banking',c:'L',pe:22,ro:14,mc:400000},{t:'AXISBANK',n:'Axis Bank',s:'Private Banking',c:'L',pe:13,ro:15,mc:370000},
-  {t:'INDUSINDBK',n:'IndusInd Bank',s:'Private Banking',c:'L',pe:12,ro:12,mc:80000},{t:'IDFCFIRSTB',n:'IDFC First Bank',s:'Banking',c:'M',pe:14,ro:10,mc:35000},
-  {t:'BANDHANBNK',n:'Bandhan Bank',s:'Banking',c:'M',pe:10,ro:14,mc:25000},{t:'FEDERALBNK',n:'Federal Bank',s:'Banking',c:'M',pe:10,ro:12,mc:30000},
-  {t:'AUBANK',n:'AU Small Finance Bank',s:'Banking',c:'M',pe:28,ro:12,mc:35000},{t:'RBLBANK',n:'RBL Bank',s:'Banking',c:'S',pe:10,ro:8,mc:8000},
-  // ---- PSU BANKING (11) ----
-  {t:'SBIN',n:'SBI',s:'PSU Banking',c:'L',pe:10,ro:15,mc:650000},{t:'BANKBARODA',n:'Bank of Baroda',s:'PSU Banking',c:'L',pe:6,ro:12,mc:130000},
-  {t:'PNB',n:'PNB',s:'PSU Banking',c:'L',pe:7,ro:10,mc:120000},{t:'CANBK',n:'Canara Bank',s:'PSU Banking',c:'L',pe:6,ro:12,mc:95000},
-  {t:'INDIANB',n:'Indian Bank',s:'PSU Banking',c:'M',pe:6,ro:12,mc:48000},{t:'UNIONBANK',n:'Union Bank',s:'PSU Banking',c:'L',pe:6,ro:10,mc:80000},
-  {t:'MAHABANK',n:'Bank of Maharashtra',s:'PSU Banking',c:'M',pe:7,ro:12,mc:35000},{t:'IOB',n:'Indian Overseas Bank',s:'PSU Banking',c:'L',pe:25,ro:6,mc:55000},
-  {t:'CENTRALBK',n:'Central Bank of India',s:'PSU Banking',c:'M',pe:35,ro:3,mc:22000},{t:'UCOBANK',n:'UCO Bank',s:'PSU Banking',c:'M',pe:10,ro:6,mc:30000},
-  {t:'BANKINDIA',n:'Bank of India',s:'PSU Banking',c:'M',pe:6,ro:8,mc:35000},
-  // ---- SMALL FINANCE & OTHER BANKS (5) ----
-  {t:'EQUITASBNK',n:'Equitas SFB',s:'Small Finance Bank',c:'S',pe:8,ro:12,mc:7500},{t:'UJJIVANSFB',n:'Ujjivan SFB',s:'Small Finance Bank',c:'S',pe:7,ro:16,mc:8000},
-  {t:'KTKBANK',n:'Karnataka Bank',s:'Banking',c:'S',pe:5,ro:10,mc:6000},{t:'SOUTHBANK',n:'South Indian Bank',s:'Banking',c:'S',pe:5,ro:8,mc:5000},
-  {t:'DCBBANK',n:'DCB Bank',s:'Banking',c:'S',pe:7,ro:8,mc:3500},
-  // ---- NBFC & FINANCIAL SERVICES (17) ----
-  {t:'BAJFINANCE',n:'Bajaj Finance',s:'NBFC',c:'L',pe:32,ro:22,mc:470000},{t:'BAJAJFINSV',n:'Bajaj Finserv',s:'Financial Services',c:'L',pe:100,ro:15,mc:280000},
-  {t:'MANAPPURAM',n:'Manappuram Finance',s:'NBFC Gold',c:'M',pe:8,ro:22,mc:18000},{t:'MUTHOOTFIN',n:'Muthoot Finance',s:'NBFC Gold',c:'L',pe:15,ro:22,mc:70000},
-  {t:'POONAWALLA',n:'Poonawalla Fincorp',s:'NBFC',c:'M',pe:25,ro:12,mc:35000},{t:'LICHSGFIN',n:'LIC Housing Finance',s:'Housing Finance',c:'M',pe:8,ro:14,mc:28000},
-  {t:'CHOLAFIN',n:'Cholamandalam Finance',s:'NBFC',c:'L',pe:30,ro:16,mc:110000},{t:'SHRIRAMFIN',n:'Shriram Finance',s:'NBFC',c:'L',pe:14,ro:18,mc:95000},
-  {t:'M%26MFIN',n:'M&M Financial',s:'NBFC',c:'M',pe:12,ro:14,mc:30000},{t:'SBICARD',n:'SBI Cards',s:'Credit Cards',c:'M',pe:28,ro:25,mc:40000},
-  {t:'LTFH',n:'L&T Finance',s:'NBFC',c:'M',pe:10,ro:12,mc:32000},{t:'PNBHOUSING',n:'PNB Housing Finance',s:'Housing Finance',c:'S',pe:8,ro:10,mc:8000},
-  {t:'CANFINHOME',n:'Can Fin Homes',s:'Housing Finance',c:'S',pe:10,ro:18,mc:7500},{t:'AAVAS',n:'Aavas Financiers',s:'Housing Finance',c:'S',pe:22,ro:12,mc:8000},
-  {t:'HOMEFIRST',n:'Home First Finance',s:'Housing Finance',c:'S',pe:25,ro:14,mc:9000},{t:'APTUS',n:'Aptus Value Housing',s:'Housing Finance',c:'S',pe:20,ro:14,mc:7000},
-  {t:'CREDITACC',n:'CreditAccess Grameen',s:'Microfinance',c:'S',pe:10,ro:18,mc:8500},
-  // ---- IT & TECH (24) ----
-  {t:'TCS',n:'TCS',s:'IT',c:'L',pe:30,ro:55,mc:1350000},{t:'INFY',n:'Infosys',s:'IT',c:'L',pe:28,ro:38,mc:680000},
-  {t:'HCLTECH',n:'HCL Tech',s:'IT',c:'L',pe:26,ro:30,mc:450000},{t:'WIPRO',n:'Wipro',s:'IT',c:'L',pe:22,ro:16,mc:270000},
-  {t:'TECHM',n:'Tech Mahindra',s:'IT',c:'L',pe:35,ro:18,mc:160000},{t:'LTIM',n:'LTIMindtree',s:'IT',c:'L',pe:35,ro:32,mc:160000},
-  {t:'MPHASIS',n:'Mphasis',s:'IT',c:'M',pe:28,ro:22,mc:45000},{t:'PERSISTENT',n:'Persistent Systems',s:'IT',c:'L',pe:55,ro:30,mc:65000},
-  {t:'COFORGE',n:'Coforge',s:'IT',c:'M',pe:45,ro:28,mc:40000},{t:'TATAELXSI',n:'Tata Elxsi',s:'IT/Design',c:'M',pe:45,ro:38,mc:30000},
-  {t:'KPITTECH',n:'KPIT Technologies',s:'IT/Auto',c:'M',pe:55,ro:32,mc:35000},{t:'BIRLASOFT',n:'Birlasoft',s:'IT',c:'M',pe:22,ro:18,mc:12000},
-  {t:'HAPPSTMNDS',n:'Happiest Minds',s:'IT',c:'S',pe:35,ro:25,mc:7500},{t:'ZENSAR',n:'Zensar Technologies',s:'IT',c:'M',pe:22,ro:16,mc:14000},
-  {t:'DIXON',n:'Dixon Technologies',s:'EMS/Technology',c:'L',pe:95,ro:25,mc:80000},{t:'CYIENT',n:'Cyient',s:'IT/Engineering',c:'M',pe:20,ro:18,mc:14000},
-  {t:'MASTEK',n:'Mastek',s:'IT',c:'S',pe:25,ro:20,mc:8000},{t:'SONATASOFT',n:'Sonata Software',s:'IT',c:'S',pe:35,ro:22,mc:9000},
-  {t:'INTELLECT',n:'Intellect Design',s:'IT/Fintech',c:'S',pe:30,ro:18,mc:8500},{t:'NEWGEN',n:'Newgen Software',s:'IT/Enterprise',c:'S',pe:35,ro:28,mc:9500},
-  {t:'TANLA',n:'Tanla Platforms',s:'IT/CPaaS',c:'S',pe:15,ro:25,mc:5500},{t:'ECLERX',n:'eClerx Services',s:'IT/BPO',c:'M',pe:22,ro:35,mc:12000},
-  {t:'LATENTVIEW',n:'Latent View Analytics',s:'IT/Analytics',c:'S',pe:50,ro:18,mc:5500},{t:'MAPMYINDIA',n:'CE Info Systems',s:'Tech/Maps',c:'S',pe:60,ro:22,mc:9000},
-  // ---- METALS & MINING (13) ----
-  {t:'TATASTEEL',n:'Tata Steel',s:'Steel',c:'L',pe:0,ro:8,mc:185000},{t:'JSWSTEEL',n:'JSW Steel',s:'Steel',c:'L',pe:25,ro:12,mc:230000},
-  {t:'SAIL',n:'SAIL',s:'Steel',c:'M',pe:10,ro:8,mc:42000},{t:'HINDALCO',n:'Hindalco',s:'Metals',c:'L',pe:12,ro:12,mc:150000},
-  {t:'VEDL',n:'Vedanta',s:'Mining/Metals',c:'L',pe:8,ro:15,mc:170000},{t:'NATIONALUM',n:'NALCO',s:'Metals',c:'M',pe:10,ro:16,mc:30000},
-  {t:'NMDC',n:'NMDC',s:'Mining',c:'M',pe:8,ro:22,mc:32000},{t:'COALINDIA',n:'Coal India',s:'Mining',c:'L',pe:8,ro:55,mc:250000},
-  {t:'MOIL',n:'MOIL',s:'Mining/Manganese',c:'S',pe:10,ro:18,mc:5500},{t:'RATNAMANI',n:'Ratnamani Metals',s:'Steel Tubes',c:'M',pe:35,ro:22,mc:15000},
-  {t:'WELCORP',n:'Welspun Corp',s:'Steel Pipes',c:'M',pe:12,ro:18,mc:14000},{t:'APLAPOLLO',n:'APL Apollo Tubes',s:'Steel Tubes',c:'M',pe:45,ro:30,mc:38000},
-  {t:'JINDALSAW',n:'Jindal SAW',s:'Steel Pipes',c:'M',pe:10,ro:18,mc:12000},
-  // ---- OIL & GAS (12) ----
-  {t:'RELIANCE',n:'Reliance Industries',s:'Conglomerate',c:'L',pe:28,ro:10,mc:1700000},{t:'ONGC',n:'ONGC',s:'Oil & Gas',c:'L',pe:7,ro:14,mc:340000},
-  {t:'BPCL',n:'BPCL',s:'Oil & Gas',c:'L',pe:8,ro:22,mc:120000},{t:'IOC',n:'Indian Oil',s:'Oil & Gas',c:'L',pe:6,ro:18,mc:180000},
-  {t:'GAIL',n:'GAIL',s:'Gas',c:'L',pe:10,ro:15,mc:140000},{t:'PETRONET',n:'Petronet LNG',s:'Gas',c:'M',pe:12,ro:22,mc:45000},
-  {t:'HINDPETRO',n:'HPCL',s:'Oil & Gas',c:'L',pe:8,ro:18,mc:70000},{t:'IGL',n:'Indraprastha Gas',s:'Gas Distribution',c:'M',pe:22,ro:22,mc:28000},
-  {t:'MGL',n:'Mahanagar Gas',s:'Gas Distribution',c:'M',pe:15,ro:25,mc:14000},{t:'GUJGASLTD',n:'Gujarat Gas',s:'Gas Distribution',c:'M',pe:25,ro:20,mc:18000},
-  {t:'ATGL',n:'Adani Total Gas',s:'Gas Distribution',c:'L',pe:120,ro:15,mc:80000},{t:'AEGISCHEM',n:'Aegis Logistics',s:'Gas/Logistics',c:'M',pe:25,ro:15,mc:18000},
-  // ---- TELECOM & DATA (6) ----
-  {t:'BHARTIARTL',n:'Bharti Airtel',s:'Telecom',c:'L',pe:75,ro:12,mc:850000},{t:'IDEA',n:'Vodafone Idea',s:'Telecom',c:'M',pe:0,ro:0,mc:45000},
-  {t:'STLTECH',n:'Sterlite Technologies',s:'Telecom/Data',c:'S',pe:30,ro:6,mc:8000},{t:'HFCL',n:'HFCL',s:'Telecom Equipment',c:'S',pe:35,ro:18,mc:9000},
-  {t:'TTML',n:'Tata Teleservices',s:'Telecom',c:'X',pe:0,ro:0,mc:1500},{t:'TATACOMM',n:'Tata Communications',s:'Telecom/Data',c:'M',pe:25,ro:15,mc:22000},
-  // ---- REAL ESTATE (11) ----
-  {t:'DLF',n:'DLF',s:'Real Estate',c:'L',pe:45,ro:8,mc:170000},{t:'GODREJPROP',n:'Godrej Properties',s:'Real Estate',c:'L',pe:55,ro:8,mc:65000},
-  {t:'OBEROIRLTY',n:'Oberoi Realty',s:'Real Estate',c:'M',pe:25,ro:14,mc:42000},{t:'PRESTIGE',n:'Prestige Estates',s:'Real Estate',c:'L',pe:35,ro:10,mc:55000},
-  {t:'BRIGADE',n:'Brigade Enterprises',s:'Real Estate',c:'M',pe:30,ro:10,mc:18000},{t:'LODHA',n:'Macrotech Developers',s:'Real Estate',c:'L',pe:30,ro:10,mc:70000},
-  {t:'SOBHA',n:'Sobha',s:'Real Estate',c:'S',pe:22,ro:8,mc:5500},{t:'PHOENIXLTD',n:'Phoenix Mills',s:'Real Estate/Malls',c:'M',pe:40,ro:10,mc:42000},
-  {t:'SUNTECK',n:'Sunteck Realty',s:'Real Estate',c:'S',pe:18,ro:4,mc:5000},{t:'KOLTEPATIL',n:'Kolte-Patil Developers',s:'Real Estate',c:'S',pe:12,ro:14,mc:3500},
-  {t:'MAHLIFE',n:'Mahindra Lifespace',s:'Real Estate',c:'S',pe:55,ro:4,mc:5000},
-  // ---- INFRA & CONSTRUCTION (14) ----
-  {t:'LT',n:'Larsen & Toubro',s:'Engineering',c:'L',pe:32,ro:15,mc:480000},{t:'IRCON',n:'IRCON International',s:'Railway Infra',c:'M',pe:15,ro:18,mc:18000},
-  {t:'RVNL',n:'RVNL',s:'Railway Infra',c:'M',pe:35,ro:22,mc:45000},{t:'NBCC',n:'NBCC',s:'Construction',c:'M',pe:40,ro:28,mc:20000},
-  {t:'IRB',n:'IRB Infra',s:'Road Infra',c:'M',pe:18,ro:8,mc:18000},{t:'RAILTEL',n:'RailTel',s:'Railway IT',c:'S',pe:30,ro:18,mc:8000},
-  {t:'NCC',n:'NCC',s:'Construction',c:'M',pe:12,ro:15,mc:12000},{t:'GMRAIRPORT',n:'GMR Airports',s:'Airport Infra',c:'M',pe:0,ro:2,mc:35000},
-  {t:'KNRCON',n:'KNR Constructions',s:'Road Infra',c:'S',pe:18,ro:16,mc:8500},{t:'PNCINFRA',n:'PNC Infratech',s:'Road Infra',c:'S',pe:12,ro:16,mc:6000},
-  {t:'HGINFRA',n:'H.G. Infra',s:'Infra EPC',c:'S',pe:10,ro:22,mc:5500},{t:'KEC',n:'KEC International',s:'Infra EPC',c:'M',pe:35,ro:14,mc:18000},
-  {t:'ENGINERSIN',n:'Engineers India',s:'Engineering',c:'S',pe:15,ro:18,mc:9000},{t:'POWERMECH',n:'Power Mech Projects',s:'Infra EPC',c:'S',pe:18,ro:18,mc:5000},
-  // ---- POWER & ENERGY (15) ----
-  {t:'NTPC',n:'NTPC',s:'Power',c:'L',pe:14,ro:10,mc:370000},{t:'NHPC',n:'NHPC',s:'Hydro Power',c:'L',pe:18,ro:8,mc:80000},
-  {t:'SJVN',n:'SJVN',s:'Hydro Power',c:'M',pe:28,ro:8,mc:35000},{t:'ADANIGREEN',n:'Adani Green',s:'Renewable',c:'L',pe:120,ro:5,mc:180000},
-  {t:'ADANIPOWER',n:'Adani Power',s:'Power',c:'L',pe:8,ro:18,mc:80000},{t:'IREDA',n:'IREDA',s:'Green Finance',c:'M',pe:22,ro:12,mc:35000},
-  {t:'RECLTD',n:'REC',s:'Power Finance',c:'L',pe:8,ro:16,mc:55000},{t:'PFC',n:'PFC',s:'Power Finance',c:'L',pe:6,ro:18,mc:55000},
-  {t:'TATAPOWER',n:'Tata Power',s:'Power',c:'L',pe:35,ro:10,mc:120000},{t:'JSWENERGY',n:'JSW Energy',s:'Power',c:'L',pe:50,ro:8,mc:70000},
-  {t:'POWERGRID',n:'Power Grid',s:'Power Transmission',c:'L',pe:14,ro:14,mc:280000},{t:'TORNTPOWER',n:'Torrent Power',s:'Power',c:'M',pe:28,ro:15,mc:45000},
-  {t:'CESC',n:'CESC',s:'Power',c:'M',pe:14,ro:12,mc:14000},{t:'NLCINDIA',n:'NLC India',s:'Power/Mining',c:'M',pe:12,ro:10,mc:18000},
-  {t:'IEX',n:'Indian Energy Exchange',s:'Power Exchange',c:'M',pe:35,ro:45,mc:12000},
-  // ---- CAPITAL GOODS (12) ----
-  {t:'BHEL',n:'BHEL',s:'Capital Goods',c:'L',pe:55,ro:6,mc:80000},{t:'SIEMENS',n:'Siemens',s:'Capital Goods',c:'L',pe:80,ro:18,mc:220000},
-  {t:'ABB',n:'ABB India',s:'Capital Goods',c:'L',pe:85,ro:20,mc:160000},{t:'CUMMINSIND',n:'Cummins India',s:'Capital Goods',c:'L',pe:48,ro:30,mc:90000},
-  {t:'THERMAX',n:'Thermax',s:'Capital Goods',c:'M',pe:55,ro:18,mc:40000},{t:'GRINFRA',n:'G R Infraprojects',s:'Infra EPC',c:'S',pe:10,ro:14,mc:6000},
-  {t:'ELGIEQUIP',n:'Elgi Equipments',s:'Capital Goods',c:'M',pe:55,ro:22,mc:18000},{t:'HONAUT',n:'Honeywell Automation',s:'Automation',c:'M',pe:60,ro:18,mc:38000},
-  {t:'AIAENG',n:'AIA Engineering',s:'Capital Goods',c:'M',pe:35,ro:22,mc:25000},{t:'KAYNES',n:'Kaynes Technology',s:'Electronics',c:'M',pe:80,ro:20,mc:25000},
-  {t:'CGPOWER',n:'CG Power',s:'Electricals',c:'L',pe:65,ro:30,mc:75000},{t:'TRITURBINE',n:'Triveni Turbines',s:'Capital Goods',c:'M',pe:55,ro:35,mc:18000},
-  // ---- CHEMICALS & AGRI CHEM (16) ----
-  {t:'DEEPAKNTR',n:'Deepak Nitrite',s:'Chemicals',c:'M',pe:35,ro:15,mc:30000},{t:'ATUL',n:'Atul',s:'Chemicals',c:'M',pe:45,ro:12,mc:22000},
-  {t:'SRF',n:'SRF',s:'Chemicals',c:'L',pe:40,ro:14,mc:65000},{t:'PIIND',n:'PI Industries',s:'Agri Chemicals',c:'L',pe:35,ro:20,mc:55000},
-  {t:'AARTIIND',n:'Aarti Industries',s:'Chemicals',c:'M',pe:25,ro:10,mc:14000},{t:'NAVINFLUOR',n:'Navin Fluorine',s:'Chemicals',c:'M',pe:40,ro:12,mc:12000},
-  {t:'CLEAN',n:'Clean Science',s:'Chemicals',c:'M',pe:45,ro:28,mc:15000},{t:'UPL',n:'UPL',s:'Agri Chemicals',c:'M',pe:0,ro:5,mc:40000},
-  {t:'FINEORG',n:'Fine Organic Industries',s:'Specialty Chemicals',c:'M',pe:40,ro:22,mc:12000},{t:'TATACHEM',n:'Tata Chemicals',s:'Chemicals',c:'M',pe:12,ro:10,mc:22000},
-  {t:'GNFC',n:'GNFC',s:'Chemicals/Fertilizers',c:'S',pe:8,ro:14,mc:7500},{t:'GUJALKALI',n:'Gujarat Alkalies',s:'Chemicals',c:'S',pe:15,ro:8,mc:4000},
-  {t:'ROSSARI',n:'Rossari Biotech',s:'Specialty Chemicals',c:'S',pe:30,ro:14,mc:3500},{t:'VINATIORGN',n:'Vinati Organics',s:'Specialty Chemicals',c:'M',pe:55,ro:18,mc:15000},
-  {t:'FLUOROCHEM',n:'Gujarat Fluorochemicals',s:'Specialty Chemicals',c:'M',pe:45,ro:10,mc:25000},{t:'LXCHEM',n:'Laxmi Organic',s:'Specialty Chemicals',c:'S',pe:35,ro:10,mc:4000},
-  // ---- FERTILIZERS (5) ----
-  {t:'CHAMBLFERT',n:'Chambal Fertilizers',s:'Fertilizers',c:'M',pe:12,ro:22,mc:14000},{t:'COROMANDEL',n:'Coromandel International',s:'Fertilizers',c:'M',pe:22,ro:28,mc:35000},
-  {t:'DEEPAKFERT',n:'Deepak Fertilisers',s:'Fertilizers',c:'S',pe:10,ro:12,mc:4500},{t:'RCF',n:'Rashtriya Chemicals',s:'Fertilizers',c:'S',pe:10,ro:10,mc:5000},
-  {t:'NFL',n:'National Fertilizers',s:'Fertilizers',c:'S',pe:12,ro:10,mc:3500},
-  // ---- CEMENT (10) ----
-  {t:'ULTRACEMCO',n:'UltraTech Cement',s:'Cement',c:'L',pe:40,ro:12,mc:320000},{t:'AMBUJACEM',n:'Ambuja Cements',s:'Cement',c:'L',pe:22,ro:10,mc:130000},
-  {t:'SHREECEM',n:'Shree Cement',s:'Cement',c:'L',pe:38,ro:14,mc:100000},{t:'DALMIACEM',n:'Dalmia Bharat',s:'Cement',c:'M',pe:35,ro:8,mc:35000},
-  {t:'JKCEMENT',n:'JK Cement',s:'Cement',c:'M',pe:28,ro:12,mc:20000},{t:'RAMCOCEM',n:'Ramco Cements',s:'Cement',c:'M',pe:18,ro:10,mc:12000},
-  {t:'ACC',n:'ACC',s:'Cement',c:'L',pe:18,ro:12,mc:50000},{t:'BIRLACORPN',n:'Birla Corporation',s:'Cement',c:'S',pe:28,ro:6,mc:6500},
-  {t:'INDIACEM',n:'India Cements',s:'Cement',c:'S',pe:0,ro:2,mc:4500},{t:'HEIDELBERG',n:'Heidelberg Cement',s:'Cement',c:'S',pe:25,ro:10,mc:5000},
-  // ---- INSURANCE (6) ----
-  {t:'SBILIFE',n:'SBI Life',s:'Insurance',c:'L',pe:65,ro:12,mc:160000},{t:'HDFCLIFE',n:'HDFC Life',s:'Insurance',c:'L',pe:85,ro:10,mc:145000},
-  {t:'ICICIGI',n:'ICICI Lombard',s:'Insurance',c:'L',pe:40,ro:22,mc:75000},{t:'STARHEALTH',n:'Star Health',s:'Insurance',c:'M',pe:30,ro:10,mc:28000},
-  {t:'GICRE',n:'GIC Re',s:'Insurance/Re',c:'M',pe:8,ro:6,mc:22000},{t:'NIACL',n:'New India Assurance',s:'Insurance',c:'S',pe:10,ro:6,mc:8000},
-  // ---- LOGISTICS & PORTS (8) ----
-  {t:'DELHIVERY',n:'Delhivery',s:'Logistics',c:'M',pe:0,ro:2,mc:28000},{t:'CONCOR',n:'Container Corp',s:'Logistics',c:'M',pe:30,ro:12,mc:42000},
-  {t:'ADANIPORTS',n:'Adani Ports',s:'Ports/Logistics',c:'L',pe:28,ro:14,mc:280000},{t:'BLUEDART',n:'Blue Dart',s:'Logistics',c:'M',pe:50,ro:25,mc:15000},
-  {t:'JSWINFRA',n:'JSW Infrastructure',s:'Port Infra',c:'L',pe:40,ro:10,mc:55000},{t:'ALLCARGO',n:'Allcargo Logistics',s:'Logistics',c:'S',pe:15,ro:10,mc:7000},
-  {t:'TCI',n:'Transport Corp',s:'Logistics',c:'S',pe:22,ro:15,mc:6000},{t:'VRLLOG',n:'VRL Logistics',s:'Logistics',c:'S',pe:25,ro:18,mc:5500},
-  // ---- FINTECH / NEW AGE / E-COMMERCE (9) ----
-  {t:'ZOMATO',n:'Zomato',s:'Food Tech',c:'L',pe:0,ro:4,mc:200000},{t:'PAYTM',n:'One97/Paytm',s:'Fintech',c:'M',pe:0,ro:0,mc:35000},
-  {t:'NYKAA',n:'FSN E-Commerce',s:'E-commerce',c:'M',pe:500,ro:4,mc:25000},{t:'POLICYBZR',n:'PB Fintech',s:'Insurtech',c:'M',pe:0,ro:5,mc:22000},
-  {t:'DMART',n:'Avenue Supermarts',s:'Retail',c:'L',pe:85,ro:18,mc:270000},{t:'TRENT',n:'Trent',s:'Retail/Fashion',c:'L',pe:120,ro:25,mc:200000},
-  {t:'AFFLE',n:'Affle India',s:'Ad Tech',c:'M',pe:55,ro:20,mc:15000},{t:'JIOFIN',n:'Jio Financial',s:'Fintech',c:'L',pe:100,ro:2,mc:160000},
-  {t:'RATEGAIN',n:'RateGain Travel',s:'Travel Tech',c:'S',pe:55,ro:12,mc:8000},
-  // ---- CONGLOMERATE / DIVERSIFIED (6) ----
-  {t:'ADANIENT',n:'Adani Enterprises',s:'Conglomerate',c:'L',pe:55,ro:8,mc:350000},{t:'IRFC',n:'IRFC',s:'Railway Finance',c:'L',pe:8,ro:12,mc:60000},
-  {t:'HUDCO',n:'HUDCO',s:'Housing Finance',c:'M',pe:10,ro:12,mc:35000},{t:'GRASIM',n:'Grasim Industries',s:'Diversified',c:'L',pe:18,ro:10,mc:130000},
-  {t:'LICI',n:'LIC',s:'Life Insurance',c:'L',pe:12,ro:55,mc:550000},{t:'GODREJIND',n:'Godrej Industries',s:'Diversified',c:'M',pe:0,ro:4,mc:18000},
-  // ---- MEDIA & ENTERTAINMENT (7) ----
-  {t:'ZEEL',n:'Zee Entertainment',s:'Media',c:'S',pe:20,ro:6,mc:8000},{t:'PVRINOX',n:'PVR INOX',s:'Entertainment',c:'M',pe:35,ro:8,mc:10000},
-  {t:'SUNTV',n:'Sun TV',s:'Media',c:'M',pe:14,ro:30,mc:20000},{t:'NAZARA',n:'Nazara Technologies',s:'Gaming',c:'S',pe:55,ro:8,mc:5000},
-  {t:'SAREGAMA',n:'Saregama',s:'Music/Media',c:'S',pe:30,ro:22,mc:6500},{t:'NETWORK18',n:'Network18',s:'Media',c:'S',pe:0,ro:0,mc:5000},
-  {t:'TV18BRDCST',n:'TV18 Broadcast',s:'Media',c:'S',pe:0,ro:0,mc:4000},
-  // ---- CONSUMER DURABLES & ELECTRICALS (14) ----
-  {t:'TITAN',n:'Titan Company',s:'Consumer',c:'L',pe:70,ro:25,mc:300000},{t:'HAVELLS',n:'Havells India',s:'Electricals',c:'L',pe:65,ro:30,mc:100000},
-  {t:'CROMPTON',n:'Crompton Greaves',s:'Consumer Electricals',c:'M',pe:35,ro:22,mc:18000},{t:'BATAINDIA',n:'Bata India',s:'Footwear',c:'M',pe:45,ro:18,mc:18000},
-  {t:'RELAXO',n:'Relaxo Footwears',s:'Footwear',c:'S',pe:55,ro:12,mc:9000},{t:'WHIRLPOOL',n:'Whirlpool India',s:'Appliances',c:'S',pe:55,ro:8,mc:8000},
-  {t:'BLUESTARLT',n:'Blue Star',s:'AC/Cooling',c:'M',pe:50,ro:22,mc:22000},{t:'KALYANKJIL',n:'Kalyan Jewellers',s:'Jewellery',c:'M',pe:60,ro:35,mc:45000},
-  {t:'ORIENTELEC',n:'Orient Electric',s:'Consumer Electricals',c:'S',pe:45,ro:18,mc:7000},{t:'VGUARD',n:'V-Guard Industries',s:'Electricals',c:'M',pe:50,ro:22,mc:12000},
-  {t:'SYMPHONY',n:'Symphony',s:'AC/Cooling',c:'S',pe:60,ro:25,mc:7500},{t:'CERA',n:'CERA Sanitaryware',s:'Building Products',c:'S',pe:35,ro:22,mc:8000},
-  {t:'CENTURYPLY',n:'Century Plyboards',s:'Building Products',c:'S',pe:18,ro:18,mc:7500},{t:'KAJARIACER',n:'Kajaria Ceramics',s:'Building Products',c:'M',pe:40,ro:22,mc:12000},
-  // ---- FINANCIAL PLATFORMS (6) ----
-  {t:'CAMS',n:'CAMS',s:'Financial Infra',c:'M',pe:40,ro:40,mc:16000},{t:'KFINTECH',n:'KFin Technologies',s:'Financial Infra',c:'M',pe:45,ro:30,mc:14000},
-  {t:'BSE',n:'BSE Limited',s:'Exchange',c:'M',pe:35,ro:25,mc:35000},{t:'MCX',n:'MCX',s:'Exchange',c:'M',pe:28,ro:12,mc:18000},
-  {t:'ANGELONE',n:'Angel One',s:'Broking',c:'M',pe:15,ro:45,mc:14000},{t:'CDSL',n:'CDSL',s:'Depository',c:'M',pe:45,ro:40,mc:25000},
-  // ---- AMC / FUND MANAGEMENT (2) ----
-  {t:'HDFCAMC',n:'HDFC AMC',s:'Asset Management',c:'L',pe:38,ro:35,mc:70000},{t:'UTIAMC',n:'UTI AMC',s:'Asset Management',c:'S',pe:18,ro:35,mc:8000},
-  // ---- PAINTS (3) ----
-  {t:'ASIANPAINT',n:'Asian Paints',s:'Paints',c:'L',pe:55,ro:25,mc:250000},{t:'BERGEPAINT',n:'Berger Paints',s:'Paints',c:'L',pe:55,ro:22,mc:60000},
-  {t:'KANSAINER',n:'Kansai Nerolac',s:'Paints',c:'M',pe:45,ro:16,mc:18000},
-  // ---- TEXTILES (6) ----
-  {t:'PAGEIND',n:'Page Industries',s:'Textiles',c:'M',pe:65,ro:40,mc:35000},{t:'RAYMOND',n:'Raymond',s:'Textiles',c:'M',pe:18,ro:12,mc:10000},
-  {t:'ARVIND',n:'Arvind',s:'Textiles',c:'S',pe:12,ro:10,mc:5000},{t:'TRIDENT',n:'Trident',s:'Textiles',c:'S',pe:18,ro:12,mc:9000},
-  {t:'GOKALDAS',n:'Gokaldas Exports',s:'Textiles',c:'S',pe:18,ro:22,mc:5500},{t:'KPRMILL',n:'KPR Mill',s:'Textiles',c:'M',pe:25,ro:28,mc:14000},
-  // ---- SUGAR (4) ----
-  {t:'BALRAMCHIN',n:'Balrampur Chini',s:'Sugar',c:'S',pe:14,ro:14,mc:4500},{t:'RENUKA',n:'Shree Renuka',s:'Sugar',c:'S',pe:18,ro:8,mc:3500},
-  {t:'TRIVENI',n:'Triveni Engineering',s:'Sugar',c:'S',pe:15,ro:18,mc:5500},{t:'BAJAJHIND',n:'Bajaj Hindusthan',s:'Sugar',c:'X',pe:0,ro:2,mc:1500},
-  // ---- HOTELS & TOURISM (4) ----
-  {t:'INDHOTEL',n:'Indian Hotels',s:'Hotels',c:'L',pe:60,ro:12,mc:80000},{t:'CHALET',n:'Chalet Hotels',s:'Hotels',c:'M',pe:35,ro:10,mc:14000},
-  {t:'LEMONTREE',n:'Lemon Tree Hotels',s:'Hotels',c:'S',pe:45,ro:10,mc:6500},{t:'EIHOTEL',n:'EIH',s:'Hotels',c:'S',pe:35,ro:10,mc:5000},
-  // ---- RENEWABLE & EV (4) ----
-  {t:'SUZLON',n:'Suzlon Energy',s:'Wind Energy',c:'L',pe:55,ro:28,mc:85000},{t:'INOXWIND',n:'Inox Wind',s:'Wind Energy',c:'M',pe:45,ro:15,mc:12000},
-  {t:'OLECTRA',n:'Olectra Greentech',s:'EV/Green',c:'S',pe:55,ro:12,mc:6000},{t:'BOROSILREN',n:'Borosil Renewables',s:'Solar',c:'S',pe:0,ro:2,mc:3000},
-  // ---- PIPES & BUILDING MATERIALS (5) ----
-  {t:'ASTRAL',n:'Astral',s:'Pipes/Building',c:'L',pe:70,ro:22,mc:55000},{t:'POLYCAB',n:'Polycab India',s:'Electrical/Cables',c:'L',pe:50,ro:28,mc:85000},
-  {t:'SUPREMEIND',n:'Supreme Industries',s:'Pipes/Plastics',c:'M',pe:42,ro:22,mc:35000},{t:'PRINCEPIPE',n:'Prince Pipes',s:'Pipes',c:'S',pe:22,ro:14,mc:5000},
-  {t:'FINCABLES',n:'Finolex Cables',s:'Cables',c:'S',pe:22,ro:14,mc:7500},
-  // ---- RETAIL (3) ----
-  {t:'SHOPERSTOP',n:'Shoppers Stop',s:'Retail',c:'S',pe:55,ro:10,mc:4500},{t:'METROBRAND',n:'Metro Brands',s:'Footwear/Retail',c:'M',pe:60,ro:22,mc:18000},
-  {t:'CAMPUS',n:'Campus Activewear',s:'Footwear',c:'S',pe:55,ro:10,mc:5000},
-  // ---- HIGH BETA / MISC (5) ----
-  {t:'YESBANK',n:'Yes Bank',s:'Banking',c:'M',pe:35,ro:4,mc:42000},{t:'RPOWER',n:'Reliance Power',s:'Power',c:'S',pe:0,ro:0,mc:4500},
-  {t:'JPPOWER',n:'Jaiprakash Power',s:'Power',c:'S',pe:15,ro:6,mc:3000},{t:'ABCAPITAL',n:'Aditya Birla Capital',s:'Financial Services',c:'M',pe:15,ro:10,mc:30000},
-  {t:'BLS',n:'BLS International',s:'Services',c:'S',pe:22,ro:25,mc:8000},
-  // ---- NEW ADDITIONS: BANKING & NBFC (30) ----
-  {t:'KARURVYSYA',n:'Karur Vysya Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},{t:'CUB',n:'City Union Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},
-  {t:'CSB',n:'CSB Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},{t:'TMBL',n:'Tamilnad Mercantile Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},
-  {t:'ESAFSFB',n:'ESAF Small Finance Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},{t:'SURYODAY',n:'Suryoday SFB',s:'Banking',c:'S',pe:0,ro:0,mc:0},
-  {t:'UTKARSHBNK',n:'Utkarsh SFB',s:'Banking',c:'S',pe:0,ro:0,mc:0},{t:'FINPIPE',n:'Finolex Industries',s:'Pipes',c:'M',pe:0,ro:0,mc:0},
-  {t:'IIFL',n:'IIFL Finance',s:'Financial Services',c:'M',pe:0,ro:0,mc:0},{t:'SUNDARMFIN',n:'Sundaram Finance',s:'Financial Services',c:'M',pe:0,ro:0,mc:0},
-  {t:'MASFIN',n:'MAS Financial Services',s:'NBFC',c:'S',pe:0,ro:0,mc:0},{t:'JMFINANCIL',n:'JM Financial',s:'Financial Services',c:'S',pe:0,ro:0,mc:0},
-  {t:'MOTILALOFS',n:'Motilal Oswal Financial',s:'Financial Services',c:'M',pe:0,ro:0,mc:0},{t:'FIVESTAR',n:'Five-Star Business Finance',s:'NBFC',c:'M',pe:0,ro:0,mc:0},
-  {t:'EDELWEISS',n:'Edelweiss Financial',s:'Financial Services',c:'S',pe:0,ro:0,mc:0},
-  {t:'ICICIPRULIFE',n:'ICICI Prudential Life',s:'Insurance',c:'L',pe:0,ro:0,mc:0},{t:'MFSL',n:'Max Financial Services',s:'Insurance',c:'M',pe:0,ro:0,mc:0},
-  {t:'ICICIPRULI',n:'ICICI Pru Life',s:'Insurance',c:'L',pe:0,ro:0,mc:0},{t:'NUVAMA',n:'Nuvama Wealth',s:'Financial Services',c:'M',pe:0,ro:0,mc:0},
-  {t:'ANANDRATHI',n:'Anand Rathi Wealth',s:'Financial Services',c:'S',pe:0,ro:0,mc:0},{t:'ABSLAMC',n:'Aditya Birla Sun Life AMC',s:'AMC',c:'S',pe:0,ro:0,mc:0},
-  {t:'PAISALO',n:'Paisalo Digital',s:'NBFC',c:'S',pe:0,ro:0,mc:0},{t:'SBFC',n:'SBFC Finance',s:'NBFC',c:'S',pe:0,ro:0,mc:0},
-  {t:'BAJAJHFL',n:'Bajaj Housing Finance',s:'Housing Finance',c:'L',pe:0,ro:0,mc:0},{t:'JAIBALAJI',n:'Jai Balaji Industries',s:'Steel',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: IT & TECHNOLOGY (25) ----
-  {t:'ROUTE',n:'Route Mobile',s:'IT/Cloud',c:'S',pe:0,ro:0,mc:0},{t:'SAKSOFT',n:'Saksoft',s:'IT',c:'S',pe:0,ro:0,mc:0},
-  {t:'NETWEB',n:'Netweb Technologies',s:'IT Hardware',c:'S',pe:0,ro:0,mc:0},{t:'TATATECH',n:'Tata Technologies',s:'IT/Engineering',c:'M',pe:0,ro:0,mc:0},
-  {t:'DATAPATTNS',n:'Data Patterns',s:'Electronics/Defence',c:'S',pe:0,ro:0,mc:0},{t:'QUICKHEAL',n:'Quick Heal Technologies',s:'IT/Cybersecurity',c:'S',pe:0,ro:0,mc:0},
-  {t:'NIITLTD',n:'NIIT',s:'IT Training',c:'S',pe:0,ro:0,mc:0},{t:'SUBEXLTD',n:'Subex',s:'IT/Telecom',c:'S',pe:0,ro:0,mc:0},
-  {t:'FIRSTSOURCE',n:'Firstsource Solutions',s:'IT/BPO',c:'M',pe:0,ro:0,mc:0},{t:'BSOFT',n:'BFSI Software (Birlasoft)',s:'IT',c:'M',pe:0,ro:0,mc:0},
-  {t:'LTTS',n:'L&T Technology Services',s:'IT/Engineering',c:'M',pe:0,ro:0,mc:0},{t:'NAUKRI',n:'Info Edge (Naukri)',s:'Internet',c:'L',pe:0,ro:0,mc:0},
-  {t:'JUSTDIAL',n:'Just Dial',s:'Internet',c:'S',pe:0,ro:0,mc:0},{t:'CARTRADE',n:'CarTrade Tech',s:'Internet',c:'S',pe:0,ro:0,mc:0},
-  {t:'YATHARTH',n:'Yatharth Hospital',s:'Healthcare',c:'S',pe:0,ro:0,mc:0},{t:'SENCO',n:'Senco Gold',s:'Jewellery',c:'S',pe:0,ro:0,mc:0},
-  {t:'OPTIEMUS',n:'Optiemus Infracom',s:'Electronics',c:'S',pe:0,ro:0,mc:0},{t:'CMSINFO',n:'CMS Info Systems',s:'IT/Cash Mgmt',c:'S',pe:0,ro:0,mc:0},
-  {t:'ORIENTTECH',n:'Orient Technologies',s:'IT',c:'S',pe:0,ro:0,mc:0},{t:'ZAGGLE',n:'Zaggle Prepaid',s:'Fintech',c:'S',pe:0,ro:0,mc:0},
-  {t:'ABORELTECH',n:'ABR Infra (Abohar Elec)',s:'IT',c:'S',pe:0,ro:0,mc:0},{t:'ZENSARTECH',n:'Zensar Technologies',s:'IT',c:'M',pe:0,ro:0,mc:0},
-  {t:'OFSS',n:'Oracle Financial Services',s:'IT/BFSI',c:'L',pe:0,ro:0,mc:0},{t:'MANYAVAR',n:'Vedant Fashions (Manyavar)',s:'Apparel',c:'M',pe:0,ro:0,mc:0},
-  {t:'SAPPHIRE',n:'Sapphire Foods',s:'QSR',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: CAPITAL GOODS / ENGINEERING (35) ----
-  {t:'GRSE',n:'Garden Reach Shipbuilders',s:'Shipbuilding',c:'M',pe:0,ro:0,mc:0},{t:'COCHINSHIP',n:'Cochin Shipyard',s:'Shipbuilding',c:'M',pe:0,ro:0,mc:0},
-  {t:'ELECON',n:'Elecon Engineering',s:'Capital Goods',c:'S',pe:0,ro:0,mc:0},{t:'JYOTICNC',n:'Jyoti CNC Automation',s:'Capital Goods',c:'S',pe:0,ro:0,mc:0},
-  {t:'AMIORG',n:'Ami Organics',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},{t:'GRINDWELL',n:'Grindwell Norton',s:'Abrasives',c:'M',pe:0,ro:0,mc:0},
-  {t:'TITAGARH',n:'Titagarh Rail Systems',s:'Railway/Capital Goods',c:'M',pe:0,ro:0,mc:0},{t:'TEXRAIL',n:'Texmaco Rail',s:'Railway',c:'S',pe:0,ro:0,mc:0},
-  {t:'RITES',n:'RITES',s:'Railway/Consulting',c:'M',pe:0,ro:0,mc:0},{t:'BEML',n:'BEML',s:'Capital Goods',c:'M',pe:0,ro:0,mc:0},
-  {t:'PRAJIND',n:'Praj Industries',s:'Capital Goods/Ethanol',c:'S',pe:0,ro:0,mc:0},{t:'ISGEC',n:'ISGEC Heavy Engineering',s:'Capital Goods',c:'S',pe:0,ro:0,mc:0},
-  {t:'CUMMINS',n:'Cummins India',s:'Capital Goods',c:'L',pe:0,ro:0,mc:0},{t:'VOLTAMP',n:'Voltamp Transformers',s:'Transformers',c:'S',pe:0,ro:0,mc:0},
-  {t:'TDPOWER',n:'TD Power Systems',s:'Generators',c:'S',pe:0,ro:0,mc:0},{t:'ANURAS',n:'Anupam Rasayan',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'TTKPRESTIG',n:'TTK Prestige',s:'Consumer Durables',c:'M',pe:0,ro:0,mc:0},{t:'IFBIND',n:'IFB Industries',s:'Consumer Durables',c:'S',pe:0,ro:0,mc:0},
-  {t:'GEPIL',n:'GE T&D India',s:'Power Equipment',c:'S',pe:0,ro:0,mc:0},
-  {t:'GREAVESCOT',n:'Greaves Cotton',s:'Engineering',c:'S',pe:0,ro:0,mc:0},
-  {t:'VOLTAS',n:'Voltas',s:'Consumer Durables',c:'L',pe:0,ro:0,mc:0},{t:'INGERRAND',n:'Ingersoll-Rand India',s:'Capital Goods',c:'M',pe:0,ro:0,mc:0},
-  {t:'TIMKEN',n:'Timken India',s:'Bearings',c:'M',pe:0,ro:0,mc:0},{t:'SKFIND',n:'SKF India',s:'Bearings',c:'M',pe:0,ro:0,mc:0},
-  {t:'NBEIND',n:'NB India (Nord)',s:'Power Transmission',c:'S',pe:0,ro:0,mc:0},{t:'JBMA',n:'JBM Auto',s:'Auto Ancillary/EV',c:'M',pe:0,ro:0,mc:0},
-  {t:'CARBORUNIV',n:'Carborundum Universal',s:'Abrasives',c:'M',pe:0,ro:0,mc:0},{t:'KENNAMETAL',n:'Kennametal India',s:'Tools',c:'S',pe:0,ro:0,mc:0},
-  {t:'ASTRAZEN',n:'AstraZeneca Pharma',s:'MNC',c:'S',pe:0,ro:0,mc:0},{t:'KIRLOSENG',n:'Kirloskar Oil Engines',s:'Engineering',c:'M',pe:0,ro:0,mc:0},
-  {t:'GPPL',n:'Gujarat Pipavav Port',s:'Ports',c:'S',pe:0,ro:0,mc:0},{t:'AARTI',n:'Aarti Industries (Check)',s:'Chemicals',c:'M',pe:0,ro:0,mc:0},
-  {t:'WELSPUNLIV',n:'Welspun Living',s:'Textiles/Home',c:'M',pe:0,ro:0,mc:0},
-  // ---- NEW: INFRASTRUCTURE / CONSTRUCTION (25) ----
-  {t:'ASHOKA',n:'Ashoka Buildcon',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},{t:'CAPACITE',n:'Capacit e Infraprojects',s:'Construction',c:'S',pe:0,ro:0,mc:0},
-  {t:'AHLUWALIA',n:'Ahluwalia Contracts',s:'Construction',c:'S',pe:0,ro:0,mc:0},{t:'JMCPROJECT',n:'JMC Projects',s:'Construction',c:'S',pe:0,ro:0,mc:0},
-  {t:'NRBBEARING',n:'NRB Bearings',s:'Bearings',c:'S',pe:0,ro:0,mc:0},
-  {t:'TATACONSUM',n:'Tata Consumer Products',s:'Consumer',c:'L',pe:0,ro:0,mc:0},
-  {t:'JUNIPER',n:'Juniper Hotels',s:'Hotels',c:'S',pe:0,ro:0,mc:0},{t:'DEVYANI',n:'Devyani International',s:'QSR',c:'M',pe:0,ro:0,mc:0},
-  {t:'RBA',n:'Restaurant Brands Asia',s:'QSR',c:'S',pe:0,ro:0,mc:0},{t:'IRBINFRA',n:'IRB Infrastructure',s:'Infrastructure',c:'M',pe:0,ro:0,mc:0},
-  {t:'PGHL',n:'Procter & Gamble Hygiene',s:'MNC',c:'M',pe:0,ro:0,mc:0},{t:'JKLAKSHMI',n:'JK Lakshmi Cement',s:'Cement',c:'S',pe:0,ro:0,mc:0},
-  {t:'STARCEMENT',n:'Star Cement',s:'Cement',c:'S',pe:0,ro:0,mc:0},{t:'SAGCEM',n:'Sagar Cements',s:'Cement',c:'S',pe:0,ro:0,mc:0},
-  {t:'ORIENTCEM',n:'Orient Cement',s:'Cement',c:'S',pe:0,ro:0,mc:0},{t:'NUVOCO',n:'Nuvoco Vistas',s:'Cement',c:'M',pe:0,ro:0,mc:0},
-  {t:'PRSMJOHNSN',n:'Prism Johnson',s:'Building Materials',c:'S',pe:0,ro:0,mc:0},{t:'HIL',n:'HIL Ltd',s:'Building Materials',c:'S',pe:0,ro:0,mc:0},
-  {t:'MAHSEAMLES',n:'Maharashtra Seamless',s:'Steel Pipes',c:'S',pe:0,ro:23,mc:0},{t:'MANINFRA',n:'Man Infraconstruction',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},
-  // ---- AI RESEARCH ADDS 2026-07-16 ----
-  {t:'NESCO',n:'Nesco',s:'Exhibitions/Realty',c:'S',pe:0,ro:22,mc:0},{t:'SGMART',n:'SG Mart',s:'B2B Building Materials',c:'S',pe:0,ro:0,mc:0},
-  {t:'GPIL',n:'Godawari Power & Ispat',s:'Steel/Power',c:'S',pe:0,ro:0,mc:0},{t:'JSWHL',n:'JSW Holdings',s:'Holding Company',c:'S',pe:0,ro:0,mc:0},
-  {t:'JPASSOCIAT',n:'Jaiprakash Associates',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},
-  // ---- AI RESEARCH ADDS 2026-07-17 ----
-  {t:'JYOTIRES',n:'Jyoti Resins & Adhesives',s:'Adhesives',c:'S',pe:0,ro:50,mc:0},
-  // ---- AI RESEARCH ADDS 2026-07-20 ----
-  {t:'GULFOILLUB',n:'Gulf Oil Lubricants',s:'Lubricants',c:'S',pe:0,ro:27,mc:0},
-  {t:'GARUDACONS',n:'Garuda Construction & Engg',s:'Construction',c:'S',pe:0,ro:30,mc:0},
-  // ---- NEW: POWER / ENERGY / UTILITIES (20) ----
-  {t:'TORNTPHARM',n:'Torrent Power',s:'Power',c:'L',pe:0,ro:0,mc:0},
-  {t:'GIPCL',n:'Gujarat Industries Power',s:'Power',c:'S',pe:0,ro:0,mc:0},
-  {t:'KECL',n:'KEC International',s:'Power T&D',c:'M',pe:0,ro:0,mc:0},{t:'KALPATPOWR',n:'Kalpataru Projects',s:'Power T&D',c:'M',pe:0,ro:0,mc:0},
-  {t:'HITECHCORP',n:'Hitech Corp',s:'Power',c:'S',pe:0,ro:0,mc:0},{t:'RELINFRA',n:'Reliance Infrastructure',s:'Infrastructure',c:'S',pe:0,ro:0,mc:0},
-  {t:'ADANIENSOL',n:'Adani Energy Solutions',s:'Power T&D',c:'L',pe:0,ro:0,mc:0},{t:'WABAG',n:'VA Tech Wabag',s:'Water Treatment',c:'S',pe:0,ro:0,mc:0},
-  {t:'IPCALAB',n:'IPCA Laboratories',s:'Specialty Chem',c:'M',pe:0,ro:0,mc:0},{t:'APARINDS',n:'Apar Industries',s:'Cables/Conductors',c:'M',pe:0,ro:0,mc:0},
-  {t:'KPIGREEN',n:'KPI Green Energy',s:'Renewable Energy',c:'S',pe:0,ro:0,mc:0},{t:'WAAREEENER',n:'Waaree Energies',s:'Solar',c:'L',pe:0,ro:0,mc:0},
-  {t:'PREMIERENE',n:'Premier Energies',s:'Solar',c:'M',pe:0,ro:0,mc:0},{t:'AVADHSUGAR',n:'Avadh Sugar',s:'Sugar/Ethanol',c:'S',pe:0,ro:0,mc:0},
-  {t:'DWARIKESH',n:'Dwarikesh Sugar',s:'Sugar/Ethanol',c:'S',pe:0,ro:0,mc:0},{t:'SHREERENUKA',n:'Shree Renuka Sugar',s:'Sugar',c:'S',pe:0,ro:0,mc:0},
-  {t:'BANARISUG',n:'Bannari Amman Sugar',s:'Sugar',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: CHEMICALS / SPECIALTY CHEM (30) ----
-  {t:'ALKYLAMINE',n:'Alkyl Amines',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},{t:'GALAXYSURF',n:'Galaxy Surfactants',s:'Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'NOCIL',n:'NOCIL',s:'Rubber Chemicals',c:'S',pe:0,ro:0,mc:0},{t:'TATVA',n:'Tatva Chintan',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'NEOGEN',n:'Neogen Chemicals',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},{t:'ANANTRAJ',n:'Anant Raj',s:'Real Estate',c:'S',pe:0,ro:0,mc:0},
-  {t:'SYNGENE',n:'Syngene International',s:'CRAMS',c:'M',pe:0,ro:0,mc:0},{t:'IONEXCHANG',n:'Ion Exchange',s:'Water Treatment',c:'S',pe:0,ro:0,mc:0},
-  {t:'SUMICHEM',n:'Sumitomo Chemical India',s:'Agrochemicals',c:'M',pe:0,ro:0,mc:0},{t:'ASTERDM',n:'Aster DM Healthcare',s:'Healthcare',c:'M',pe:0,ro:0,mc:0},
-  {t:'LALPATHLAB',n:'Dr Lal PathLabs',s:'Diagnostics',c:'M',pe:0,ro:0,mc:0},{t:'METROPOLIS',n:'Metropolis Healthcare',s:'Diagnostics',c:'M',pe:0,ro:0,mc:0},
-  {t:'VINATIORGA',n:'Vinati Organics',s:'Specialty Chemicals',c:'M',pe:0,ro:0,mc:0},{t:'CHEMPLASTS',n:'Chemplast Sanmar',s:'Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'PCBL',n:'PCBL (Phillips Carbon)',s:'Carbon Black',c:'S',pe:0,ro:0,mc:0},{t:'RAIN',n:'Rain Industries',s:'Carbon/Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'EPL',n:'EPL Ltd',s:'Packaging',c:'S',pe:0,ro:0,mc:0},{t:'HUHTAMAKI',n:'Huhtamaki India',s:'Packaging',c:'S',pe:0,ro:0,mc:0},
-  {t:'UFLEX',n:'UFlex',s:'Packaging',c:'S',pe:0,ro:0,mc:0},{t:'MOLDTKPAC',n:'Mold-Tek Packaging',s:'Packaging',c:'S',pe:0,ro:0,mc:0},
-  {t:'SUDARSCHEM',n:'Sudarshan Chemical',s:'Pigments',c:'S',pe:0,ro:0,mc:0},{t:'GHCL',n:'GHCL',s:'Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'BASF',n:'BASF India',s:'Chemicals/MNC',c:'S',pe:0,ro:0,mc:0},{t:'BALAMINES',n:'Balaji Amines',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'AETHER',n:'Aether Industries',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'JUBLINGREA',n:'Jubilant Ingrevia',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'SOLARINDS',n:'Solar Industries',s:'Explosives/Mining',c:'M',pe:0,ro:0,mc:0},{t:'CRISIL',n:'CRISIL',s:'Rating/Analytics',c:'M',pe:0,ro:0,mc:0},
-  // ---- NEW: METALS & MINING (20) ----
-  {t:'HINDZINC',n:'Hindustan Zinc',s:'Mining/Zinc',c:'L',pe:0,ro:0,mc:0},{t:'AARTIDRUGS',n:'Aarti Drugs',s:'API/Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'TATASTLBSL',n:'Tata Steel BSL',s:'Steel',c:'S',pe:0,ro:0,mc:0},
-  {t:'MISHRA',n:'Mishra Dhatu Nigam',s:'Special Metals',c:'S',pe:0,ro:0,mc:0},{t:'RAJESHEXPO',n:'Rajesh Exports',s:'Gold/Jewellery',c:'S',pe:0,ro:0,mc:0},
-  {t:'HLEGLAS',n:'HLE Glascoat',s:'Glass Equipment',c:'S',pe:0,ro:0,mc:0},{t:'TINPLATE',n:'Tinplate Co of India',s:'Steel/Packaging',c:'S',pe:0,ro:0,mc:0},
-  {t:'JAMNAAUTO',n:'Jamna Auto Industries',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},{t:'SHYAMMETL',n:'Shyam Metalics',s:'Steel',c:'M',pe:0,ro:0,mc:0},
-  {t:'GALLANTT',n:'Gallantt Ispat',s:'Steel',c:'S',pe:0,ro:0,mc:0},{t:'LSIND',n:'Lloyds Steels Industries',s:'Steel/EPC',c:'S',pe:0,ro:0,mc:0},
-  {t:'KIOCL',n:'KIOCL (Kudremukh)',s:'Iron Ore',c:'S',pe:0,ro:0,mc:0},
-  {t:'JSWISPL',n:'JSW Ispat Special',s:'Steel',c:'S',pe:0,ro:0,mc:0},{t:'SARDAEN',n:'Sarda Energy',s:'Steel/Power',c:'S',pe:0,ro:0,mc:0},
-  {t:'GODAWARI',n:'Godawari Power',s:'Steel/Mining',c:'S',pe:0,ro:0,mc:0},{t:'WELSPUNIND',n:'Welspun India',s:'Textiles',c:'M',pe:0,ro:0,mc:0},
-  {t:'MANAKSIA',n:'Manaksia Aluminium',s:'Aluminium',c:'S',pe:0,ro:0,mc:0},{t:'NALCO',n:'National Aluminium',s:'Aluminium',c:'M',pe:0,ro:0,mc:0},
-  // ---- NEW: REAL ESTATE (15) ----
-  {t:'SIGNATURE',n:'Signature Global',s:'Real Estate',c:'S',pe:0,ro:0,mc:0},
-  {t:'KEYSTONE',n:'Keystone Realtors (Rustomjee)',s:'Real Estate',c:'S',pe:0,ro:0,mc:0},{t:'MAXESTATES',n:'Max Estates',s:'Real Estate',c:'S',pe:0,ro:0,mc:0},
-  {t:'SURAJEST',n:'Suraj Estate Developers',s:'Real Estate',c:'S',pe:0,ro:0,mc:0},{t:'SHOBHA',n:'Sobha Ltd (Check)',s:'Real Estate',c:'M',pe:0,ro:0,mc:0},
-  {t:'MAHINDCIE',n:'Mahindra CIE Auto',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},
-  {t:'MINDACORP',n:'Minda Corporation',s:'Auto Ancillary',c:'M',pe:0,ro:0,mc:0},{t:'SWARAJENG',n:'Swaraj Engines',s:'Auto/Tractors',c:'S',pe:0,ro:0,mc:0},
-  {t:'SANDHAR',n:'Sandhar Technologies',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},{t:'SUPRAJIT',n:'Suprajit Engineering',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},
-  {t:'SUNDARMHLD',n:'Sundaram Clayton',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: TEXTILES & APPAREL (15) ----
-  {t:'PGEL',n:'PG Electroplast',s:'EMS',c:'S',pe:0,ro:0,mc:0},{t:'SYRMA',n:'Syrma SGS Tech',s:'EMS',c:'S',pe:0,ro:0,mc:0},
-  {t:'AVALON',n:'Avalon Technologies',s:'EMS',c:'S',pe:0,ro:0,mc:0},{t:'CENTUM',n:'Centum Electronics',s:'EMS',c:'S',pe:0,ro:0,mc:0},
-  {t:'AMBER',n:'Amber Enterprises',s:'AC Components',c:'M',pe:0,ro:0,mc:0},{t:'VMART',n:'V-Mart Retail',s:'Retail',c:'S',pe:0,ro:0,mc:0},
-  {t:'GARFIBRES',n:'Garware Technical Fibres',s:'Technical Textiles',c:'S',pe:0,ro:0,mc:0},{t:'INDOCOUNT',n:'Indo Count Industries',s:'Textiles/Home',c:'S',pe:0,ro:0,mc:0},
-  {t:'HIMATSEIDE',n:'Himatsingka Seide',s:'Textiles/Home',c:'S',pe:0,ro:0,mc:0},{t:'KITEX',n:'Kitex Garments',s:'Textiles',c:'S',pe:0,ro:0,mc:0},
-  {t:'DONEAR',n:'Donear Industries',s:'Textiles',c:'S',pe:0,ro:0,mc:0},{t:'NITIRAJ',n:'Nitin Spinners',s:'Textiles',c:'S',pe:0,ro:0,mc:0},
-  {t:'SPAL',n:'S.P. Apparels',s:'Textiles',c:'S',pe:0,ro:0,mc:0},{t:'WOCKPHARMA',n:'Wockhardt',s:'Pharma/Turnaround',c:'S',pe:0,ro:0,mc:0},
-  {t:'DELTACORP',n:'Delta Corp',s:'Gaming/Hotels',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: LOGISTICS & TRANSPORT (12) ----
-  {t:'MAHLOG',n:'Mahindra Logistics',s:'Logistics',c:'S',pe:0,ro:0,mc:0},{t:'TCIEXP',n:'TCI Express',s:'Express Logistics',c:'S',pe:0,ro:0,mc:0},
-  {t:'GATEWAY',n:'Gateway Distriparks',s:'Logistics',c:'S',pe:0,ro:0,mc:0},{t:'AEGISLOG',n:'Aegis Logistics',s:'LPG Logistics',c:'M',pe:0,ro:0,mc:0},
-  {t:'JETAIRWAYS',n:'Jet Airways (Check)',s:'Airlines',c:'S',pe:0,ro:0,mc:0},{t:'GLOBUSSPR',n:'Globus Spirits',s:'Ethanol/Spirits',c:'S',pe:0,ro:0,mc:0},
-  {t:'RADICO',n:'Radico Khaitan',s:'Spirits',c:'M',pe:0,ro:0,mc:0},{t:'GESHIP',n:'Great Eastern Shipping',s:'Shipping',c:'M',pe:0,ro:0,mc:0},
-  {t:'SCI',n:'Shipping Corp of India',s:'Shipping',c:'S',pe:0,ro:0,mc:0},{t:'STARLOG',n:'Star Log (Check)',s:'Logistics',c:'S',pe:0,ro:0,mc:0},
-  {t:'NAVNETEDUL',n:'Navneet Education',s:'Education/Print',c:'S',pe:0,ro:0,mc:0},{t:'SKYGOLD',n:'Sky Gold',s:'Jewellery',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: TELECOM / MEDIA (10) ----
-  {t:'INDIAMART',n:'IndiaMART InterMeSH',s:'Internet/B2B',c:'M',pe:0,ro:0,mc:0},{t:'HATHWAY',n:'Hathway Cable',s:'Cable/Broadband',c:'S',pe:0,ro:0,mc:0},
-  {t:'DEN',n:'DEN Networks',s:'Cable/Media',c:'S',pe:0,ro:0,mc:0},{t:'PVR',n:'PVR INOX (Check)',s:'Entertainment',c:'M',pe:0,ro:0,mc:0},
-  {t:'TIPS',n:'Tips Music',s:'Media/Music',c:'S',pe:0,ro:0,mc:0},{t:'SHEMAROO',n:'Shemaroo Entertainment',s:'Media',c:'S',pe:0,ro:0,mc:0},
-  {t:'TVTODAY',n:'TV Today Network',s:'Media',c:'S',pe:0,ro:0,mc:0},{t:'DBCORP',n:'DB Corp',s:'Media/Print',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: OIL & GAS / REFINING (10) ----
-  {t:'MRPL',n:'MRPL (Mangalore Refinery)',s:'Refining',c:'M',pe:0,ro:0,mc:0},{t:'CHENNPETRO',n:'Chennai Petroleum',s:'Refining',c:'S',pe:0,ro:0,mc:0},
-  {t:'GUJGAS',n:'Gujarat Gas',s:'City Gas',c:'M',pe:0,ro:0,mc:0},{t:'GSPL',n:'Gujarat State Petronet',s:'Gas Pipeline',c:'S',pe:0,ro:0,mc:0},
-  {t:'CASTROLIND',n:'Castrol India',s:'Lubricants',c:'M',pe:0,ro:0,mc:0},
-  {t:'GUJPETRO',n:'Gujarat Petrosynthese',s:'Petrochemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'TATAINVEST',n:'Tata Investment Corp',s:'Investment',c:'S',pe:0,ro:0,mc:0},{t:'MAZDOCK',n:'Mazagon Dock Shipbuilders',s:'Shipbuilding',c:'M',pe:0,ro:0,mc:0},
-  // ---- NEW: CONSUMER DURABLES / ELECTRONICS (15) ----
-  {t:'BLUESTAR',n:'Blue Star',s:'AC/Cooling',c:'M',pe:0,ro:0,mc:0},{t:'JOHNSONCON',n:'Johnson Controls-Hitachi',s:'AC/Cooling',c:'S',pe:0,ro:0,mc:0},
-  {t:'BAJAJELEC',n:'Bajaj Electricals',s:'Consumer Durables',c:'S',pe:0,ro:0,mc:0},
-  {t:'STOVEKRAFT',n:'Stove Kraft',s:'Kitchen Appliances',c:'S',pe:0,ro:0,mc:0},{t:'BUTTERFLY',n:'Butterfly Gandhimathi',s:'Kitchen Appliances',c:'S',pe:0,ro:0,mc:0},
-  {t:'LUMAXTECH',n:'Lumax Auto Technologies',s:'Auto Lighting',c:'S',pe:0,ro:0,mc:0},{t:'LUMAXIND',n:'Lumax Industries',s:'Auto Lighting',c:'S',pe:0,ro:0,mc:0},
-  {t:'CENTURL',n:'Century Textiles & Ind',s:'Diversified',c:'M',pe:0,ro:0,mc:0},{t:'SHRIRAMCIT',n:'Shriram City Union',s:'NBFC',c:'M',pe:0,ro:0,mc:0},
-  {t:'RAJRATAN',n:'Rajratan Global Wire',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},{t:'MTARTECH',n:'MTAR Technologies',s:'Precision Eng',c:'S',pe:0,ro:0,mc:0},
-  {t:'MIDHANI',n:'Mishra Dhatu Nigam',s:'Special Alloys',c:'S',pe:0,ro:0,mc:0},{t:'TECHNOE',n:'Techno Electric',s:'Power EPC',c:'S',pe:0,ro:0,mc:0},
-  {t:'GENUSPOWER',n:'Genus Power Infra',s:'Smart Meters',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: FERTILIZER & AGRI (12) ----
-  {t:'FACT',n:'Fertilisers & Chemicals',s:'Fertilizer',c:'S',pe:0,ro:0,mc:0},{t:'GSFC',n:'Gujarat State Fertilizers',s:'Fertilizer',c:'S',pe:0,ro:0,mc:0},
-  {t:'KSCL',n:'Kaveri Seed Company',s:'Seeds/Agri',c:'S',pe:0,ro:0,mc:0},{t:'RALLIS',n:'Rallis India',s:'Agrochemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'BECTORFOOD',n:'Bector Food Specialties',s:'Food Processing',c:'S',pe:0,ro:0,mc:0},{t:'JUBLPHARMA',n:'Jubilant Pharmova',s:'Pharma/CRAMS',c:'M',pe:0,ro:0,mc:0},
-  {t:'KRBL',n:'KRBL (India Gate Rice)',s:'Food/Rice',c:'S',pe:0,ro:0,mc:0},{t:'LTFOODS',n:'LT Foods (Daawat)',s:'Food/Rice',c:'S',pe:0,ro:0,mc:0},
-  {t:'JYOTHYLAB',n:'Jyothy Labs',s:'Home Care',c:'S',pe:0,ro:0,mc:0},{t:'ZYDUSWELL',n:'Zydus Wellness',s:'Consumer',c:'S',pe:0,ro:0,mc:0},
-  {t:'CCL',n:'CCL Products',s:'Coffee/Agri',c:'S',pe:0,ro:0,mc:0},{t:'AVANTIFEED',n:'Avanti Feeds',s:'Aquaculture',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: RAILWAY & DEFENCE-ADJACENT (10) ----
-  {t:'JUPITERICE',n:'Jupiter Life Line Hospitals (Check)',s:'Hospital',c:'S',pe:0,ro:0,mc:0},{t:'MAZAGON',n:'Mazagon Dock',s:'Shipbuilding',c:'L',pe:0,ro:0,mc:0},
-  {t:'IFCI',n:'IFCI Ltd',s:'DFI',c:'S',pe:0,ro:0,mc:0},{t:'MMTC',n:'MMTC',s:'Trading/PSU',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: PSU & MISCELLANEOUS (30) ----
-  {t:'OIL',n:'Oil India',s:'Oil Exploration',c:'M',pe:0,ro:0,mc:0},
-  // ---- NEW: ADDITIONAL HIGH-BETA / POPULAR TRADED (40) ----
-  {t:'RNAM',n:'Nippon Life India AMC',s:'AMC',c:'M',pe:0,ro:0,mc:0},
-  {t:'SWSOLAR',n:'Sterling & Wilson Solar',s:'Solar EPC',c:'S',pe:0,ro:0,mc:0},{t:'CELLO',n:'Cello World',s:'Consumer Products',c:'M',pe:0,ro:0,mc:0},
-  {t:'BOSCHLTD',n:'Bosch India',s:'Auto Ancillary/MNC',c:'L',pe:0,ro:0,mc:0},
-  {t:'3MINDIA',n:'3M India',s:'MNC/Diversified',c:'M',pe:0,ro:0,mc:0},
-  {t:'AKZOINDIA',n:'Akzo Nobel India',s:'Paints/MNC',c:'M',pe:0,ro:0,mc:0},{t:'INDIPAINT',n:'Indigo Paints',s:'Paints',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: MORE LIQUID STOCKS (40) ----
-  {t:'KEI',n:'KEI Industries',s:'Cables/Wires',c:'M',pe:0,ro:0,mc:0},
-  {t:'FINOLEX',n:'Finolex Cables',s:'Cables/Wires',c:'M',pe:0,ro:0,mc:0},
-  {t:'INOXINDIA',n:'INOX India',s:'Cryogenic/LNG',c:'M',pe:0,ro:0,mc:0},
-  {t:'VRL',n:'VRL Logistics',s:'Logistics',c:'S',pe:0,ro:0,mc:0},
-  // ---- NEW: EXCHANGE-TRADED POPULAR (15) ----
-  {t:'JINDALSTEL',n:'Jindal Steel & Power',s:'Steel',c:'L',pe:0,ro:0,mc:0},
-  {t:'ABFRL',n:'Aditya Birla Fashion',s:'Retail/Fashion',c:'M',pe:0,ro:0,mc:0},
-  {t:'IDBI',n:'IDBI Bank',s:'Banking',c:'M',pe:0,ro:0,mc:0},{t:'J%26KBANK',n:'J&K Bank',s:'Banking',c:'S',pe:0,ro:0,mc:0},
-  {t:'FEDRAL',n:'Federal-Mogul',s:'Auto Ancillary',c:'S',pe:0,ro:0,mc:0},
-  // ---- JAIN PMS: EXPANDED CLEAN UNIVERSE (150+) ----
-  // Water & Sanitation
-  {t:'VATECH',n:'VA Tech Wabag',s:'Water Treatment',c:'S',pe:0,ro:0,mc:0},
-  {t:'ISGEC',n:'ISGEC Heavy Engineering',s:'Engineering',c:'S',pe:0,ro:0,mc:0},
-  {t:'IONEXCHANG',n:'Ion Exchange India',s:'Water Treatment',c:'S',pe:0,ro:0,mc:0},
-  // Clean Tech / Solar
-  {t:'WAAREEENER',n:'Waaree Energies',s:'Solar/Energy',c:'M',pe:0,ro:0,mc:0},
-  {t:'PREMEXPLN',n:'Premier Explosives',s:'Aerospace',c:'S',pe:0,ro:0,mc:0},
-  {t:'WEBSOL',n:'Websol Energy',s:'Solar/Energy',c:'S',pe:0,ro:0,mc:0},
-  // IT / Software (more)
-  {t:'ROUTE',n:'Route Mobile',s:'IT/CPaaS',c:'S',pe:0,ro:0,mc:0},
-  {t:'DATAMATICS',n:'Datamatics Global',s:'IT/AI',c:'S',pe:0,ro:0,mc:0},
-  {t:'SAKSOFT',n:'Saksoft',s:'IT',c:'S',pe:0,ro:0,mc:0},
-  {t:'NUCLEUS',n:'Nucleus Software',s:'IT/Fintech',c:'S',pe:0,ro:0,mc:0},
-  {t:'QUICKHEAL',n:'Quick Heal Technologies',s:'IT/Cybersecurity',c:'S',pe:0,ro:0,mc:0},
-  {t:'NIITLTD',n:'NIIT',s:'IT/Education',c:'S',pe:0,ro:0,mc:0},
-  {t:'SUBEXLTD',n:'Subex',s:'IT/Telecom',c:'S',pe:0,ro:0,mc:0},
-  {t:'OFSS',n:'Oracle Financial Services',s:'IT/Fintech',c:'L',pe:0,ro:0,mc:0},
-  {t:'LTTS',n:'L&T Technology Services',s:'IT/Engineering',c:'L',pe:0,ro:0,mc:0},
-  // Electronics Manufacturing (EMS)
-  {t:'AMBER',n:'Amber Enterprises',s:'EMS/AC',c:'M',pe:0,ro:0,mc:0},
-  {t:'PGEL',n:'PG Electroplast',s:'EMS',c:'S',pe:0,ro:0,mc:0},
-  {t:'SYRMA',n:'Syrma SGS Technology',s:'EMS',c:'S',pe:0,ro:0,mc:0},
-  {t:'AVALON',n:'Avalon Technologies',s:'EMS',c:'S',pe:0,ro:0,mc:0},
-  {t:'CENTUM',n:'Centum Electronics',s:'EMS/Defence',c:'S',pe:0,ro:0,mc:0},
-  // Banking / Finance (more)
-  {t:'MANAPPURAM',n:'Manappuram Finance',s:'NBFC Gold',c:'M',pe:0,ro:0,mc:0},
-  {t:'MUTHOOTFIN',n:'Muthoot Finance',s:'NBFC Gold',c:'L',pe:0,ro:0,mc:0},
-  {t:'BAJAJHFL',n:'Bajaj Housing Finance',s:'Housing Finance',c:'L',pe:0,ro:0,mc:0},
-  {t:'SBFC',n:'SBFC Finance',s:'NBFC',c:'S',pe:0,ro:0,mc:0},
-  // Infrastructure (more)
-  {t:'WABCOINDIA',n:'Wabtec India',s:'Railway Equipment',c:'S',pe:0,ro:0,mc:0},
-  {t:'TEXRAIL',n:'Texmaco Rail',s:'Railway Equipment',c:'S',pe:0,ro:0,mc:0},
-  {t:'TITAGARH',n:'Titagarh Rail Systems',s:'Railway Equipment',c:'M',pe:0,ro:0,mc:0},
-  {t:'RITES',n:'RITES',s:'Railway Consulting',c:'M',pe:0,ro:0,mc:0},
-  {t:'BEL',n:'Bharat Electronics',s:'Electronics',c:'L',pe:0,ro:0,mc:0},
-  {t:'COCHINSHIP',n:'Cochin Shipyard',s:'Shipbuilding',c:'M',pe:0,ro:0,mc:0},
-  {t:'GRSE',n:'Garden Reach Shipbuilders',s:'Shipbuilding',c:'M',pe:0,ro:0,mc:0},
-  {t:'MAZAGONDOCK',n:'Mazagon Dock',s:'Shipbuilding',c:'M',pe:0,ro:0,mc:0},
-  // Specialty Chemicals (non-pesticide, Jain-friendly)
-  {t:'ALKYLAMINE',n:'Alkyl Amines',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'GALAXYSURF',n:'Galaxy Surfactants',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'APCOTEXIND',n:'Apcotex Industries',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'NEOGEN',n:'Neogen Chemicals',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'NOCIL',n:'NOCIL',s:'Rubber Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'SUDARSCHEM',n:'Sudarshan Chemical',s:'Pigments',c:'S',pe:0,ro:0,mc:0},
-  {t:'BALAMINES',n:'Balaji Amines',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'IGPL',n:'IG Petrochemicals',s:'Chemicals',c:'S',pe:0,ro:0,mc:0},
-  // Packaging (Jain-friendly)
-  {t:'UFLEX',n:'Uflex',s:'Packaging',c:'M',pe:0,ro:0,mc:0},
-  {t:'EPL',n:'EPL',s:'Packaging',c:'M',pe:0,ro:0,mc:0},
-  {t:'HUHTAMAKI',n:'Huhtamaki India',s:'Packaging',c:'S',pe:0,ro:0,mc:0},
-  // Building Materials
-  {t:'JKSTONE',n:'JK Lakshmi Cement',s:'Cement',c:'S',pe:0,ro:0,mc:0},
-  {t:'PRSMJOHNSN',n:'Prism Johnson',s:'Building Materials',c:'S',pe:0,ro:0,mc:0},
-  {t:'ORIENTCEM',n:'Orient Cement',s:'Cement',c:'S',pe:0,ro:0,mc:0},
-  {t:'GREENPLY',n:'Greenply Industries',s:'Plywood',c:'S',pe:0,ro:0,mc:0},
-  {t:'GREENPANEL',n:'Greenpanel Industries',s:'MDF/Panels',c:'S',pe:0,ro:0,mc:0},
-  {t:'GREAVESCOT',n:'Greaves Cotton',s:'Engines/EV',c:'S',pe:0,ro:0,mc:0},
-  // Electrical Equipment
-  {t:'TDPOWERSYS',n:'TD Power Systems',s:'Electrical Generators',c:'S',pe:0,ro:0,mc:0},
-  {t:'HBLPOWER',n:'HBL Power Systems',s:'Batteries/Power',c:'S',pe:0,ro:0,mc:0},
-  {t:'NESCO',n:'Nesco',s:'IT Parks/Events',c:'S',pe:0,ro:0,mc:0},
-  {t:'ANURAS',n:'Anupam Rasayan',s:'Specialty Chemicals',c:'S',pe:0,ro:0,mc:0},
-  // Defence/Aerospace Electronics (non-weapons manufacturing = Jain OK for some)
-  {t:'DATAPATTNS',n:'Data Patterns',s:'Electronics/Defence',c:'M',pe:0,ro:0,mc:0},
-  {t:'PARAS',n:'Paras Defence',s:'Electronics/Space',c:'S',pe:0,ro:0,mc:0},
-  // Renewable Energy Equipment
-  {t:'ORIENTGREEN',n:'Orient Green Power',s:'Wind Energy',c:'S',pe:0,ro:0,mc:0},
-  {t:'RTNPOWER',n:'Rattanindia Enterprises',s:'EV/Tech',c:'S',pe:0,ro:0,mc:0},
-  {t:'GEPIL',n:'GE T&D India',s:'Power Equipment',c:'S',pe:0,ro:0,mc:0},
-  // Consumer (vegetarian/Jain-safe)
-  {t:'JYOTHYLAB',n:'Jyothy Labs',s:'Consumer/Home',c:'S',pe:0,ro:0,mc:0},
-  {t:'BIKAJI',n:'Bikaji Foods',s:'Vegetarian Snacks',c:'S',pe:0,ro:0,mc:0},
-  {t:'PATANJALI',n:'Patanjali Foods',s:'Vegetarian Food',c:'M',pe:0,ro:0,mc:0},
-  {t:'ZYDUSWELL',n:'Zydus Wellness',s:'Health Food',c:'S',pe:0,ro:0,mc:0},
-  {t:'AGROS',n:'Agro Tech Foods',s:'Vegetarian Food',c:'S',pe:0,ro:0,mc:0},
-  {t:'KRBL',n:'KRBL',s:'Rice/Food',c:'S',pe:0,ro:0,mc:0},
-  {t:'LTFOODS',n:'LT Foods',s:'Rice/Food',c:'S',pe:0,ro:0,mc:0},
-  {t:'CCL',n:'CCL Products',s:'Coffee',c:'S',pe:0,ro:0,mc:0},
-  {t:'TATACONSUM',n:'Tata Consumer Products',s:'Consumer/Tea',c:'L',pe:0,ro:0,mc:0},
-  // Healthcare Equipment (not pharma - Jain OK)
-  {t:'SHALBY',n:'Shalby',s:'Hospital',c:'S',pe:0,ro:0,mc:0},
-  {t:'POLYMED',n:'Poly Medicure',s:'Medical Devices',c:'S',pe:0,ro:0,mc:0},
-  {t:'METROPOLIS',n:'Metropolis Healthcare',s:'Diagnostics',c:'M',pe:0,ro:0,mc:0},
-  {t:'LALPATHLAB',n:'Dr Lal PathLabs',s:'Diagnostics',c:'M',pe:0,ro:0,mc:0},
-  // Gems & Jewellery (Jain traditional business)
-  {t:'TITAN',n:'Titan Company',s:'Jewellery/Watches',c:'L',pe:0,ro:0,mc:0},
-  {t:'RAJESHEXPO',n:'Rajesh Exports',s:'Gold/Jewellery',c:'M',pe:0,ro:0,mc:0},
-  {t:'SENCO',n:'Senco Gold',s:'Jewellery',c:'S',pe:0,ro:0,mc:0},
-  {t:'PCJEWELLER',n:'PC Jeweller',s:'Jewellery',c:'S',pe:0,ro:0,mc:0},
-  // Paper (plant-based, Jain-friendly)
-  {t:'JKPAPER',n:'JK Paper',s:'Paper',c:'S',pe:0,ro:0,mc:0},
-  {t:'ANDHRAPAP',n:'Andhra Paper',s:'Paper',c:'S',pe:0,ro:0,mc:0},
-  {t:'WPIL',n:'WPIL',s:'Pumps/Water',c:'S',pe:0,ro:0,mc:0},
-  // More Infra / Construction
-  {t:'ASHOKA',n:'Ashoka Buildcon',s:'Road Infra',c:'S',pe:0,ro:0,mc:0},
-  {t:'CAPACITE',n:'Capacite Infraprojects',s:'Construction',c:'S',pe:0,ro:0,mc:0},
-  {t:'JMCPROJECT',n:'JMC Projects',s:'Construction',c:'S',pe:0,ro:0,mc:0},
-  {t:'SADBHAV',n:'Sadbhav Engineering',s:'Road Infra',c:'S',pe:0,ro:0,mc:0},
-  {t:'PSP',n:'PSP Projects',s:'Construction',c:'S',pe:0,ro:0,mc:0},
-  {t:'AHLUCONT',n:'Ahluwalia Contracts',s:'Construction',c:'S',pe:0,ro:0,mc:0},
-  // Textile / Garment (non-leather)
-  {t:'RUPA',n:'Rupa & Company',s:'Textiles/Innerwear',c:'S',pe:0,ro:0,mc:0},
-  {t:'SPAL',n:'S.P. Apparels',s:'Garments',c:'S',pe:0,ro:0,mc:0},
-  {t:'NITIRAJ',n:'Nitiraj Engineers',s:'Textiles',c:'S',pe:0,ro:0,mc:0},
-  // Auto (EV / Clean)
-  {t:'TATAMTRDVR',n:'Tata Motors DVR',s:'Automobile/EV',c:'M',pe:0,ro:0,mc:0},
-  {t:'GREAVES',n:'Greaves Cotton',s:'Engines/EV',c:'S',pe:0,ro:0,mc:0},
-  // Logistics / Supply Chain
-  {t:'MAHLOG',n:'Mahindra Logistics',s:'Logistics',c:'S',pe:0,ro:0,mc:0},
-  {t:'SNOWMAN',n:'Snowman Logistics',s:'Cold Chain',c:'S',pe:0,ro:0,mc:0},
-  // Education (Jain-friendly)
-  {t:'APARINDS',n:'Apar Industries',s:'Conductors/Cables',c:'M',pe:0,ro:0,mc:0},
-  {t:'EDELWEISS',n:'Edelweiss Financial',s:'Financial Services',c:'S',pe:0,ro:0,mc:0},
-  // Glass / Ceramics
-  {t:'ASAHIINDIA',n:'Asahi India Glass',s:'Glass',c:'S',pe:0,ro:0,mc:0},
-  {t:'BOROSILREN',n:'Borosil Renewables',s:'Solar Glass',c:'S',pe:0,ro:0,mc:0},
-  // Clean Energy Finance
-  {t:'IREDA',n:'IREDA',s:'Green Finance',c:'M',pe:0,ro:0,mc:0},
-  {t:'HUDCO',n:'HUDCO',s:'Housing Finance',c:'M',pe:0,ro:0,mc:0},
-  // More Capital Goods
-  {t:'VOLTAMP',n:'Voltamp Transformers',s:'Transformers',c:'S',pe:0,ro:0,mc:0},
-  {t:'HITECHCORP',n:'Hi-Tech Pipes',s:'Steel Pipes',c:'S',pe:0,ro:0,mc:0},
-  {t:'SHILPAMED',n:'Shilpa Medicare',s:'Medical',c:'S',pe:0,ro:0,mc:0},
-  {t:'HAPPSTMNDS',n:'Happiest Minds',s:'IT/Digital',c:'S',pe:0,ro:0,mc:0},
-  // Agri (non-pesticide: seeds, organic)
-  {t:'DHAMPURSUG',n:'Dhampur Sugar Mills',s:'Sugar/Ethanol',c:'S',pe:0,ro:0,mc:0},
-  {t:'DWARIKESH',n:'Dwarikesh Sugar',s:'Sugar/Ethanol',c:'S',pe:0,ro:0,mc:0},
-  {t:'SHAKTIPUMP',n:'Shakti Pumps',s:'Solar Pumps',c:'S',pe:0,ro:0,mc:0},
-  // Specialty / Niche
-  {t:'POWERINDIA',n:'Hitachi Energy India',s:'Power Equipment',c:'M',pe:0,ro:0,mc:0},
-  {t:'AARTISURF',n:'Aarti Surfactants',s:'Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'TRANSPEK',n:'Transpek Industry',s:'Chemicals',c:'S',pe:0,ro:0,mc:0},
-  {t:'PRICOLLTD',n:'Pricol',s:'Auto Instruments',c:'S',pe:0,ro:0,mc:0},
-  {t:'TTKPRESTIG',n:'TTK Prestige',s:'Kitchen Appliances',c:'S',pe:0,ro:0,mc:0},
-  {t:'BUTTERFLY',n:'Butterfly Gandhimathi',s:'Kitchen Appliances',c:'S',pe:0,ro:0,mc:0},
-  {t:'HAWKINCOOK',n:'Hawkins Cookers',s:'Kitchen Appliances',c:'S',pe:0,ro:0,mc:0},
-  {t:'GARFIBRES',n:'Garware Technical Fibres',s:'Technical Textiles',c:'S',pe:0,ro:0,mc:0},
-  {t:'CARBORUNIV',n:'Carborundum Universal',s:'Abrasives',c:'S',pe:0,ro:0,mc:0},
-  {t:'GRINDWELL',n:'Grindwell Norton',s:'Abrasives',c:'S',pe:0,ro:0,mc:0},
-  {t:'TIMKEN',n:'Timken India',s:'Bearings',c:'M',pe:0,ro:0,mc:0},
-  {t:'SKFINDIA',n:'SKF India',s:'Bearings',c:'M',pe:0,ro:0,mc:0},
-  {t:'NRBBEARING',n:'NRB Bearings',s:'Bearings',c:'S',pe:0,ro:0,mc:0},
-  {t:'FINEORG',n:'Fine Organic Industries',s:'Oleochemicals',c:'M',pe:0,ro:0,mc:0},
-  {t:'DEEPAKNTR',n:'Deepak Nitrite',s:'Chemicals',c:'M',pe:0,ro:0,mc:0},
-  {t:'MIDHANI',n:'Mishra Dhatu Nigam',s:'Special Alloys',c:'S',pe:0,ro:0,mc:0},
-  {t:'NAM-INDIA',n:'Nippon Life AMC',s:'Asset Management',c:'M',pe:0,ro:0,mc:0}
-];
+var MOVER_UNIVERSE = []; // P1: loaded from data/universe.json
+
+// ═══════════════════════════════════════════════════════════════
+// P1 DATA LOADER — fetch JSON data files at startup
+// All hardcoded arrays now live in data/*.json (same-origin on GitHub Pages)
+// ═══════════════════════════════════════════════════════════════
+var _dataLoaded = { universe: false, earnings: false, catalysts: false, news: false, themes: false };
+var _dataLoadPromise = null;
+
+function loadExternalData() {
+  if (_dataLoadPromise) return _dataLoadPromise;
+  
+  var today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  
+  _dataLoadPromise = Promise.all([
+    // Universe
+    fetch('data/universe.json').then(function(r) { return r.json(); }).then(function(data) {
+      // Merge into MOVER_UNIVERSE (keep existing if already populated by enrichment)
+      if (data && data.length > 0) {
+        // Map by ticker for fast lookup
+        var existing = {};
+        MOVER_UNIVERSE.forEach(function(m) { existing[m.t] = m; });
+        data.forEach(function(d) {
+          if (!existing[d.t]) {
+            MOVER_UNIVERSE.push(d);
+          }
+        });
+        if (MOVER_UNIVERSE.length === 0) {
+          MOVER_UNIVERSE.push.apply(MOVER_UNIVERSE, data);
+        }
+        _dataLoaded.universe = true;
+        console.log('[P1-DATA] Universe loaded: ' + MOVER_UNIVERSE.length + ' stocks');
+      }
+    }).catch(function(e) { console.warn('[P1-DATA] universe.json fetch failed, using inline fallback:', e); }),
+    
+    // Earnings
+    fetch('data/earnings.json').then(function(r) { return r.json(); }).then(function(data) {
+      if (data && data.length > 0) {
+        EARNINGS_CALENDAR.length = 0;
+        EARNINGS_CALENDAR.push.apply(EARNINGS_CALENDAR, data);
+        _dataLoaded.earnings = true;
+        console.log('[P1-DATA] Earnings loaded: ' + data.length + ' entries');
+      }
+    }).catch(function(e) { console.warn('[P1-DATA] earnings.json failed:', e); }),
+    
+    // Catalysts — try today's date first, fall back to latest available
+    fetch('data/catalysts/' + today + '.json').then(function(r) {
+      if (!r.ok) return fetch('data/catalysts/2026-08-05.json').then(function(r2) { return r2.json(); });
+      return r.json();
+    }).then(function(data) {
+      if (data && data.length > 0) {
+        PRIMARY_SIGNALS.length = 0;
+        PRIMARY_SIGNALS.push.apply(PRIMARY_SIGNALS, data);
+        _dataLoaded.catalysts = true;
+        console.log('[P1-DATA] Catalysts loaded: ' + data.length + ' signals');
+      }
+    }).catch(function(e) { console.warn('[P1-DATA] catalysts failed:', e); }),
+    
+    // News — try today's date first, fall back
+    fetch('data/news/' + today + '.json').then(function(r) {
+      if (!r.ok) return fetch('data/news/2026-08-05.json').then(function(r2) { return r2.json(); });
+      return r.json();
+    }).then(function(data) {
+      if (data && data.length > 0) {
+        CURATED_NEWS.length = 0;
+        CURATED_NEWS.push.apply(CURATED_NEWS, data);
+        _dataLoaded.news = true;
+        console.log('[P1-DATA] News loaded: ' + data.length + ' items');
+      }
+    }).catch(function(e) { console.warn('[P1-DATA] news failed:', e); }),
+    
+    // Themes
+    fetch('data/themes.json').then(function(r) { return r.json(); }).then(function(data) {
+      if (data && data.length > 0) {
+        GLOBAL_THEMES.length = 0;
+        GLOBAL_THEMES.push.apply(GLOBAL_THEMES, data);
+        _dataLoaded.themes = true;
+        console.log('[P1-DATA] Themes loaded: ' + data.length + ' themes');
+      }
+    }).catch(function(e) { console.warn('[P1-DATA] themes failed:', e); })
+  ]).then(function() {
+    console.log('[P1-DATA] All data loaded:', _dataLoaded);
+    // Dispatch event so any waiting code can proceed
+    window.dispatchEvent(new CustomEvent('p1-data-ready', { detail: _dataLoaded }));
+  });
+  
+  return _dataLoadPromise;
+}
+
+// Start loading immediately
+loadExternalData();
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// P0.1 FRESH DEPLOYMENT (2026-08-05)
+// The previous 61 holdings are converted to WATCHLIST entries: research coverage,
+// price tracking and intelligence are all retained, but the fund starts with ZERO
+// presumed positions. Fresh capital deployment follows the three-bucket plan in
+// docs/AI_Brain_Master_Plan.md (Bucket C first, human-approved).
+// On each device, saved portfolio state is cleared ONCE so old holdings cannot
+// resurrect from localStorage. To also wipe wallets/journals on this device, run
+// startFreshDeployment() from the browser console.
+// ═══════════════════════════════════════════════════════════════════════════
+var FRESH_DEPLOYMENT_DATE = '2026-08-05';
+stocks.forEach(function(s) { s._watchlist = true; s._legacyLayer = s.layer; });
+try {
+  if (localStorage.getItem('freshDeployment_v1') !== FRESH_DEPLOYMENT_DATE) {
+    localStorage.removeItem('portfolioStocks_v3'); // old saved portfolio must not resurrect
+    localStorage.setItem('freshDeployment_v1', FRESH_DEPLOYMENT_DATE);
+    console.log('[FRESH-DEPLOY] Saved portfolio state cleared — starting clean (' + FRESH_DEPLOYMENT_DATE + ')');
+  }
+} catch(e) {}
+
+function startFreshDeployment() {
+  if (!confirm('FRESH DEPLOYMENT: clear paper wallet, day-trade wallet, journals, risk state, ' +
+    'circuit breaker and saved portfolio on THIS device? (Watchlist research is kept.)')) return;
+  ['paperTradeWallet_v1','paperTradeWallet_v2','dayTradeWallet_v1','portfolioStocks_v3',
+   'portfolioChanges_v1','dtJournal_v6','ptJournal_v1','dtRiskControl_v1','aiCircuitBreaker_v1',
+   'dtAutoTrigger_v1','ptAutoTrigger_v1','fmState','dtPeakWallet','aiTrendData_v1',
+   'predatorEngine_v1','predatorEdgeStats_v1','shadowIntel_history_v1','fiiFlowHistory',
+   'aiAgent_executedIds','aiAgent_partialExits','ptAgent_executedIds','ptAgent_date'
+  ].forEach(function(k) { try { localStorage.removeItem(k); } catch(e) {} });
+  try {
+    if (window.JainPMS_Cloud) { JainPMS_Cloud.saveToCloud('paperTrade'); JainPMS_Cloud.saveToCloud('dayTrade'); }
+  } catch(e) {}
+  alert('Fresh deployment ready — wallets and journals reset. Reloading...');
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// P0 UNIVERSE ENRICHMENT MODULE (v20 P0 integrity patch)
+// 414 of 698 MOVER_UNIVERSE entries have pe:0, ro:0, mc:0. This module:
+//   1. applyUniverseEnrichment(): at startup, merges cached enrichment (localStorage)
+//      into MOVER_UNIVERSE so scores use the best known fundamentals.
+//   2. runUniverseEnrichment(): on-demand fetch of trailingPE + marketCap for blank
+//      entries via the Apps Script proxy (requires the proxy to return pe/mcap fields —
+//      see docs/P0_CHANGES.md for the 2-line Apps Script addition). Run from console.
+//   3. exportUniverseEnrichment(): downloads the enriched entries as JSON so the data
+//      can be made permanent in this file (or moved to data/universe.json in Phase P1).
+// NOTE: ROCE is not available from Yahoo quote fields — the P0 scoring renormalization
+// makes missing ROCE neutral instead of penalizing, so blanks no longer distort ranks.
+// ═══════════════════════════════════════════════════════════════════════════
+var UNIVERSE_ENRICH_KEY = 'universeEnrichment_v1';
+
+function applyUniverseEnrichment() {
+  try {
+    var cache = JSON.parse(localStorage.getItem(UNIVERSE_ENRICH_KEY) || '{}');
+    var applied = 0;
+    MOVER_UNIVERSE.forEach(function(m) {
+      var e = cache[m.t];
+      if (!e) return;
+      if (e.pe > 0 && (!m.pe || m.pe <= 0)) { m.pe = e.pe; applied++; }
+      if (e.mc > 0 && (!m.mc || m.mc <= 0)) { m.mc = e.mc; }
+      if (e.ro > 0 && (!m.ro || m.ro <= 0)) { m.ro = e.ro; }
+    });
+    if (applied > 0) console.log('[P0-ENRICH] Applied cached fundamentals to ' + applied + ' universe stocks');
+  } catch(e) { console.warn('[P0-ENRICH] apply failed:', e); }
+}
+try { applyUniverseEnrichment(); } catch(e) {}
+
+async function runUniverseEnrichment() {
+  if (typeof appsScriptUrl === 'undefined' || !appsScriptUrl) {
+    console.warn('[P0-ENRICH] No Apps Script URL configured (Settings tab). Aborting.');
+    return;
+  }
+  var blanks = MOVER_UNIVERSE.filter(function(m) { return !m.pe || m.pe <= 0 || !m.mc || m.mc <= 0; });
+  console.log('[P0-ENRICH] ' + blanks.length + ' universe entries need fundamentals. Fetching in batches of 50...');
+  var cache = {};
+  try { cache = JSON.parse(localStorage.getItem(UNIVERSE_ENRICH_KEY) || '{}'); } catch(e) {}
+  var got = 0, fieldsMissing = false;
+  for (var i = 0; i < blanks.length; i += 50) {
+    var batch = blanks.slice(i, i + 50);
+    var syms = batch.map(function(m) { return m.t.replace('%26','&') + '.NS'; }).join(',');
+    try {
+      var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(syms) + '&mode=all', {signal: AbortSignal.timeout(25000)});
+      var data = await resp.json();
+      if (!data.success || !data.data || !data.data.stocks) continue;
+      var sawField = false;
+      batch.forEach(function(m) {
+        var d = data.data.stocks[m.t.replace('%26','&') + '.NS'];
+        if (!d) return;
+        var pe = d.pe || d.trailingPE || 0;
+        var mc = d.mcap || d.marketCap ? Math.round((d.mcap || d.marketCap) / 1e7) : 0; // → ₹ Cr
+        if (pe > 0 || mc > 0) {
+          sawField = true;
+          cache[m.t] = { pe: Math.round((pe || 0) * 10) / 10, mc: mc, ts: Date.now() };
+          got++;
+        }
+      });
+      if (!sawField && i === 0) { fieldsMissing = true; break; }
+      console.log('[P0-ENRICH] Batch ' + (Math.floor(i/50)+1) + '/' + Math.ceil(blanks.length/50) + ' done (' + got + ' enriched so far)');
+    } catch(e) { console.warn('[P0-ENRICH] Batch failed:', e); }
+    await new Promise(function(r) { setTimeout(r, 1500); });
+  }
+  if (fieldsMissing) {
+    console.warn('[P0-ENRICH] Your Apps Script proxy does not return pe/marketCap fields yet. ' +
+      'Add the 2-line change documented in docs/P0_CHANGES.md, then re-run runUniverseEnrichment().');
+    return;
+  }
+  localStorage.setItem(UNIVERSE_ENRICH_KEY, JSON.stringify(cache));
+  applyUniverseEnrichment();
+  console.log('[P0-ENRICH] DONE: ' + got + ' stocks enriched and cached. Call exportUniverseEnrichment() to download JSON for permanent storage.');
+}
+
+function exportUniverseEnrichment() {
+  var cache = localStorage.getItem(UNIVERSE_ENRICH_KEY) || '{}';
+  var blob = new Blob([cache], {type: 'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'universe_enrichment_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
 
 async function predictDailyMovers() {
   const defaultEl = document.getElementById('aiDefault');
@@ -3660,50 +3354,9 @@ var PRE_MARKET_GLOBAL = {
   keyThemes: ['Nifty 23,869.60 (-0.53% Jul 23), Sensex 76,391 (-364) — 4th straight decline; SMIDs -1%; regime SIDEWAYS→BEAR (crude trigger fired)', 'Brent BROKE $100 — surged >7% to ~$101 Jul 23, highest since May 22: Houthi attacks on 2 Saudi tankers + Kazakhstan CPC export suspension + US-Iran strikes', 'INFY Q1: PAT 7,769 Cr +12.2%, TCV $3.6B (61% net new), margin 21.1% — but FY27 guide CUT to 1.5-3.0% (from 1.5-3.5%); AI re-rating catalyst did NOT fire', 'CYIENT Q1 BEAT: PAT 104 Cr +90% QoQ, EBIT margin 9% +90bps; Cyient Semiconductors valued $500M; DLM record order book', 'Jul 23 gainers: Eternal, Bajaj Auto, M&M, TCS, HCL Tech; losers: Nestle -2.4%, Dr Reddys, SHRIRAMFIN (portfolio watch)', 'ECMS camera-module approvals: Kaynes, Syrma, Uno Minda, Dixon among 5 cleared — EMS policy tailwind stacking', 'TOMORROW Jul 25: TATA MOTORS Q1 (EV+SUV thesis test) + Titan; Jul 26: Kotak, IDFC First; Jul 29: Zensar; Jul 31: Ather PM E-Drive subsidy expiry', 'Regime triggers: Brent <$90 + reclaim 24,200 = back to SIDEWAYS/BULL; Nifty close <23,700 = BEAR confirmed (only ~170 pts away)']
 };
 
-// ── AI Research Agent — last automated scan ──
-var AI_RESEARCH_LAST_UPDATE = '2026-08-05 (CATALYST REFRESH + CLOUD SYNC PUSH OK: 10 signals + 23 earnings + 9 news pushed; Aug 4 RALLY SNAPPED — Nifty -0.64% to 24,614.90, Sensex -210 to 78,428.95, metals only gainer, caution pre-RBI; RBI MPC TODAY 10am — consensus HOLD 5.25% 4th straight (68/72 economists), 4 see HIKE; crude REBOUND Brent +2.9% to ~$86.20; BSE Q1 FY27 RECORD PAT Rs 872.7 Cr +62% rev +63% txn charges +80%; NSE Q1 PAT Rs 3,120 Cr +8.7% IPO momentum; KEC Rs 1,063 Cr orders Aug 3 (FY27 intake >5,200 Cr), NCC Rs 1,052.71 Cr July orders; SEBI restores exchange-route buybacks from Aug 1; FII +922 Cr + DII +1,571 Cr Aug 3 both buyers; TODAY: Cummins India Q1 + PTC investor call; Aug 3-8 week: SBI, Airtel, ONGC)';
-// Previous: '2026-08-04 (CATALYST REFRESH + CLOUD SYNC PUSH: Aug 3 RALLY 4th straight day — Nifty +1.60% (+390.70) to 24,774.30 first close above 24,700, Bank Nifty FRESH HIGH 58,247.95 (+1.72%), Sensex +544.39 to 78,639.03; Nifty IT +3% led (TCS/Infosys), new CAS closing-auction boosted late gains; CRUDE CRASH: WTI -5.97% to $79.62 / Brent -4.68% to $83.82 as Trump says Iran peace talks resume after canceled strike — OMC/paints/aviation/tyres tailwind; FII +922 Cr cash Aug 3 but net short 1,50,816 index-fut contracts; Q1 FY27: Dixon PAT Rs 717.83 Cr +156% rev +50% to Rs 16,076 Cr (Jul 31), IOC net LOSS Rs 2,661 Cr vs Rs 11,378 Cr profit prev qtr (Aug 1); RESULTS WEEK: 350+ cos Aug 3-8 incl SBI, Airtel, ONGC; PTC Aug 4, Cummins Aug 5)';
-// Previous: '2026-08-03 (CATALYST REFRESH + CLOUD SYNC PUSH OK: 10 signals + 20 earnings + 9 news pushed; Jul 31 Q1: TVS Motor +51% RECORD, GAIL +96%, Maruti PAT -11% (rev +36%) on input costs, Ambuja -37%, JSW Energy -36%, IEX +11.6%; FII +277 Cr + DII +2,260 Cr Jul 31 BOTH BUYERS; BEST WEEK OF JULY: Nifty +2.5% WoW to 24,383.60, Sensex 78,094.64; Brent eased ~$88 / WTI $82 on Mideast shipping reopen; rupee 95.39; UPCOMING: PTC India Aug 4, Cummins India Aug 5)';
-// Previous: '2026-07-30 (CATALYST REFRESH + CLOUD SYNC PUSH: 12 signals + 14 earnings entries + 12 news items; Q1 results: Asian Paints +40%, Balkrishna +56%, IDFC First +132% highest-ever, Waaree rev +79%, Bajaj Housing +23%, KPIT -28% QoQ miss; MARKET REBOUND: Sensex +889 to 77,655, Nifty 24,250 +1.1%; FII +2,982 Cr + DII +998 Cr BOTH BUYERS Jul 29; Fed HOLDS rates; crude eased ~$85 from $100+; rupee 95.7; TODAY: Vedanta; TOMORROW Jul 31: Maruti, TVS, Ambuja, JSW Energy)';
-// Previous: '2026-07-24 (CATALYST REFRESH: 23 fresh PRIMARY_SIGNALS + 20 EARNINGS_CALENDAR entries + 14 CURATED_NEWS items updated; Q1 results: INFY guide cut 1.5-3%, Eternal +268%, IndusInd +72%, Nestle +48%, Adani Power +42%, HPCL loss Rs11,526 Cr, BPCL loss Rs3,962 Cr, IndiGo loss Rs238 Cr; Brent $101; FII -2,999 Cr; regime BEAR; Nifty 23,870 4th decline; TODAY: Shriram Finance + NTPC results; TOMORROW: Tata Motors + Titan)';
-// Previous: '2026-07-23 (daily scan: regime BULL→SIDEWAYS — Nifty 23,996 broke 24,050 support; Brent $94-95 Iran escalation, $100 risk; FII -819 Cr + DII -418 Cr Jul 22 both sellers; Semicon 2.0 Rs 1.9L Cr = DIXON/KAYNES tailwind; INFY Q1 today; Ather QIP Rs 1,300 Cr dilution; JIOFIN drifting to 52wk low; new candidates: Syrma 74, Amber 70, PGEL 68)';
-// Previous: '2026-07-22 (daily scan: Bajaj Auto Q1 PAT +46% all-time high revenue; TVS Motor +65%; FII INFLOW reversal Jul MTD +11,682 Cr; Brent $92 Iran-Gulf risk; Nifty 24,188 2nd decline; Infosys Jul 23 pivot; Dixon/KEI/Zensar results today; regime BULL with crude headwind)';
-// Previous: '2026-07-20 (daily scan: regime upgraded to BULL-early — Nifty 24,334 breakout; bank Q1 Jul 18: ICICI/Kotak beat, HDFC Bank NIM 3.26% record low; JIOFIN +6%, Reliance promoter stake 50.48%; CYIENT catalyst refreshed to Q1 Jul 23 with INFY)';
-
+// P1: AI_RESEARCH_LAST_UPDATE deleted — data now lives in data/catalysts/*.json and data/news/*.json
 // ── Earnings Calendar (stocks reporting today/tomorrow) ──
-var EARNINGS_CALENDAR = [
-  // ═══ Aug 4 REPORTED (updated 2026-08-05 by AI Research Agent) ═══
-  {ticker:'BSE', name:'BSE Ltd', date:'2026-08-04', status:'REPORTED', result:'BEAT', patGrowth:62, keyNote:'PAT Rs 872.7 Cr +62%; Rev Rs 1,706.8 Cr +63%; transaction charges +80%; EBITDA margin 67% — best quarter on record'},
-  // ═══ Jul 31 - Aug 1 REPORTED (updated 2026-08-04 by AI Research Agent) ═══
-  {ticker:'DIXON', name:'Dixon Technologies', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:156, keyNote:'PAT Rs 717.83 Cr +156.3% YoY (+140.9% QoQ); Rev Rs 16,076 Cr +50%; electronics mfg scale-up'},
-  {ticker:'IOC', name:'Indian Oil Corporation', date:'2026-08-01', status:'REPORTED', result:'MISS', keyNote:'Q1 FY27 net LOSS Rs 2,661 Cr vs Rs 11,378 Cr profit prev qtr — July crude surge/inventory hit; crude now easing below $80'},
-  // ═══ Jul 31 REPORTED (updated 2026-08-03 by AI Research Agent) ═══
-  {ticker:'TVSMOTOR', name:'TVS Motor', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:51, keyNote:'PAT Rs 1,174 Cr +51%; Rev Rs 13,896 Cr +38%; record EBITDA Rs 1,779 Cr +41%, margin 12.8%'},
-  {ticker:'GAIL', name:'GAIL (India)', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:96, keyNote:'PAT Rs 4,670 Cr +96%; total income Rs 41,482 Cr +16%; transmission volumes + marketing margins'},
-  {ticker:'MARUTI', name:'Maruti Suzuki', date:'2026-07-31', status:'REPORTED', result:'MIXED', patGrowth:-11, keyNote:'PAT Rs 3,352 Cr -11% on raw-material costs; Rev Rs 52,456 Cr +36%; EBITDA Rs 4,312 Cr -7%'},
-  {ticker:'JSWENERGY', name:'JSW Energy', date:'2026-07-31', status:'REPORTED', result:'MISS', patGrowth:-36, keyNote:'PAT Rs 532 Cr -36% on finance costs; power sales -5% to 12.9 BU; 1,081 MW added, total 14,535 MW (61% RE)'},
-  {ticker:'IEX', name:'Indian Energy Exchange', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:12, keyNote:'PAT Rs 134.76 Cr +11.6% YoY, +3.8% QoQ'},
-  {ticker:'GULFPETRO', name:'GP Petroleums', date:'2026-07-31', status:'REPORTED', result:'BEAT', patGrowth:220, keyNote:'PAT Rs 20.6 Cr +220%; Rev Rs 230.3 Cr +46%; lubricants demand strong'},
-  {ticker:'PFS', name:'PTC India Financial Services', date:'2026-07-31', status:'REPORTED', result:'MIXED', keyNote:'Consol PAT Rs 40.24 Cr; revenue from ops Rs 103.31 Cr'},
-  // ═══ Jul 30 REPORTED ═══
-  {ticker:'VEDL', name:'Vedanta', date:'2026-07-30', status:'REPORTED', result:'BEAT', patGrowth:72, keyNote:'PAT Rs 5,473 Cr +71.8%; Rev Rs 24,205 Cr +53.6%; Aluminium arm PAT +216% w/ Rs 8 div; O&G back to profit Rs 945 Cr'},
-  {ticker:'M&M', name:'Mahindra & Mahindra', date:'2026-07-30', status:'REPORTED', result:'BEAT', patGrowth:34, keyNote:'PAT Rs 5,455 Cr +34%; Rev Rs 58,188 Cr +28%; SUV + tractor momentum'},
-  {ticker:'COALINDIA', name:'Coal India', date:'2026-07-30', status:'REPORTED', result:'BEAT', keyNote:'PAT Rs 8,850 Cr; Rev Rs 46,255 Cr +7.8%; Rs 5.50 interim dividend; offtake improving'},
-  {ticker:'IRFC', name:'IRFC', date:'2026-07-30', status:'REPORTED', result:'BEAT', patGrowth:10, keyNote:'PAT Rs 1,927 Cr +10.4%; Total income Rs 8,391 Cr +21.3%; zero NPA'},
-  {ticker:'NTPC', name:'NTPC', date:'2026-07-30', status:'REPORTED', result:'MIXED', keyNote:'Standalone PAT Rs 5,342 Cr; consol PAT Rs 6,896 Cr; Rev Rs 43,832 Cr ~+3%'},
-  // ═══ Jul 25-29 REPORTED (still in scoring window) ═══
-  {ticker:'ASIANPAINT', name:'Asian Paints', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:40, keyNote:'PAT Rs 1,539 Cr +40%; Rev Rs 10,521 Cr +17.9%; PBDIT margin 20.6% (+240bps); intl sales +27.2%'},
-  {ticker:'BALKRISIND', name:'Balkrishna Industries', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:56, keyNote:'PAT Rs 451 Cr +56.4%; Rev Rs 3,455 Cr +25.2%; Rs 4/share dividend; off-highway tyre demand strong'},
-  {ticker:'WAAREEENER', name:'Waaree Energies', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:14, keyNote:'PAT Rs 850 Cr +14%; Rev Rs 7,932 Cr +79%; EBITDA Rs 1,440 Cr +44%; US 236 MW order'},
-  {ticker:'BAJAJHFL', name:'Bajaj Housing Finance', date:'2026-07-29', status:'REPORTED', result:'BEAT', patGrowth:23, keyNote:'PAT Rs 715 Cr +23%; AUM Rs 1.50 L Cr +24%; record disbursements Rs 19,509 Cr; NII +9% margin watch'},
-  {ticker:'KPITTECH', name:'KPIT Technologies', date:'2026-07-29', status:'REPORTED', result:'MISS', patGrowth:-28, keyNote:'PAT Rs 117 Cr -28.1% QoQ; Rev Rs 1,675 Cr -2.1% QoQ; auto-ER&D demand soft'},
-  // ═══ UPCOMING ═══
-  {ticker:'PTC', name:'PTC India', date:'2026-08-04', status:'UPCOMING', keyNote:'Board met Aug 4 for Q1 FY27; investor call today Aug 5'},
-  {ticker:'CUMMINSIND', name:'Cummins India', date:'2026-08-05', status:'UPCOMING', keyNote:'Q1 FY27 TODAY Aug 5; capex/electrification cycle read'},
-  {ticker:'SBIN', name:'State Bank of India', date:'2026-08-08', status:'UPCOMING', keyNote:'Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); 350+ cos reporting this week'},
-  {ticker:'BHARTIARTL', name:'Bharti Airtel', date:'2026-08-08', status:'UPCOMING', keyNote:'Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); ARPU trajectory watch'},
-  {ticker:'ONGC', name:'ONGC', date:'2026-08-08', status:'UPCOMING', keyNote:'Q1 FY27 during Aug 3-8 results week (exact date per BSE calendar); crude crash below $80 = realisation watch'}
-];
+var EARNINGS_CALENDAR = []; // P1: loaded from data/earnings.json
 
 function runPreMarketIntel() {
   var defaultEl = document.getElementById('aiDefault');
@@ -4868,7 +4521,8 @@ function loadPortfolioFromStorage() {
     var saved = localStorage.getItem(PORTFOLIO_KEY);
     if (!saved) return false;
     var portData = JSON.parse(saved);
-    if (!portData || portData.length < 5) return false;
+    // P0.1: threshold lowered from 5 → 1 so a small fresh portfolio persists across reloads
+    if (!portData || portData.length < 1) return false;
 
     // Build set of saved tickers
     var savedTickers = new Set(portData.map(function(p){return p.t;}));
@@ -5596,10 +5250,8 @@ function getUnifiedIntelligence(ticker) {
 
   // Dim 11: Astrological
   try {
-    const cosmic = typeof getCosmicSentiment === 'function' ? getCosmicSentiment() : null;
-    intel.dimensions.astro = cosmic || { cosmicScore: 0, overall: 'Unknown' };
-    if (cosmic && cosmic.cosmicScore >= 3) intel.totalBoost += 1;
-    else if (cosmic && cosmic.cosmicScore <= -2) intel.totalPenalty += 1;
+    // P0: Astro dimension DISABLED — always neutral. No cosmic input may influence any score.
+    intel.dimensions.astro = { cosmicScore: 0, overall: 'Disabled (P0 integrity patch)' };
   } catch(e) { intel.dimensions.astro = { cosmicScore: 0 }; }
 
   // Dim 12: Weather/Monsoon
@@ -6064,7 +5716,17 @@ function aiScore(s) {
   const wVal = Math.min(25, value) * regW.value;
   const wQual = Math.min(25, quality) * regW.quality;
   const wSig = Math.min(25, signal) * regW.signal;
-  const baseTotal = Math.min(100, wMom + wVal + wQual + wSig) + qm.score;
+  // ── P0 DATA-QUALITY GATE: score only pillars that have data, renormalize the rest ──
+  // Never punish a stock for MISSING fundamentals (414/698 universe entries have pe:0,ro:0,mc:0).
+  const _hasValueData = !!(s.pe || s.pb || s.epsgr || s.mcap);
+  const _hasQualityData = !!(s.roce || s.roe || s.debtEquity !== undefined || s.promoterHold);
+  const _availW = 25*regW.momentum + 25*regW.signal + (_hasValueData ? 25*regW.value : 0) + (_hasQualityData ? 25*regW.quality : 0);
+  const _fullW = 25*(regW.momentum + regW.value + regW.quality + regW.signal);
+  const _renorm = _availW > 0 ? (_fullW / _availW) : 1;
+  const _pillarSum = wMom + wSig + (_hasValueData ? wVal : 0) + (_hasQualityData ? wQual : 0);
+  const dataCompleteness = Math.round(((_hasValueData ? 1 : 0) + (_hasQualityData ? 1 : 0) + 2) / 4 * 100);
+  if (dataCompleteness < 100) factors.push('⚠️ Data ' + dataCompleteness + '% — scored on available pillars only');
+  const baseTotal = Math.min(100, _pillarSum * _renorm) + qm.score;
   factors.push('📊 Regime: ' + regW.regime);
 
   // ── DASHBOARD INTELLIGENCE BONUS (±15 from cross-tab data) ──
@@ -6092,9 +5754,7 @@ function aiScore(s) {
     if (uIntel.dimensions.value && uIntel.dimensions.value.isBuffettZone) { unifiedBoost += 3; factors.push('💎 BUFFETT ZONE'); }
     // World events
     if (uIntel.dimensions.worldEvents && uIntel.dimensions.worldEvents.riskLevel === 'HIGH') { unifiedBoost -= 2; factors.push('🌍 Geo risk HIGH'); }
-    // Astro overlay
-    if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore >= 3) { unifiedBoost += 1; factors.push(uIntel.dimensions.astro.overall); }
-    else if (uIntel.dimensions.astro && uIntel.dimensions.astro.cosmicScore <= -2) { unifiedBoost -= 1; }
+    // P0: Astro overlay REMOVED — no predictive validity (dimension now always neutral)
     // Diversification warning
     if (uIntel.dimensions.diversification && uIntel.dimensions.diversification.concentrated && uIntel.dimensions.diversification.concentrated.length > 0) {
       const sectorStr = (s.sector || '').split('/')[0].trim();
@@ -6131,7 +5791,7 @@ function aiScore(s) {
 
   const total = Math.max(0, Math.min(100, baseTotal + dBonus.bonus + unifiedBoost + journalAdj));
 
-  return { total: Math.round(total), momentum: Math.min(25, momentum), value: Math.min(25, value), quality: Math.min(25, quality), signal: Math.min(25, signal), dashboardBonus: dBonus.bonus, unifiedBoost, journalAdj, intelSources: dBonus.sources, factors };
+  return { total: Math.round(total), momentum: Math.min(25, momentum), value: Math.min(25, value), quality: Math.min(25, quality), signal: Math.min(25, signal), dashboardBonus: dBonus.bonus, unifiedBoost, journalAdj, dataCompleteness, intelSources: dBonus.sources, factors };
 }
 
 function aiScoreGrade(score) {
@@ -7538,8 +7198,9 @@ function checkCircuitBreaker(w) {
   }, 0);
   const todayPnlPct = totalVal > 0 ? (todayPnl / totalVal * 100) : 0;
 
-  // Daily loss limit: -3% (widened from -2% — Indian markets are volatile)
-  if (todayPnlPct < -3) {
+  // Daily loss limit: -2% (P0: RESTORED from -3%. Risk limits may only be loosened via
+  // written note + 48-hour cooling-off rule — see docs/JainPMS_v20_Refactor_Map.md)
+  if (todayPnlPct < -2) {
     cb.halt = true;
     cb.reason = 'DAILY LOSS LIMIT: Portfolio down ' + todayPnlPct.toFixed(1) + '% today. No new buys.';
     cbState.haltDate = today;
@@ -7589,7 +7250,7 @@ function getSectorHeat(sector) {
 // ── LAYER 7: ADAPTIVE POSITION SIZING ──
 function getAdaptiveSize(source, baseAllocPct, w) {
   const trades = w.trades.filter(t => t.type === 'SELL' && t.source === source);
-  if (trades.length < 3) return baseAllocPct; // Need minimum data
+  if (trades.length < 30) return baseAllocPct; // P0: Kelly needs >=30 trades (was 3 — pure noise)
 
   const wins = trades.filter(t => t.pnl > 0);
   const losses = trades.filter(t => t.pnl <= 0);
@@ -7600,8 +7261,9 @@ function getAdaptiveSize(source, baseAllocPct, w) {
   // Simplified Kelly: f* = (W * avgWin - (1-W) * avgLoss) / avgWin
   const kelly = avgWin > 0 ? (winRate * avgWin - (1 - winRate) * avgLoss) / avgWin : 0;
 
-  // Clamp Kelly between 0.5x and 2x of base allocation
-  const multiplier = Math.max(0.5, Math.min(2.0, 1 + kelly));
+  // P0: Clamp Kelly between 0.5x and 1.25x of base allocation (was 2.0x — a lucky streak
+  // must never double exposure right when mean-reversion is most likely)
+  const multiplier = Math.max(0.5, Math.min(1.25, 1 + kelly));
   const adapted = baseAllocPct * multiplier;
 
   // Hard limits
@@ -8200,8 +7862,7 @@ async function fetchSentimentData() {
     }
   } catch(e) {}
 
-  // Simulate FII/DII and breadth from market data
-  simulateFIIFlow();
+  // P1: FII simulation removed (astro/pseudo-data pruned). Breadth remains.
   simulateBreadth();
   estimateNiftyPE();
 }
@@ -8239,36 +7900,7 @@ function computeSentiment(vix) {
 }
 
 // Simulate FII/DII flow from market data
-function simulateFIIFlow() {
-  const loaded = stocks.filter(s => s.loaded);
-  if (loaded.length === 0) { document.getElementById('fiiVal').textContent = 'Waiting...'; return; }
-  const avgChg = loaded.reduce((a,s) => a + s.changePct, 0) / loaded.length;
-  // Large-cap stocks tend to be FII-heavy
-  const largeCaps = loaded.filter(s => s.mcap > 50000);
-  const lcAvg = largeCaps.length > 0 ? largeCaps.reduce((a,s) => a + s.changePct, 0) / largeCaps.length : avgChg;
-
-  const fiiSignal = lcAvg > 0.5 ? 'Net Buying' : lcAvg < -0.5 ? 'Net Selling' : 'Neutral';
-  const fiiEl = document.getElementById('fiiVal');
-  fiiEl.textContent = fiiSignal;
-  fiiEl.style.color = lcAvg > 0.5 ? 'var(--green)' : lcAvg < -0.5 ? 'var(--red)' : 'var(--amber)';
-  document.getElementById('fiiSub').textContent = 'Based on large-cap flow';
-
-  const buyPct = Math.min(90, Math.max(10, Math.round(50 + lcAvg * 10)));
-  document.getElementById('fiiBuyPct').textContent = buyPct + '%';
-  document.getElementById('fiiSellPct').textContent = (100 - buyPct) + '%';
-  const fiiBar = document.getElementById('fiiBar');
-  fiiBar.innerHTML = '<div class="fii-buy" style="width:' + buyPct + '%"></div><div class="fii-sell" style="width:' + (100-buyPct) + '%"></div>';
-
-  // DII typically counter FII
-  const diiBuy = Math.min(90, Math.max(10, Math.round(50 - lcAvg * 5 + avgChg * 3)));
-  document.getElementById('diiBuyPct').textContent = diiBuy + '%';
-  document.getElementById('diiSellPct').textContent = (100 - diiBuy) + '%';
-  const diiBar = document.getElementById('diiBar');
-  diiBar.innerHTML = '<div class="fii-buy" style="width:' + diiBuy + '%;background:var(--accent)"></div><div class="fii-sell" style="width:' + (100-diiBuy) + '%;background:var(--amber)"></div>';
-
-  const fiiCard = document.getElementById('fiiCard');
-  fiiCard.className = 'sent-card ' + (lcAvg > 0.5 ? 'greed' : lcAvg < -0.5 ? 'fear' : 'neutral');
-}
+// P1: simulateFIIFlow() DELETED — pseudo-data; replace with real FII/DII from NSE/NSDL in P2
 
 // Market breadth from portfolio
 function simulateBreadth() {
@@ -8443,7 +8075,7 @@ function loadSentimentTab() {
   fetchIndustryNews();
   // Refresh sentiment after prices are loaded
   setTimeout(() => {
-    simulateFIIFlow();
+    // P1: simulateFIIFlow removed (pseudo-data pruned)
     simulateBreadth();
     estimateNiftyPE();
   }, 15000);
@@ -9116,46 +8748,7 @@ function renderNSEAnnouncements(announcements) {
 //  PRIMARY RESEARCH SIGNALS — Our Intelligence Edge
 //  Sources: BSE filings, SEBI bulk deals, VAHAN, promoter txns
 // ============================================================
-const PRIMARY_SIGNALS = [
-  // ═══ FRESH Aug 4-5 Intelligence (updated 2026-08-05 by AI Research Agent) ═══
-  {type:"EARNINGS",company:"BSE Ltd",ticker:"BSE",signal:"Q1 FY27 RECORD (Aug 4): Consolidated PAT Rs 872.7 Cr (+62% YoY), Revenue Rs 1,706.8 Cr (+63%). Transaction charges Rs 1,327.7 Cr (+80%) on derivatives surge; EBITDA margin 67% (from 65%), net margin 51%. Management: best quarter on record.",source:"BSE Q1 FY27 Investor Presentation / Investing.com",date:"2026-08-04",severity:"HIGH",icon:"💹"},
-  {type:"POLICY",company:"Aug 4: 4-Day Rally Snapped Ahead of RBI",ticker:"",signal:"Sensex -210.08 (-0.27%) to 78,428.95; Nifty -159.40 (-0.64%) to 24,614.90 in volatile session — partial giveback of Aug 3 CAS-driven surge. Metals only sectoral gainer; Realty and IT led decline. Caution ahead of RBI policy Aug 5 + weekly expiry.",source:"HDFC Sky / Liquide / APAC News",date:"2026-08-04",severity:"HIGH",icon:"📉"},
-  {type:"POLICY",company:"RBI MPC Decision TODAY 10am",ticker:"",signal:"Governor Sanjay Malhotra announces policy at 10am Aug 5. Consensus: HOLD at 5.25% for 4th straight meeting (Reuters poll: 68/72 economists; 4 see 25bps HIKE, none see cut). Context: resilient growth but rising inflation + elevated crude. Rate-sensitives (banks, NBFC, realty, autos) on watch.",source:"Business Standard / Angel One / NewsX",date:"2026-08-05",severity:"HIGH",icon:"🏦"},
-  {type:"POLICY",company:"Crude Rebounds: Brent Back to $86",ticker:"",signal:"Brent rebounded ~2.9% to ~$86.20 on Aug 4 after the Aug 3 crash to $83.82 — partial reversal of the Iran-peace-talks relief. OMC/paints/aviation/tyres tailwind intact but fading at the margin; watch $90 as regime trigger.",source:"Business Standard / HDFC Sky",date:"2026-08-04",severity:"MEDIUM",icon:"🛢️"},
-  {type:"ORDER_WIN",company:"KEC International",ticker:"KEC",signal:"Rs 1,063 Cr multi-business orders announced Aug 3 across Civil, T&D, Renewables, Cables & Conductors. ~Rs 6,300 Cr new business since early May; FY27 YTD order intake >Rs 5,200 Cr. Order-book visibility compounding.",source:"Trade Brains / company filing",date:"2026-08-03",severity:"HIGH",icon:"🏗️"},
-  {type:"ORDER_WIN",company:"NCC Ltd",ticker:"NCC",signal:"Received 3 orders totalling Rs 1,052.71 Cr (ex-GST) in July 2026 — Rs 590.38 Cr Buildings Division + Rs 462.33 Cr Water Division. Shares rose ~3% on disclosure.",source:"Trade Brains / NSE filing",date:"2026-08-03",severity:"MEDIUM",icon:"🏗️"},
-  {type:"POLICY",company:"SEBI Restores Exchange-Route Buybacks",ticker:"",signal:"From Aug 1, 2026 listed companies can again buy back shares via the stock-exchange route — faster alternative to tender offers, halted since Apr 2025. Expect a pickup in buyback announcements from cash-rich IT/mid-caps; sentiment support for the tape.",source:"Prism News / SEBI",date:"2026-08-01",severity:"MEDIUM",icon:"📜"},
-  {type:"EARNINGS",company:"NSE (unlisted) Q1 FY27",ticker:"",signal:"PAT Rs 3,120 Cr (+8.7% YoY) despite revenue -8.2% to Rs 4,560 Cr; EBITDA margin expands to 77.9% (from 73.1%). IPO plans gain momentum post-SEBI settlement. Read-across: exchange/capital-market plays (BSE, CDSL, depositories) in favour.",source:"Free Press Journal / Indian Masterminds",date:"2026-08-04",severity:"MEDIUM",icon:"💹"},
-  {type:"FII_FLOW",company:"FII + DII Both Buyers Aug 3",ticker:"",signal:"Aug 3 cash: FII net BUY +Rs 922.30 Cr, DII net BUY +Rs 1,571.20 Cr — both buyers. FII cash buy streak extends (Jul 29 +2,982, Jul 30 +3,624, Jul 31 +277) but FII stays net short index futures — hedged optimism.",source:"5paisa / NSE provisional",date:"2026-08-03",severity:"MEDIUM",icon:"🌍"},
-  // ═══ Aug 1-3 Intelligence (updated 2026-08-04 by AI Research Agent) ═══
-  {type:"POLICY",company:"Aug 3 Rally: Bank Nifty Fresh High",ticker:"",signal:"4th straight up day: Nifty +1.60% (+390.70) to 24,774.30 — first close above 24,700; Bank Nifty FRESH HIGH 58,247.95 (+1.72%); Sensex +544.39 to 78,639.03. Nifty IT +3% led (TCS, Infosys); new Closing Auction Session (CAS) rollout drove late-session surge. Drivers: FII inflows, crude crash, steady Q1 earnings.",source:"HDFC Sky / India Infoline",date:"2026-08-03",severity:"HIGH",icon:"📈"},
-  {type:"POLICY",company:"Crude CRASH Below $80",ticker:"",signal:"Crude plunged >5% on Aug 3: WTI -5.97% to $79.62/bbl, Brent -4.68% to $83.82 — after surging 20%+ in July — as Trump announced Iran peace talks will resume following canceled military strike. Big tailwind for OMCs, paints (Asian Paints), aviation, tyres (Balkrishna); reverses the input-cost squeeze hitting Maruti/IOC.",source:"TradingEconomics / Fortune",date:"2026-08-03",severity:"HIGH",icon:"🛢️"},
-  {type:"EARNINGS",company:"Dixon Technologies",ticker:"DIXON",signal:"Q1 FY27 BLOWOUT (Jul 31): Consolidated PAT Rs 717.83 Cr (+156.3% YoY, +140.9% QoQ); Revenue Rs 16,076 Cr (+50% YoY). Electronics manufacturing scale-up + PLI momentum intact.",source:"BSE Filing / EquityBulls",date:"2026-07-31",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS_MISS",company:"Indian Oil Corporation",ticker:"IOC",signal:"Q1 FY27 SHARP LOSS (Aug 1 slides): Net loss Rs 2,661 Cr vs Rs 11,378 Cr profit in prior quarter — July crude volatility/inventory losses. Watch: crude now crashing below $80 flips the driver positive for Q2.",source:"Investing.com / IOC Investor Presentation",date:"2026-08-01",severity:"HIGH",icon:"📉"},
-  {type:"EARNINGS_UPCOMING",company:"Results Week: 350+ Companies Aug 3-8",ticker:"SBIN",signal:"UPCOMING: 350+ companies report Q1 FY27 during Aug 3-8 week incl SBI, Bharti Airtel, ONGC. PTC India board Aug 4 (call Aug 5); Cummins India Aug 5 — capex/industrials read.",source:"Goodreturns / BSE Calendar",date:"2026-08-04",severity:"MEDIUM",icon:"📋"},
-  // ═══ Jul 31 Q1 FY27 Results (updated 2026-08-03 by AI Research Agent) ═══
-  {type:"EARNINGS",company:"TVS Motor",ticker:"TVSMOTOR",signal:"Q1 FY27 RECORD BEAT: PAT Rs 1,174 Cr (+51% YoY), Revenue Rs 13,896 Cr (+38%). All-time-high EBITDA Rs 1,779 Cr (+41%), margin 12.8% (+30bps). 2W momentum + EV (iQube) trajectory strong — confirms M&M/Bajaj auto strength.",source:"BSE Filing / ScanX",date:"2026-07-31",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"GAIL (India)",ticker:"GAIL",signal:"Q1 FY27 BLOWOUT: PAT Rs 4,670 Cr (+96% YoY), total income Rs 41,482 Cr (+16%). Higher gas transmission volumes + improved marketing margins.",source:"BSE Filing / Business Standard",date:"2026-07-31",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS_MISS",company:"Maruti Suzuki",ticker:"MARUTI",signal:"Q1 FY27 MIXED: Standalone PAT Rs 3,352 Cr (-11% YoY vs Rs 3,758 Cr) on higher raw-material costs; Revenue Rs 52,456 Cr (+36%). EBITDA Rs 4,312 Cr (-7%). Volumes/SUV mix strong; margin squeeze the watch item vs M&M +34%, TVS +51%.",source:"BSE Filing / Upstox / Business Today",date:"2026-07-31",severity:"HIGH",icon:"📉"},
-  {type:"EARNINGS_MISS",company:"JSW Energy",ticker:"JSWENERGY",signal:"Q1 FY27 WEAK: PAT Rs 532 Cr (-36% YoY) on higher finance costs; power sales -5% to 12.9 BU. But record 1,081 MW capacity added — total 14,535 MW, 61% renewable; growth capex intact, P&L pressured.",source:"BSE Filing / Business Standard / Upstox",date:"2026-07-31",severity:"MEDIUM",icon:"📉"},
-  {type:"EARNINGS",company:"Indian Energy Exchange",ticker:"IEX",signal:"Q1 FY27: PAT Rs 134.76 Cr (+11.6% YoY, +3.8% QoQ). Steady volume-led exchange growth.",source:"BSE Filing / Kotak Neo",date:"2026-07-31",severity:"MEDIUM",icon:"💹"},
-  // ═══ Jul 30 Q1 FY27 Results ═══
-  {type:"EARNINGS",company:"Vedanta",ticker:"VEDL",signal:"Q1 FY27 BLOWOUT: Consolidated PAT Rs 5,473 Cr (+71.8% YoY), Revenue Rs 24,205 Cr (+53.6%). Demerged arms strong: Vedanta Aluminium PAT Rs 5,629 Cr (+216%, Rs 8/sh dividend); Oil & Gas PAT Rs 945 Cr vs prior-quarter loss. Metal prices + weak rupee tailwind.",source:"BSE Filing / Business Standard",date:"2026-07-30",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"Mahindra & Mahindra",ticker:"M&M",signal:"Q1 FY27 BEAT: Consolidated PAT Rs 5,455 Cr (+34% YoY vs Rs 4,083 Cr), Revenue Rs 58,188 Cr (+28%). SUV + tractor momentum — positive read-through for Maruti/TVS reporting Jul 31.",source:"BSE Filing / Business Standard",date:"2026-07-30",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"Coal India",ticker:"COALINDIA",signal:"Q1 FY27: Consolidated PAT Rs 8,850 Cr, Revenue Rs 46,255 Cr (+7.8% YoY). Rs 5.50/share interim dividend; coal offtake improving. Strong PSU results day alongside NTPC + IRFC.",source:"BSE Filing / Indian Masterminds",date:"2026-07-30",severity:"MEDIUM",icon:"💹"},
-  {type:"EARNINGS",company:"IRFC",ticker:"IRFC",signal:"Q1 FY27: PAT Rs 1,927 Cr (+10.4% YoY), Total income Rs 8,391 Cr (+21.3%). Zero NPA maintained; record net worth.",source:"BSE Filing / Indian Masterminds",date:"2026-07-30",severity:"MEDIUM",icon:"💹"},
-  {type:"ORDER_WIN",company:"J Kumar Infraprojects",ticker:"JKIL",signal:"Bags Rs 2,360 Cr NHAI EPC order; shares jumped on the win. Order-book visibility strengthens. RVNL also got Rs 358.97 Cr East Central Railway doubling LoA same week.",source:"NSE Filing / HDFC Sky",date:"2026-07-29",severity:"HIGH",icon:"🏗️"},
-  // ═══ Jul 25-29 Results (still in scoring window) ═══
-  {type:"EARNINGS",company:"Asian Paints",ticker:"ASIANPAINT",signal:"Q1 FY27 STRONG BEAT: PAT Rs 1,539 Cr (+40% YoY), Revenue Rs 10,521 Cr (+17.9%). PBDIT margin 20.6% (from 18.2%). International net sales +27.2% — Egypt/UAE/Oman/Nepal driving; intl PBT +94.9%. New watch: crude back above $90.",source:"BSE Filing / Business Standard",date:"2026-07-29",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"Balkrishna Industries",ticker:"BALKRISIND",signal:"Q1 FY27 BEAT: PAT Rs 451 Cr (+56.4% YoY), Revenue Rs 3,455 Cr (+25.2%). Rs 4/share dividend declared. Off-highway tyre (agri/OTR) export demand strong.",source:"BSE Filing / Sahi",date:"2026-07-29",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"Waaree Energies",ticker:"WAAREEENER",signal:"Q1 FY27: Revenue Rs 7,932 Cr (+79% YoY), PAT Rs 850 Cr (+14%), EBITDA Rs 1,440 Cr (+44%). Solar scale-up + US arm's 236 MW Kentucky supply win. Margin compression is the watch item.",source:"BSE Filing / Upstox",date:"2026-07-29",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS",company:"Bajaj Housing Finance",ticker:"BAJAJHFL",signal:"Q1 FY27: PAT Rs 715 Cr (+23% YoY). AUM Rs 1.50 L Cr (+24%). Record AUM addition Rs 8,918 Cr; all-time-high disbursements Rs 19,509 Cr. NII +9% vs AUM +24% = margin pressure.",source:"BSE Filing / Upstox",date:"2026-07-29",severity:"HIGH",icon:"💹"},
-  {type:"EARNINGS_MISS",company:"KPIT Technologies",ticker:"KPITTECH",signal:"Q1 FY27 WEAK: PAT Rs 117 Cr (-28.1% QoQ vs Rs 163 Cr). Revenue Rs 1,675 Cr (-2.1% QoQ). Auto-ER&D demand soft; IT tape stays selective post-Infosys guide cut.",source:"BSE Filing / PTI",date:"2026-07-29",severity:"MEDIUM",icon:"📉"},
-  // ═══ MARKET CONTEXT Jul 31 - Aug 3 ═══
-  {type:"FII_FLOW",company:"FII + DII Both Buyers Jul 31",ticker:"",signal:"Jul 31: FII net BUY +Rs 277.48 Cr cash; DII net BUY +Rs 2,260.37 Cr. FII buy streak extends (Jul 29 +2,982 Cr, Jul 30 ~+3,624 Cr) — DII firepower doing the heavy lifting.",source:"NSE / Trendlyne / 5paisa",date:"2026-07-31",severity:"HIGH",icon:"🌍"},
-  {type:"POLICY",company:"Macro: Best Week of July",ticker:"",signal:"Nifty closed Jul 31 at 24,383.60 (+0.27%), Sensex 78,094.64 (+0.21%) — weekly +2.5% (~600 pts), best of July. Brent eased to ~$88, WTI ~$82 as Middle East shipping lanes reopened; rupee firmed to 95.39/USD (from 95.68). Tailwind for OMCs, paints, aviation, tyres.",source:"MarketScreener / Kotak Neo / TS2",date:"2026-07-31",severity:"HIGH",icon:"📈"},
-  {type:"EARNINGS_UPCOMING",company:"This Week: PTC India, Cummins",ticker:"CUMMINSIND",signal:"UPCOMING: PTC India board meets Aug 4 for Q1 FY27 (investor call Aug 5); Cummins India reports Aug 5 — capex/industrials read. Early Nifty-50 season: healthy revenue/operating growth, softer PAT as costs squeeze margins.",source:"ScanX / CompoundingAI / Navia",date:"2026-08-03",severity:"MEDIUM",icon:"📋"},
-];
+var PRIMARY_SIGNALS = []; // P1: loaded from data/catalysts/<date>.json
 
 function renderPrimaryResearch() {
   const grid = document.getElementById('primaryResearchGrid');
@@ -9182,192 +8775,7 @@ function renderPrimaryResearch() {
 //  AGENT-CURATED NEWS INTELLIGENCE (web-search powered)
 //  Last updated: 30 Jul 2026 by AI Research Agent
 // ============================================================
-const CURATED_NEWS = [
-  // ═══ FRESH Aug 4-5 Intelligence (updated 2026-08-05 by AI Research Agent) ═══
-  {title:"BSE Q1 FY27 RECORD: PAT surges 62% to Rs 872.7 Cr, revenue +63% — derivatives-driven transaction charges +80%; best quarter ever.",
-   source:"Investing.com",link:"https://in.investing.com/news/company-news/bse-q1-fy27-presentation-derivatives-surge-drives-62-profit-growth-93CH-5534015",
-   pubDate:"2026-08-04",tag:"company",tagLabel:"BSE Ltd",
-   impact:"bullish",impactText:"+62% PAT",
-   stocks:["BSE Ltd"],
-   detail:"Consolidated EBITDA margin 67% (from 65%), net margin 51%. Presentation released Aug 4 — management calls it the exchange's best quarterly performance on record."},
-  {title:"Rally snapped: Sensex -210 to 78,428.95, Nifty -159 to 24,614.90 on Aug 4 — caution ahead of RBI policy; metals only gainer.",
-   source:"HDFC Sky / Liquide",link:"https://hdfcsky.com/news/market-close-today-august-4-nifty-sensexend-four-day-rallyasnew-closing-mechanism-rbi-policy-in-focus",
-   pubDate:"2026-08-04",tag:"india",tagLabel:"Market Close",
-   impact:"bearish",impactText:"-0.64% Nifty",
-   stocks:[],
-   detail:"Volatile session partially reversed Aug 3's CAS-driven surge. Rising crude + positioning ahead of weekly Nifty expiry added volatility. Realty and IT led the decline."},
-  {title:"RBI MPC decision TODAY 10am: consensus HOLD at 5.25% for 4th straight meet — 4 of 72 economists see a HIKE, none a cut.",
-   source:"Business Standard / Angel One",link:"https://www.business-standard.com/finance/news/rbi-mpc-august-meet-governor-monetary-policy-repo-rate-when-where-to-watch-126080300374_1.html",
-   pubDate:"2026-08-05",tag:"india",tagLabel:"RBI Policy",
-   impact:"neutral",impactText:"Hold @ 5.25%",
-   stocks:[],
-   detail:"Governor Sanjay Malhotra announces at 10am. Backdrop: resilient growth vs rising inflation, elevated crude, global uncertainty. Hawkish tilt = risk for rate-sensitives; dovish surprise = banks/NBFC/realty rally."},
-  {title:"KEC International bags Rs 1,063 Cr multi-business orders — ~Rs 6,300 Cr new business since May; FY27 intake tops Rs 5,200 Cr.",
-   source:"Trade Brains",link:"https://tradebrains.in/kec-international-wins-1063-cr-multi-business-orders-heres-how-many-orders-it-won-in-the-last-3-months/",
-   pubDate:"2026-08-03",tag:"company",tagLabel:"KEC Intl",
-   impact:"bullish",impactText:"Rs 1,063 Cr Orders",
-   stocks:["KEC International"],
-   detail:"Orders span Civil, T&D, Renewables and Cables & Conductors. T&D capex supercycle + order-book compounding thesis intact."},
-  {title:"NCC wins 3 orders worth Rs 1,052.71 Cr in July — Buildings Rs 590.38 Cr + Water Rs 462.33 Cr; stock jumps ~3%.",
-   source:"Trade Brains",link:"https://tradebrains.in/infra-stock-jumps-3-after-bagging-three-orders-worth-1053-cr-across-the-buildings-and-water-segments/",
-   pubDate:"2026-08-03",tag:"company",tagLabel:"NCC",
-   impact:"bullish",impactText:"Rs 1,053 Cr Orders",
-   stocks:["NCC"],
-   detail:"Ex-GST value. Infra order momentum broadening across mid-cap EPC names (KEC, NCC, HG Infra all announcing)."},
-  {title:"SEBI restores exchange-route buybacks from Aug 1 — faster alternative to tender offers after 15-month halt.",
-   source:"Prism News",link:"https://www.prismnews.com/news/india-approves-stock-exchange-buybacks-for-listed-companies",
-   pubDate:"2026-08-01",tag:"india",tagLabel:"SEBI Reform",
-   impact:"bullish",impactText:"Buybacks Back",
-   stocks:[],
-   detail:"Old route halted April 2025. Expect pickup in buyback announcements from cash-rich IT and mid-caps — sentiment + EPS support."},
-  {title:"NSE Q1 FY27: PAT +8.7% to Rs 3,120 Cr despite revenue -8.2%; EBITDA margin 77.9%; IPO momentum builds post-SEBI settlement.",
-   source:"Free Press Journal",link:"https://www.freepressjournal.in/business/nse-q1-fy27-results-revenue-falls-82-to-4560-crore-net-profit-rises-87",
-   pubDate:"2026-08-04",tag:"india",tagLabel:"NSE Results",
-   impact:"neutral",impactText:"+8.7% PAT",
-   stocks:[],
-   detail:"Read-across for listed capital-market plays: BSE, CDSL, AMC/broking names. NSE IPO chatter revived at ~Rs 2,000/share unlisted valuation."},
-  {title:"Crude rebounds: Brent +2.9% to ~$86.20 Aug 4 after Iran-talks crash — relief trade partially unwinds.",
-   source:"Business Standard",link:"https://www.business-standard.com/markets/news/stock-market-live-4-august-nse-bse-sensex-today-nifty50-gift-nifty-q1-results-today-ipo-rupee-brent-crude-prices-126080400069_1.html",
-   pubDate:"2026-08-04",tag:"global",tagLabel:"Crude Rebound",
-   impact:"bearish",impactText:"Brent $86",
-   stocks:[],
-   detail:"After WTI -5.97%/Brent -4.68% on Aug 3. OMC/paints/aviation/tyres tailwind intact but fading; $90 Brent = regime trigger to watch."},
-  // ═══ Aug 3-4 Intelligence (updated 2026-08-04 by AI Research Agent) ═══
-  {title:"Nifty settles above 24,700 for first time — +1.6% to 24,774.30; Bank Nifty hits fresh high 58,247.95; IT +3% leads 4th straight up day.",
-   source:"HDFC Sky / India Infoline",link:"https://hdfcsky.com/news/market-close-report-today-august-3-2026-nifty-sensex-rise-fourth-day-it-stocks-lead-rally",
-   pubDate:"2026-08-03",tag:"india",tagLabel:"Rally Extends",
-   impact:"bullish",impactText:"+1.6% / BN High",
-   stocks:[],
-   detail:"Sensex +544.39 (+0.70%) to 78,639.03. TCS/Infosys led IT surge; financials +1.47% on FII buying, stable credit growth, supportive RBI expectations. New Closing Auction Session (CAS) rollout drove a sharp late-session surge."},
-  {title:"Crude crashes below $80: WTI -5.97% to $79.62, Brent $83.82 as Trump says Iran peace talks resume after canceled strike.",
-   source:"TradingEconomics / Fortune",link:"https://tradingeconomics.com/commodity/crude-oil",
-   pubDate:"2026-08-03",tag:"global",tagLabel:"Crude Crash",
-   impact:"bullish",impactText:"WTI < $80",
-   stocks:[],
-   detail:"Oil dropped >5% after surging 20%+ in July. Reverses the input-cost squeeze that hit Maruti and drove IOC's Rs 2,661 Cr loss. Tailwind for OMCs, paints, aviation, tyres, chemicals."},
-  {title:"Dixon Technologies Q1 BLOWOUT: PAT surges 156% YoY to Rs 717.83 Cr; revenue +50% to Rs 16,076 Cr.",
-   source:"EquityBulls",link:"https://www.equitybulls.com/category.php?id=373771",
-   pubDate:"2026-07-31",tag:"company",tagLabel:"Dixon Tech",
-   impact:"bullish",impactText:"+156% PAT",
-   stocks:["Dixon Technologies"],
-   detail:"PAT +140.9% QoQ. Electronics manufacturing scale-up + PLI momentum. Earnings call held Jul 31."},
-  {title:"Indian Oil Q1 FY27: sharp swing to Rs 2,661 Cr net loss (vs Rs 11,378 Cr profit prev qtr) amid July crude volatility.",
-   source:"Investing.com",link:"https://www.investing.com/news/company-news/indian-oil-q1-fy27-slides-show-sharp-loss-amid-crude-volatility-93CH-4829578",
-   pubDate:"2026-08-01",tag:"company",tagLabel:"Indian Oil",
-   impact:"bearish",impactText:"Rs 2,661 Cr Loss",
-   stocks:["Indian Oil Corporation"],
-   detail:"Investor slides presented Aug 1. July's $100+ Brent spike drove inventory/marketing losses. Crude crashing below $80 on Aug 3 flips the driver positive for Q2."},
-  {title:"FII net buy +Rs 922 Cr cash Aug 3 — but holds net short 1,50,816 index-futures contracts; profit-taking with downside cover.",
-   source:"5paisa / NSE provisional",link:"https://www.5paisa.com/share-market-today/fii-dii-data",
-   pubDate:"2026-08-03",tag:"india",tagLabel:"FII Flow",
-   impact:"bullish",impactText:"FII +922 Cr",
-   stocks:[],
-   detail:"Cash buy streak extends: Jul 29 +2,982 Cr, Jul 30 +3,624 Cr, Jul 31 +277 Cr, Aug 3 +922 Cr. Derivatives positioning stays hedged."},
-  {title:"Results week: 350+ companies report Q1 FY27 Aug 3-8 — SBI, Bharti Airtel, ONGC among them; PTC Aug 4, Cummins Aug 5.",
-   source:"Goodreturns",link:"https://www.goodreturns.in/amphtml/news/q1-results-next-week-august-3-8-check-full-list-of-350-companies-including-sbi-airtel-ongc-marico-1525711.html",
-   pubDate:"2026-08-04",tag:"india",tagLabel:"Results Calendar",
-   impact:"neutral",impactText:"Q1 Watch",
-   stocks:[],
-   detail:"Peak earnings week. Early season read: healthy revenue/operating growth, softer PAT as costs squeeze margins — crude crash may ease that pressure from Q2."},
-  // ═══ Jul 31 - Aug 3 Intelligence (updated 2026-08-03 by AI Research Agent) ═══
-  {title:"Best week of July: Nifty +2.5% WoW to 24,383.60, Sensex 78,094.64 — crude easing + strong rupee + FII buying drive rebound.",
-   source:"Kotak Neo / TS2",link:"https://www.kotakneo.com/news/stocks/stock-market-update-sensex-nifty-31july-2026/",
-   pubDate:"2026-07-31",tag:"india",tagLabel:"Weekly Rebound",
-   impact:"bullish",impactText:"+2.5% WoW",
-   stocks:[],
-   detail:"Nifty climbed ~600 pts in the Jul 27-31 week. Drivers: IT inflows, Bajaj Finance Q1 strength, fresh FII buying, crude sliding from $90+ to ~$88 Brent / $82 WTI as Middle East shipping lanes reopened."},
-  {title:"TVS Motor Q1 RECORD: PAT surges 51% YoY to Rs 1,174 Cr, revenue +38% to Rs 13,896 Cr; all-time-high EBITDA.",
-   source:"ScanX",link:"https://scanx.trade/stock-market-news/companies/tvs-motor-q1-results-pat-surges-51-yoy-to-1-174-crore-revenue-up-38/46775540",
-   pubDate:"2026-07-31",tag:"company",tagLabel:"TVS Motor",
-   impact:"bullish",impactText:"+51% PAT",
-   stocks:["TVS Motor"],
-   detail:"EBITDA Rs 1,779 Cr +41%, margin 12.8% (+30bps). 2W demand + EV (iQube) momentum confirms M&M/Bajaj auto strength."},
-  {title:"GAIL Q1: Net profit jumps 96% YoY to Rs 4,670 Cr on transmission gains; total income +16% to Rs 41,482 Cr.",
-   source:"Business Standard",link:"https://www.business-standard.com/companies/quarterly-results/gail-q1-net-profit-jumps-96-to-4-670-crore-on-transmission-gains-126073101491_1.html",
-   pubDate:"2026-07-31",tag:"company",tagLabel:"GAIL",
-   impact:"bullish",impactText:"+96% PAT",
-   stocks:["GAIL (India)"],
-   detail:"Higher gas transmission volumes + improved marketing margins. Gas utilities benefiting even with crude ~$88."},
-  {title:"Maruti Suzuki Q1: Profit slips 11% to Rs 3,352 Cr on raw-material costs despite revenue jumping 36% to Rs 52,456 Cr.",
-   source:"Upstox",link:"https://upstox.com/news/market-news/earnings/maruti-suzuki-q1-fy-27-results-net-profit-declines-11-on-rising-material-costs-revenue-jumps-to-52-456-crore-yo-y/article-197932/",
-   pubDate:"2026-07-31",tag:"company",tagLabel:"Maruti Suzuki",
-   impact:"neutral",impactText:"Rev +36% / PAT -11%",
-   stocks:["Maruti Suzuki"],
-   detail:"EBITDA Rs 4,312 Cr (-7%). Strong volume/SUV mix but input-cost squeeze. Contrast: M&M +34%, TVS +51% — Maruti margin is the outlier."},
-  {title:"JSW Energy Q1: PAT -36% to Rs 532 Cr on higher finance costs; record 1,081 MW capacity added, total 14,535 MW.",
-   source:"Business Standard",link:"https://www.business-standard.com/companies/news/jsw-energy-q1fy27-profit-revenue-ebitda-capacity-126072201014_1.html",
-   pubDate:"2026-07-31",tag:"company",tagLabel:"JSW Energy",
-   impact:"bearish",impactText:"-36% PAT",
-   stocks:["JSW Energy"],
-   detail:"Power sales -5% YoY to 12.9 BU; debt burden weighing. RE now 61% of installed base — growth capex story intact, P&L under pressure."},
-  {title:"FII net BUY +Rs 277 Cr, DII net BUY +Rs 2,260 Cr on Jul 31 — both buyers again; DIIs doing the heavy lifting.",
-   source:"Trendlyne / 5paisa",link:"https://trendlyne.com/macro-data/fii-dii/latest/cash-pastmonth/",
-   pubDate:"2026-07-31",tag:"india",tagLabel:"FII Flow",
-   impact:"bullish",impactText:"Both Buyers",
-   stocks:[],
-   detail:"FII buy streak extends: Jul 29 +2,982 Cr, Jul 30 ~+3,624 Cr, Jul 31 +277 Cr. DII +2,260 Cr Jul 31 shows domestic conviction."},
-  {title:"Crude relief extends: Brent ~$88, WTI ~$82 as Middle East shipping lanes reopen; rupee firms to 95.39/USD.",
-   source:"TS2 / MarketScreener",link:"https://ts2.tech/en/stock-market-today-31-07-2026/",
-   pubDate:"2026-07-31",tag:"global",tagLabel:"Crude + Rupee",
-   impact:"bullish",impactText:"Brent $88",
-   stocks:[],
-   detail:"Down from $100+ Brent panic of Jul 23. Tailwind for OMCs, paints (Asian Paints), aviation, tyres (Balkrishna). Rupee +29 paise to 95.39."},
-  {title:"Results week ahead: PTC India board Aug 4 (call Aug 5); Cummins India Q1 on Aug 5 — industrials/capex read.",
-   source:"ScanX / CompoundingAI",link:"https://compoundingai.in/market-news/cumminsind-q1-fy27-earnings-preview",
-   pubDate:"2026-08-03",tag:"india",tagLabel:"Results Calendar",
-   impact:"neutral",impactText:"Q1 Watch",
-   stocks:[],
-   detail:"Early Nifty-50 season read: healthy revenue and operating-profit growth but softer net-profit growth as costs squeeze margins; industrials, autos, energy, financials strongest."},
-  // ═══ Jul 29-30 Intelligence (still in window) ═══
-  {title:"Sensex ROARS BACK +889 pts (+1.16%) to 77,655; Nifty +265 to 24,250 — rupee strengthens, IT flows return, FII short covering.",
-   source:"Investing.com",link:"https://m.in.investing.com/news/stock-market-news/nifty-sensex-rise-as-rupee-strengthens-despite-higher-crude-oil-prices-5481860",
-   pubDate:"2026-07-29",tag:"india",tagLabel:"Market Rebound",
-   impact:"bullish",impactText:"+1.16% Rally",
-   stocks:[],
-   detail:"Sharp reversal from last week's 4-session slide to 23,870. Drivers: IT sector inflows after global AI-stock correction, rupee appreciation to ~95.7/USD, FII short covering, sustained frontline buying."},
-  {title:"Fed HOLDS rates — Sensex, Nifty seen positive with range-bound bias Jul 30. Crude eased to ~$85; USD/INR 95.69.",
-   source:"Goodreturns",link:"https://www.goodreturns.in/news/stock-market-outlook-today-30-july-2026-sensex-nifty-likely-to-trade-positive-after-fed-holds-rates-1525181.html",
-   pubDate:"2026-07-30",tag:"global",tagLabel:"Fed + Macro",
-   impact:"bullish",impactText:"Fed Hold",
-   stocks:[],
-   detail:"Crude sharply off the $100+ Brent panic of Jul 23 — relief for OMCs, aviation, paints, chemicals. Resilient domestic earnings + improving global sentiment supporting the tape."},
-  {title:"FII net BUY +Rs 2,982 Cr and DII net BUY +Rs 998 Cr Jul 29 — BOTH buyers; flow regime flipping bullish.",
-   source:"NSE / 5paisa",link:"https://www.5paisa.com/share-market-today/fii-dii-data",
-   pubDate:"2026-07-29",tag:"india",tagLabel:"FII Flow",
-   impact:"bullish",impactText:"FII Buying",
-   stocks:[],
-   detail:"Reversal from -2,999 Cr FII selling on Jul 23. Short covering of the 2.63L net-short index-futures position underway. Double-buyer days after double-seller days = strong regime signal."},
-  {title:"Asian Paints Q1 BEAT: PAT Rs 1,539 Cr (+40% YoY), Revenue Rs 10,521 Cr (+17.9%). PBDIT margin 20.6%.",
-   source:"Business Standard",link:"https://www.business-standard.com/markets/capital-market-news/asian-paints-gains-as-q1-pat-jumps-40-yoy-to-rs-1-539-crore-126072900833_1.html",
-   pubDate:"2026-07-29",tag:"company",tagLabel:"Asian Paints",
-   impact:"bullish",impactText:"+40% PAT",
-   stocks:["Asian Paints"],
-   detail:"Margin expansion +240bps to 20.6%. International net sales +27.2% (Egypt, UAE, Oman, Nepal, Bangladesh); intl PBT +94.9%. Crude easing = further input-cost tailwind for paints."},
-  {title:"Balkrishna Industries Q1: PAT jumps 56% YoY to Rs 451 Cr; Rs 4/share dividend declared.",
-   source:"Sahi",link:"https://www.sahi.com/blogs/balkrishna-industries-q1-results-fy27",
-   pubDate:"2026-07-29",tag:"company",tagLabel:"Balkrishna Inds",
-   impact:"bullish",impactText:"+56% PAT",
-   stocks:["Balkrishna Industries"],
-   detail:"Revenue Rs 3,455 Cr +25.2% YoY. Off-highway tyre (agri/OTR) export demand strong."},
-  {title:"Waaree Energies Q1: Revenue +79% to Rs 7,932 Cr, PAT +14% to Rs 850 Cr, EBITDA +44% to Rs 1,440 Cr.",
-   source:"Upstox",link:"https://upstox.com/news/market-news/earnings/waaree-energies-q1-fy-27-results-net-profit-rises-14-to-850-crore-revenue-grows-to-7-932-crore/article-197793/",
-   pubDate:"2026-07-29",tag:"company",tagLabel:"Waaree Energies",
-   impact:"bullish",impactText:"+79% Revenue",
-   stocks:["Waaree Energies"],
-   detail:"Solar manufacturing scale-up on track. US arm won 236 MW Kentucky module supply (Jun 30). PAT growth lagging revenue = margin compression to watch."},
-  {title:"Bajaj Housing Finance Q1: PAT +23% to Rs 715 Cr; AUM crosses Rs 1.49 L Cr (+24%); record disbursements.",
-   source:"Upstox",link:"https://upstox.com/news/market-news/earnings/bajaj-housing-finance-q1-results-net-profit-rises-23-yo-y-to-715-crore-interest-income-climbs-14-details-here/article-197785/",
-   pubDate:"2026-07-29",tag:"company",tagLabel:"Bajaj Housing",
-   impact:"bullish",impactText:"+23% PAT",
-   stocks:["Bajaj Housing Finance"],
-   detail:"Record quarterly AUM addition Rs 8,918 Cr, all-time-high disbursements Rs 19,509 Cr. NII +9% vs AUM +24% = margin pressure to monitor."},
-  {title:"KPIT Technologies Q1 WEAK: PAT -28% QoQ to Rs 117 Cr; revenue slips 2.1% QoQ to Rs 1,675 Cr.",
-   source:"Prokerala / PTI",link:"https://www.prokerala.com/news/articles/a1793885.html",
-   pubDate:"2026-07-29",tag:"company",tagLabel:"KPIT Tech",
-   impact:"bearish",impactText:"Q1 Miss",
-   stocks:["KPIT Technologies"],
-   detail:"Auto ER&D demand soft. IT tape stays selective post-Infosys guide cut — engineering services not immune."},
-];
+var CURATED_NEWS = []; // P1: loaded from data/news/<date>.json
 
 // ---- MASTER LOAD: News Intelligence Tab ----
 async function loadNewsIntelTab() {
@@ -10813,18 +10221,7 @@ function sigConvergenceV3(fund, biz, flow, pos, peer) {
 // Big investors always think globally — "What global wave is this
 // Indian company riding?" AI boom → Indian IT. EV revolution →
 // Indian auto & battery. This is macro overlay intelligence.
-var GLOBAL_THEMES = [
-  {query:'AI artificial intelligence India stocks 2026',sectors:['IT/Enterprise','IT','Technology'],theme:'AI & Machine Learning',emoji:'🤖'},
-  {query:'electric vehicle EV India',sectors:['Automobile','Auto CV','EV','Battery','Auto Ancillary'],theme:'EV Revolution',emoji:'⚡'},
-  {query:'solar renewable energy India stocks',sectors:['Energy','Power','Solar','Renewable'],theme:'Green Energy',emoji:'☀️'},
-  {query:'semiconductor chip manufacturing India',sectors:['Electronics','Semiconductor','IT/Enterprise'],theme:'Semiconductor',emoji:'💎'},
-  {query:'digital payments UPI India fintech',sectors:['Fintech','Banking','PSU Banking','Pvt Banking'],theme:'Digital Payments',emoji:'📱'},
-  {query:'India infrastructure stocks invest',sectors:['Infrastructure','Cement','Steel','Steel Pipes','Construction','Capital Goods'],theme:'Infrastructure Boom',emoji:'🏗️'},
-  {query:'India PLI manufacturing export',sectors:['Capital Goods','Electronics','Chemicals','Specialty Chem'],theme:'Make in India / PLI',emoji:'🏭'},
-  {query:'India real estate housing boom',sectors:['Real Estate'],theme:'Real Estate Cycle',emoji:'🏠'},
-  {query:'India defence indigenous stocks',sectors:['Aerospace','Engineering'],theme:'Defence Indigenisation',emoji:'🛡️'},
-  {query:'cloud computing SaaS India',sectors:['IT/Enterprise','IT','Technology'],theme:'Cloud & SaaS',emoji:'☁️'}
-];
+var GLOBAL_THEMES = []; // P1: loaded from data/themes.json
 var _globalTrendCache = null;
 var _globalTrendCacheTs = 0;
 
@@ -10885,134 +10282,8 @@ function getGlobalTailwind(sector, globalTrends) {
 // Mercury retrograde status, and Hindu calendar sentiment.
 // Presented as market sentiment context — one factor among many.
 
-function getMoonPhase(date) {
-  if (!date) date = new Date();
-  var year = date.getFullYear(), month = date.getMonth()+1, day = date.getDate();
-  if (month<3) {year--;month+=12;}
-  var a=Math.floor(year/100), b=Math.floor(a/4), c=2-a+b;
-  var e=Math.floor(365.25*(year+4716)), f=Math.floor(30.6001*(month+1));
-  var jd = c+day+e+f-1524.5;
-  var daysInCycle = ((jd-2451550.1)%29.530589+29.530589)%29.530589;
-  var phase = daysInCycle/29.530589;
-
-  var name,emoji,sentiment,marketBias;
-  if (daysInCycle<1.85) {name='New Moon';emoji='🌑';sentiment='Fresh cycle begins';marketBias='accumulate';}
-  else if (daysInCycle<7.38) {name='Waxing Crescent';emoji='🌒';sentiment='Building energy';marketBias='bullish_building';}
-  else if (daysInCycle<9.23) {name='First Quarter';emoji='🌓';sentiment='Momentum phase';marketBias='momentum';}
-  else if (daysInCycle<14.77) {name='Waxing Gibbous';emoji='🌔';sentiment='Peak optimism approaching';marketBias='bullish_peak';}
-  else if (daysInCycle<16.61) {name='Full Moon';emoji='🌕';sentiment='Heightened emotions — caution';marketBias='volatile';}
-  else if (daysInCycle<22.15) {name='Waning Gibbous';emoji='🌖';sentiment='Distribution phase';marketBias='distribute';}
-  else if (daysInCycle<23.99) {name='Last Quarter';emoji='🌗';sentiment='Reassessment';marketBias='cautious';}
-  else {name='Waning Crescent';emoji='🌘';sentiment='Rest before renewal';marketBias='wait';}
-
-  return {name:name,emoji:emoji,sentiment:sentiment,marketBias:marketBias,phase:phase,daysIntoCycle:daysInCycle};
-}
-
-function getMercuryRetrograde(date) {
-  if (!date) date = new Date();
-  var ts = date.getTime();
-  // Mercury retrograde periods 2025-2027 (astronomically calculated)
-  var retrogrades = [
-    // 2025
-    {start:new Date('2025-03-15'),end:new Date('2025-04-07'),sign:'Aries-Pisces'},
-    {start:new Date('2025-07-18'),end:new Date('2025-08-11'),sign:'Leo'},
-    {start:new Date('2025-11-09'),end:new Date('2025-11-29'),sign:'Sagittarius'},
-    // 2026
-    {start:new Date('2026-01-26'),end:new Date('2026-02-15'),sign:'Aquarius-Capricorn'},
-    {start:new Date('2026-05-22'),end:new Date('2026-06-14'),sign:'Gemini-Taurus'},
-    {start:new Date('2026-09-17'),end:new Date('2026-10-09'),sign:'Libra-Virgo'},
-    // 2027
-    {start:new Date('2027-01-10'),end:new Date('2027-01-30'),sign:'Aquarius-Capricorn'},
-    {start:new Date('2027-05-05'),end:new Date('2027-05-29'),sign:'Gemini-Taurus'},
-    {start:new Date('2027-08-31'),end:new Date('2027-09-22'),sign:'Libra-Virgo'}
-  ];
-  for (var i=0;i<retrogrades.length;i++) {
-    if (ts>=retrogrades[i].start.getTime()&&ts<=retrogrades[i].end.getTime()) {
-      return {active:true,sign:retrogrades[i].sign,
-        label:'Mercury Retrograde in '+retrogrades[i].sign+' — volatility expected',
-        daysLeft:Math.ceil((retrogrades[i].end.getTime()-ts)/(1000*60*60*24))};
-    }
-    // Pre-shadow (7 days before)
-    var preShadow = retrogrades[i].start.getTime()-(7*24*60*60*1000);
-    if (ts>=preShadow&&ts<retrogrades[i].start.getTime()) {
-      return {active:false,approaching:true,sign:retrogrades[i].sign,
-        label:'Mercury Retrograde approaching ('+Math.ceil((retrogrades[i].start.getTime()-ts)/(1000*60*60*24))+' days)',
-        daysUntil:Math.ceil((retrogrades[i].start.getTime()-ts)/(1000*60*60*24))};
-    }
-  }
-  return {active:false,approaching:false,label:'Mercury Direct — communication clear'};
-}
-
-function getPanchangInsight(date) {
-  if (!date) date = new Date();
-  // Simplified Tithi calculation based on moon phase
-  var moon = getMoonPhase(date);
-  var tithiNum = Math.floor(moon.daysIntoCycle / (29.530589/30)) + 1;
-  if (tithiNum > 30) tithiNum = 30;
-  // Auspicious tithis for financial activities (per Hindu financial astrology)
-  var auspicious = [2,3,5,7,10,11,13]; // Dwitiya, Tritiya, Panchami, Saptami, Dashami, Ekadashi, Trayodashi
-  var inauspicious = [4,8,9,14,15,30]; // Chaturthi, Ashtami, Navami, Chaturdashi, Purnima, Amavasya
-  var tithiNames = ['','Pratipada','Dwitiya','Tritiya','Chaturthi','Panchami','Shashthi','Saptami',
-    'Ashtami','Navami','Dashami','Ekadashi','Dwadashi','Trayodashi','Chaturdashi','Purnima/Amavasya',
-    'Pratipada','Dwitiya','Tritiya','Chaturthi','Panchami','Shashthi','Saptami',
-    'Ashtami','Navami','Dashami','Ekadashi','Dwadashi','Trayodashi','Chaturdashi','Purnima/Amavasya'];
-  var tithiName = tithiNames[tithiNum] || 'Unknown';
-  var paksha = tithiNum <= 15 ? 'Shukla (Bright)' : 'Krishna (Dark)';
-  var adjustedTithi = tithiNum > 15 ? tithiNum - 15 : tithiNum;
-  var isAuspicious = auspicious.indexOf(adjustedTithi) !== -1;
-  var isInauspicious = inauspicious.indexOf(adjustedTithi) !== -1;
-
-  // Day of week significance
-  var dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  var daySignificance = {
-    0:'Sun — government/power sectors',1:'Moon — liquids/pharma',
-    2:'Mars — metals/energy',3:'Mercury — trade/communication',
-    4:'Jupiter — banking/finance',5:'Venus — luxury/FMCG',
-    6:'Saturn — infra/mining'
-  };
-  var dow = date.getDay();
-
-  return {
-    tithi:tithiName, tithiNum:tithiNum, paksha:paksha,
-    isAuspicious:isAuspicious, isInauspicious:isInauspicious,
-    dayPlanet:daySignificance[dow],
-    label: isAuspicious ? tithiName+' ('+paksha+') — auspicious for investment' :
-           isInauspicious ? tithiName+' ('+paksha+') — exercise caution' :
-           tithiName+' ('+paksha+') — neutral'
-  };
-}
-
-function getCosmicSentiment() {
-  var now = new Date();
-  var moon = getMoonPhase(now);
-  var mercury = getMercuryRetrograde(now);
-  var panchang = getPanchangInsight(now);
-
-  // Overall cosmic score: -5 to +5
-  var cosmicScore = 0;
-  // Moon phase impact
-  if (['accumulate','bullish_building','momentum'].indexOf(moon.marketBias)!==-1) cosmicScore += 2;
-  else if (moon.marketBias==='bullish_peak') cosmicScore += 1;
-  else if (moon.marketBias==='volatile') cosmicScore -= 1;
-  else if (['distribute','cautious'].indexOf(moon.marketBias)!==-1) cosmicScore -= 1;
-  // Mercury impact
-  if (mercury.active) cosmicScore -= 2;
-  else if (mercury.approaching) cosmicScore -= 1;
-  else cosmicScore += 1;
-  // Panchang impact
-  if (panchang.isAuspicious) cosmicScore += 2;
-  else if (panchang.isInauspicious) cosmicScore -= 1;
-
-  var overall = cosmicScore >= 3 ? 'Very Favorable' : cosmicScore >= 1 ? 'Favorable' :
-                cosmicScore >= -1 ? 'Neutral' : cosmicScore >= -3 ? 'Cautious' : 'Unfavorable';
-  var overallColor = cosmicScore>=3?'#22c55e':cosmicScore>=1?'#86efac':
-                     cosmicScore>=-1?'#f59e0b':cosmicScore>=-3?'#fb923c':'#ef4444';
-
-  return {
-    moon:moon, mercury:mercury, panchang:panchang,
-    cosmicScore:cosmicScore, overall:overall, overallColor:overallColor
-  };
-}
+// P1: getMoonPhase, getMercuryRetrograde, getPanchangInsight, getCosmicSentiment DELETED
+// Astro dimension was already neutralized in P0.3; functions fully removed in P1.
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -11086,15 +10357,14 @@ async function runSmartSignalScan() {
   _sectorStats = null; // Reset for fresh computation
   var ss = computeSectorStats();
 
-  var cosmic = getCosmicSentiment();
+  // P1: Cosmic/astro dimension fully removed
 
   container.innerHTML =
     '<div style="background:linear-gradient(135deg,#0f172a,#1e1b4b);border-radius:12px;padding:24px;text-align:center">'+
     '<div style="font-size:20px;font-weight:700;color:#a78bfa;margin-bottom:4px">🧠 Shadow Intelligence v3 — Institutional Research</div>'+
-    '<div style="color:#94a3b8;font-size:11px;margin-bottom:8px">Deep Study: Fundamentals + Business Intel + Smart Money + Global Macro + Cosmic</div>'+
+    '<div style="color:#94a3b8;font-size:11px;margin-bottom:8px">Deep Study: Fundamentals + Business Intel + Smart Money + Global Macro</div>'+
     '<div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">'+
     '<span style="font-size:10px;color:'+iq.color+'">📡 Intel: '+iq.label+' (Day '+iq.days+')</span>'+
-    '<span style="font-size:10px;color:'+cosmic.overallColor+'">'+cosmic.moon.emoji+' Cosmic: '+cosmic.overall+'</span>'+
     '</div>'+
     '<div id="ssProgress" style="background:#374151;border-radius:8px;height:6px;overflow:hidden;margin-bottom:8px">'+
     '<div id="ssBar" style="background:linear-gradient(90deg,#8b5cf6,#6366f1);height:100%;width:0%;transition:width 0.3s"></div></div>'+
@@ -11287,7 +10557,8 @@ function renderSmartSignalResults(results) {
   var iq = getIntelQuality(loadShadowHistory());
   var hotSectors = (window._smartSignalScanResult&&window._smartSignalScanResult.hotSectors)||[];
   var globalTrends = (window._smartSignalScanResult&&window._smartSignalScanResult.globalTrends)||[];
-  var cosmic = (window._smartSignalScanResult&&window._smartSignalScanResult.cosmic)||getCosmicSentiment();
+  // P1: cosmic dimension removed — no longer consulted
+  var cosmic = {cosmicScore:0, overall:'Disabled', overallColor:'#94a3b8', moon:{emoji:'',marketBias:'neutral'}};
 
   var html = '<div style="background:linear-gradient(135deg,#0f172a,#1e1b4b);border-radius:12px;padding:20px;margin-bottom:16px">';
 
@@ -11676,7 +10947,16 @@ function computeScore(data, yfTicker, portfolioStock) {
     unifiedInsights = uIntel.insights || [];
   } catch(e) { unifiedScore = 7; }
 
-  const totalScore = trendScore + momScore + breakoutScore + compressionScore + strengthScore + valScore + volScore + qualScore + intelScore + smartSigScore + unifiedScore;
+  // ── P0 DATA-QUALITY GATE: renormalize when fundamentals are missing ──
+  // 414/698 universe entries have pe:0,ro:0 — they must not be ranked on default low scores.
+  let totalScore = trendScore + momScore + breakoutScore + compressionScore + strengthScore + valScore + volScore + qualScore + intelScore + smartSigScore + unifiedScore;
+  const _MAX_TOTAL = 129; // 15+15+10+10+10+12+8+12+10+12+15
+  const _missingMax = (pe > 0 ? 0 : 12) + (roce > 0 ? 0 : 12);
+  const _dataCompleteness = Math.round((_MAX_TOTAL - _missingMax) / _MAX_TOTAL * 100);
+  if (_missingMax > 0) {
+    const _knownScore = totalScore - (pe > 0 ? 0 : valScore) - (roce > 0 ? 0 : qualScore);
+    totalScore = Math.round(_knownScore * (_MAX_TOTAL / (_MAX_TOTAL - _missingMax)));
+  }
 
   let grade, gradeClass, verdict, verdictClass;
   if (totalScore >= 90) { grade = 'A+'; gradeClass = 'grade-a'; verdict = 'STRONG BUY'; verdictClass = 'verdict-buy'; }
@@ -11690,6 +10970,7 @@ function computeScore(data, yfTicker, portfolioStock) {
     price, prevClose, changePct, high52, low52, volume, pe, roce, mcap,
     trendScore, momScore, breakoutScore, compressionScore, strengthScore,
     valScore, volScore, qualScore, intelScore, smartSigScore, unifiedScore, totalScore,
+    dataCompleteness: _dataCompleteness,
     grade, gradeClass, verdict, verdictClass, posIn52W,
     sizeScore: compressionScore + strengthScore,
     unifiedInsights
@@ -12688,8 +11969,9 @@ function updateWatchlistBadge() {
 function loadWatchlistStocks() {
   const list = getWatchlist();
   // Remove old watchlist stocks from the stocks array
+  // P0.1: legacy research entries (fresh-deployment conversion, marked _legacyLayer) are kept
   for (let i = stocks.length - 1; i >= 0; i--) {
-    if (stocks[i]._watchlist) stocks.splice(i, 1);
+    if (stocks[i]._watchlist && !stocks[i]._legacyLayer) stocks.splice(i, 1);
   }
   // Add watchlist stocks
   list.forEach(w => {
@@ -12707,9 +11989,9 @@ function loadWatchlistStocks() {
       });
     }
   });
-  // Refresh total count
+  // Refresh total count (P0.1: holdings only — watchlist/research entries are not positions)
   const sTotal = document.getElementById('sTotal');
-  if (sTotal) sTotal.textContent = stocks.length;
+  if (sTotal) sTotal.textContent = stocks.filter(s => !s._watchlist).length;
   const sLoaded = document.getElementById('sLoaded');
   if (sLoaded) sLoaded.textContent = stocks.filter(s => s.loaded).length + ' / ' + stocks.length;
 }
@@ -13081,11 +12363,20 @@ var JainPMS_Cloud = {
   }
 };
 
-// Initialize cloud sync on page load
+// Initialize cloud sync on page load — wait for P1 data to be ready first
 document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(function() { JainPMS_Cloud.init(); }, 3000); // Init after 3s to let page load first
-  setTimeout(function() { LiveCatalystEngine.init(); }, 5000); // Load live catalysts after cloud sync
-  setTimeout(function() { AIAgentEngine.init(); }, 8000); // AI Agent after cloud + catalysts ready
+  // P1: ensure JSON data is loaded before cloud sync / catalyst / AI agent engines init
+  loadExternalData().then(function() {
+    setTimeout(function() { JainPMS_Cloud.init(); }, 1000); // Cloud sync after data ready
+    setTimeout(function() { LiveCatalystEngine.init(); }, 3000); // Live catalysts after cloud sync
+    setTimeout(function() { AIAgentEngine.init(); }, 6000); // AI Agent after cloud + catalysts ready
+  }).catch(function() {
+    // Fallback: init anyway even if data fetch failed (empty arrays still work)
+    console.warn('[P1-DATA] Data fetch failed, initializing with empty arrays');
+    setTimeout(function() { JainPMS_Cloud.init(); }, 1000);
+    setTimeout(function() { LiveCatalystEngine.init(); }, 3000);
+    setTimeout(function() { AIAgentEngine.init(); }, 6000);
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -13669,6 +12960,20 @@ var AIAgentEngine = {
       if (!entryPrice || entryPrice <= 0) {
         console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — no valid price (AI=' + aiPrice + ', Live=' + liveCMP + ')');
         return;
+      }
+
+      // ── P0 RISK CAP: conviction may REDUCE size but never exceed risk-based size ──
+      // Old behaviour: HIGH conviction = 30% of wallet in one intraday stock. One 1.5xATR
+      // stop-out on that position breaches the daily circuit breaker in a single trade.
+      if (typeof getRiskBasedPositionSize === 'function') {
+        var _rb = getRiskBasedPositionSize(walletValue, entryPrice, dec.stopLossPct || 0.008, riskGate.sizeMultiplier || 1.0);
+        if (_rb && _rb.qty > 0) {
+          var _rbBudget = _rb.qty * entryPrice;
+          if (positionBudget > _rbBudget) {
+            console.log('[AI-AGENT] P0 RISK CAP: ' + dec.ticker + ' conviction budget ₹' + Math.round(positionBudget) + ' capped to risk-based ₹' + Math.round(_rbBudget));
+            positionBudget = _rbBudget;
+          }
+        }
       }
 
       var qty = Math.floor(positionBudget / entryPrice);
