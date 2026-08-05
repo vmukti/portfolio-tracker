@@ -1,0 +1,390 @@
+[
+ {
+  "title": "BSE Q1 FY27 RECORD: PAT surges 62% to Rs 872.7 Cr, revenue +63% â derivatives-driven transaction charges +80%; best quarter ever.",
+  "source": "Investing.com",
+  "link": "https://in.investing.com/news/company-news/bse-q1-fy27-presentation-derivatives-surge-drives-62-profit-growth-93CH-5534015",
+  "pubDate": "2026-08-04",
+  "tag": "company",
+  "tagLabel": "BSE Ltd",
+  "impact": "bullish",
+  "impactText": "+62% PAT",
+  "stocks": [
+   "BSE Ltd"
+  ],
+  "detail": "Consolidated EBITDA margin 67% (from 65%), net margin 51%. Presentation released Aug 4 â management calls it the exchange's best quarterly performance on record."
+ },
+ {
+  "title": "Rally snapped: Sensex -210 to 78,428.95, Nifty -159 to 24,614.90 on Aug 4 â caution ahead of RBI policy; metals only gainer.",
+  "source": "HDFC Sky / Liquide",
+  "link": "https://hdfcsky.com/news/market-close-today-august-4-nifty-sensexend-four-day-rallyasnew-closing-mechanism-rbi-policy-in-focus",
+  "pubDate": "2026-08-04",
+  "tag": "india",
+  "tagLabel": "Market Close",
+  "impact": "bearish",
+  "impactText": "-0.64% Nifty",
+  "stocks": [],
+  "detail": "Volatile session partially reversed Aug 3's CAS-driven surge. Rising crude + positioning ahead of weekly Nifty expiry added volatility. Realty and IT led the decline."
+ },
+ {
+  "title": "RBI MPC decision TODAY 10am: consensus HOLD at 5.25% for 4th straight meet â 4 of 72 economists see a HIKE, none a cut.",
+  "source": "Business Standard / Angel One",
+  "link": "https://www.business-standard.com/finance/news/rbi-mpc-august-meet-governor-monetary-policy-repo-rate-when-where-to-watch-126080300374_1.html",
+  "pubDate": "2026-08-05",
+  "tag": "india",
+  "tagLabel": "RBI Policy",
+  "impact": "neutral",
+  "impactText": "Hold @ 5.25%",
+  "stocks": [],
+  "detail": "Governor Sanjay Malhotra announces at 10am. Backdrop: resilient growth vs rising inflation, elevated crude, global uncertainty. Hawkish tilt = risk for rate-sensitives; dovish surprise = banks/NBFC/realty rally."
+ },
+ {
+  "title": "KEC International bags Rs 1,063 Cr multi-business orders â ~Rs 6,300 Cr new business since May; FY27 intake tops Rs 5,200 Cr.",
+  "source": "Trade Brains",
+  "link": "https://tradebrains.in/kec-international-wins-1063-cr-multi-business-orders-heres-how-many-orders-it-won-in-the-last-3-months/",
+  "pubDate": "2026-08-03",
+  "tag": "company",
+  "tagLabel": "KEC Intl",
+  "impact": "bullish",
+  "impactText": "Rs 1,063 Cr Orders",
+  "stocks": [
+   "KEC International"
+  ],
+  "detail": "Orders span Civil, T&D, Renewables and Cables & Conductors. T&D capex supercycle + order-book compounding thesis intact."
+ },
+ {
+  "title": "NCC wins 3 orders worth Rs 1,052.71 Cr in July â Buildings Rs 590.38 Cr + Water Rs 462.33 Cr; stock jumps ~3%.",
+  "source": "Trade Brains",
+  "link": "https://tradebrains.in/infra-stock-jumps-3-after-bagging-three-orders-worth-1053-cr-across-the-buildings-and-water-segments/",
+  "pubDate": "2026-08-03",
+  "tag": "company",
+  "tagLabel": "NCC",
+  "impact": "bullish",
+  "impactText": "Rs 1,053 Cr Orders",
+  "stocks": [
+   "NCC"
+  ],
+  "detail": "Ex-GST value. Infra order momentum broadening across mid-cap EPC names (KEC, NCC, HG Infra all announcing)."
+ },
+ {
+  "title": "SEBI restores exchange-route buybacks from Aug 1 â faster alternative to tender offers after 15-month halt.",
+  "source": "Prism News",
+  "link": "https://www.prismnews.com/news/india-approves-stock-exchange-buybacks-for-listed-companies",
+  "pubDate": "2026-08-01",
+  "tag": "india",
+  "tagLabel": "SEBI Reform",
+  "impact": "bullish",
+  "impactText": "Buybacks Back",
+  "stocks": [],
+  "detail": "Old route halted April 2025. Expect pickup in buyback announcements from cash-rich IT and mid-caps â sentiment + EPS support."
+ },
+ {
+  "title": "NSE Q1 FY27: PAT +8.7% to Rs 3,120 Cr despite revenue -8.2%; EBITDA margin 77.9%; IPO momentum builds post-SEBI settlement.",
+  "source": "Free Press Journal",
+  "link": "https://www.freepressjournal.in/business/nse-q1-fy27-results-revenue-falls-82-to-4560-crore-net-profit-rises-87",
+  "pubDate": "2026-08-04",
+  "tag": "india",
+  "tagLabel": "NSE Results",
+  "impact": "neutral",
+  "impactText": "+8.7% PAT",
+  "stocks": [],
+  "detail": "Read-across for listed capital-market plays: BSE, CDSL, AMC/broking names. NSE IPO chatter revived at ~Rs 2,000/share unlisted valuation."
+ },
+ {
+  "title": "Crude rebounds: Brent +2.9% to ~$86.20 Aug 4 after Iran-talks crash â relief trade partially unwinds.",
+  "source": "Business Standard",
+  "link": "https://www.business-standard.com/markets/news/stock-market-live-4-august-nse-bse-sensex-today-nifty50-gift-nifty-q1-results-today-ipo-rupee-brent-crude-prices-126080400069_1.html",
+  "pubDate": "2026-08-04",
+  "tag": "global",
+  "tagLabel": "Crude Rebound",
+  "impact": "bearish",
+  "impactText": "Brent $86",
+  "stocks": [],
+  "detail": "After WTI -5.97%/Brent -4.68% on Aug 3. OMC/paints/aviation/tyres tailwind intact but fading; $90 Brent = regime trigger to watch."
+ },
+ {
+  "title": "Nifty settles above 24,700 for first time â +1.6% to 24,774.30; Bank Nifty hits fresh high 58,247.95; IT +3% leads 4th straight up day.",
+  "source": "HDFC Sky / India Infoline",
+  "link": "https://hdfcsky.com/news/market-close-report-today-august-3-2026-nifty-sensex-rise-fourth-day-it-stocks-lead-rally",
+  "pubDate": "2026-08-03",
+  "tag": "india",
+  "tagLabel": "Rally Extends",
+  "impact": "bullish",
+  "impactText": "+1.6% / BN High",
+  "stocks": [],
+  "detail": "Sensex +544.39 (+0.70%) to 78,639.03. TCS/Infosys led IT surge; financials +1.47% on FII buying, stable credit growth, supportive RBI expectations. New Closing Auction Session (CAS) rollout drove a sharp late-session surge."
+ },
+ {
+  "title": "Crude crashes below $80: WTI -5.97% to $79.62, Brent $83.82 as Trump says Iran peace talks resume after canceled strike.",
+  "source": "TradingEconomics / Fortune",
+  "link": "https://tradingeconomics.com/commodity/crude-oil",
+  "pubDate": "2026-08-03",
+  "tag": "global",
+  "tagLabel": "Crude Crash",
+  "impact": "bullish",
+  "impactText": "WTI < $80",
+  "stocks": [],
+  "detail": "Oil dropped >5% after surging 20%+ in July. Reverses the input-cost squeeze that hit Maruti and drove IOC's Rs 2,661 Cr loss. Tailwind for OMCs, paints, aviation, tyres, chemicals."
+ },
+ {
+  "title": "Dixon Technologies Q1 BLOWOUT: PAT surges 156% YoY to Rs 717.83 Cr; revenue +50% to Rs 16,076 Cr.",
+  "source": "EquityBulls",
+  "link": "https://www.equitybulls.com/category.php?id=373771",
+  "pubDate": "2026-07-31",
+  "tag": "company",
+  "tagLabel": "Dixon Tech",
+  "impact": "bullish",
+  "impactText": "+156% PAT",
+  "stocks": [
+   "Dixon Technologies"
+  ],
+  "detail": "PAT +140.9% QoQ. Electronics manufacturing scale-up + PLI momentum. Earnings call held Jul 31."
+ },
+ {
+  "title": "Indian Oil Q1 FY27: sharp swing to Rs 2,661 Cr net loss (vs Rs 11,378 Cr profit prev qtr) amid July crude volatility.",
+  "source": "Investing.com",
+  "link": "https://www.investing.com/news/company-news/indian-oil-q1-fy27-slides-show-sharp-loss-amid-crude-volatility-93CH-4829578",
+  "pubDate": "2026-08-01",
+  "tag": "company",
+  "tagLabel": "Indian Oil",
+  "impact": "bearish",
+  "impactText": "Rs 2,661 Cr Loss",
+  "stocks": [
+   "Indian Oil Corporation"
+  ],
+  "detail": "Investor slides presented Aug 1. July's $100+ Brent spike drove inventory/marketing losses. Crude crashing below $80 on Aug 3 flips the driver positive for Q2."
+ },
+ {
+  "title": "FII net buy +Rs 922 Cr cash Aug 3 â but holds net short 1,50,816 index-futures contracts; profit-taking with downside cover.",
+  "source": "5paisa / NSE provisional",
+  "link": "https://www.5paisa.com/share-market-today/fii-dii-data",
+  "pubDate": "2026-08-03",
+  "tag": "india",
+  "tagLabel": "FII Flow",
+  "impact": "bullish",
+  "impactText": "FII +922 Cr",
+  "stocks": [],
+  "detail": "Cash buy streak extends: Jul 29 +2,982 Cr, Jul 30 +3,624 Cr, Jul 31 +277 Cr, Aug 3 +922 Cr. Derivatives positioning stays hedged."
+ },
+ {
+  "title": "Results week: 350+ companies report Q1 FY27 Aug 3-8 â SBI, Bharti Airtel, ONGC among them; PTC Aug 4, Cummins Aug 5.",
+  "source": "Goodreturns",
+  "link": "https://www.goodreturns.in/amphtml/news/q1-results-next-week-august-3-8-check-full-list-of-350-companies-including-sbi-airtel-ongc-marico-1525711.html",
+  "pubDate": "2026-08-04",
+  "tag": "india",
+  "tagLabel": "Results Calendar",
+  "impact": "neutral",
+  "impactText": "Q1 Watch",
+  "stocks": [],
+  "detail": "Peak earnings week. Early season read: healthy revenue/operating growth, softer PAT as costs squeeze margins â crude crash may ease that pressure from Q2."
+ },
+ {
+  "title": "Best week of July: Nifty +2.5% WoW to 24,383.60, Sensex 78,094.64 â crude easing + strong rupee + FII buying drive rebound.",
+  "source": "Kotak Neo / TS2",
+  "link": "https://www.kotakneo.com/news/stocks/stock-market-update-sensex-nifty-31july-2026/",
+  "pubDate": "2026-07-31",
+  "tag": "india",
+  "tagLabel": "Weekly Rebound",
+  "impact": "bullish",
+  "impactText": "+2.5% WoW",
+  "stocks": [],
+  "detail": "Nifty climbed ~600 pts in the Jul 27-31 week. Drivers: IT inflows, Bajaj Finance Q1 strength, fresh FII buying, crude sliding from $90+ to ~$88 Brent / $82 WTI as Middle East shipping lanes reopened."
+ },
+ {
+  "title": "TVS Motor Q1 RECORD: PAT surges 51% YoY to Rs 1,174 Cr, revenue +38% to Rs 13,896 Cr; all-time-high EBITDA.",
+  "source": "ScanX",
+  "link": "https://scanx.trade/stock-market-news/companies/tvs-motor-q1-results-pat-surges-51-yoy-to-1-174-crore-revenue-up-38/46775540",
+  "pubDate": "2026-07-31",
+  "tag": "company",
+  "tagLabel": "TVS Motor",
+  "impact": "bullish",
+  "impactText": "+51% PAT",
+  "stocks": [
+   "TVS Motor"
+  ],
+  "detail": "EBITDA Rs 1,779 Cr +41%, margin 12.8% (+30bps). 2W demand + EV (iQube) momentum confirms M&M/Bajaj auto strength."
+ },
+ {
+  "title": "GAIL Q1: Net profit jumps 96% YoY to Rs 4,670 Cr on transmission gains; total income +16% to Rs 41,482 Cr.",
+  "source": "Business Standard",
+  "link": "https://www.business-standard.com/companies/quarterly-results/gail-q1-net-profit-jumps-96-to-4-670-crore-on-transmission-gains-126073101491_1.html",
+  "pubDate": "2026-07-31",
+  "tag": "company",
+  "tagLabel": "GAIL",
+  "impact": "bullish",
+  "impactText": "+96% PAT",
+  "stocks": [
+   "GAIL (India)"
+  ],
+  "detail": "Higher gas transmission volumes + improved marketing margins. Gas utilities benefiting even with crude ~$88."
+ },
+ {
+  "title": "Maruti Suzuki Q1: Profit slips 11% to Rs 3,352 Cr on raw-material costs despite revenue jumping 36% to Rs 52,456 Cr.",
+  "source": "Upstox",
+  "link": "https://upstox.com/news/market-news/earnings/maruti-suzuki-q1-fy-27-results-net-profit-declines-11-on-rising-material-costs-revenue-jumps-to-52-456-crore-yo-y/article-197932/",
+  "pubDate": "2026-07-31",
+  "tag": "company",
+  "tagLabel": "Maruti Suzuki",
+  "impact": "neutral",
+  "impactText": "Rev +36% / PAT -11%",
+  "stocks": [
+   "Maruti Suzuki"
+  ],
+  "detail": "EBITDA Rs 4,312 Cr (-7%). Strong volume/SUV mix but input-cost squeeze. Contrast: M&M +34%, TVS +51% â Maruti margin is the outlier."
+ },
+ {
+  "title": "KSW Energy Q1: PAT -36% to Rs 532 Cr on higher finance costs; record 1,081 MW capacity added, total 14,535 MW.",
+  "source": "Business Standard",
+  "link": "https://www.business-standard.com/companies/news/jsw-energy-q1fy27-profit-revenue-ebitda-capacity-126072201014_1.html",
+  "pubDate": "2026-07-31",
+  "tag": "company",
+  "tagLabel": "JSW Energy",
+  "impact": "bearish",
+  "impactText": "-36% PAT",
+  "stocks": [
+   "JSW Energy"
+  ],
+  "detail": "Power sales -5% YoY to 12.9 BU; debt burden weighing. RE now 61% of installed base â growth capex story intact, P&L under pressure."
+ },
+ {
+  "title": "FII net BUY +Rs 277 Cr, DII net BUY +Rs 2,260 Cr on Jul 31 â both buyers again; DIIs doing the heavy lifting.",
+  "source": "Trendlyne / 5paisa",
+  "link": "https://trendlyne.com/macro-data/fii-dii/latest/cash-pastmonth/",
+  "pubDate": "2026-07-31",
+  "tag": "india",
+  "tagLabel": "FII Flow",
+  "impact": "bullish",
+  "impactText": "Both Buyers",
+  "stocks": [],
+  "detail": "FII buy streak extends: Jul 29 +2,982 Cr, Jul 30 ~+3,624 Cr, Jul 31 +277 Cr. DII +2,260 Cr Jul 31 shows domestic conviction."
+ },
+ {
+  "title": "Crude relief extends: Brent ~$88, WTI ~$82 as Middle East shipping lanes reopen; rupee firms to 95.39/USD.",
+  "source": "TS2 / MarketScreener",
+  "link": "https://ts2.tech/en/stock-market-today-31-07-2026/",
+  "pubDate": "2026-07-31",
+  "tag": "global",
+  "tagLabel": "Crude + Rupee",
+  "impact": "bullish",
+  "impactText": "Brent $88",
+  "stocks": [],
+  "detail": "Down from $100+ Brent panic of Jul 23. Tailwind for OMCs, paints (Asian Paints), aviation, tyres (Balkrishna). Rupee +29 paise to 95.39."
+ },
+ {
+  "title": "Results week ahead: PTC India board Aug 4 (call Aug 5); Cummins India Q1 on Aug 5 â industrials/capex read.",
+  "source": "ScanX / CompoundingAI",
+  "link": "https://compoundingai.in/market-news/cumminsind-q1-fy27-earnings-preview",
+  "pubDate": "2026-08-03",
+  "tag": "india",
+  "tagLabel": "Results Calendar",
+  "impact": "neutral",
+  "impactText": "Q1 Watch",
+  "stocks": [],
+  "detail": "Early Nifty-50 season read: healthy revenue and operating-profit growth but softer net-profit growth as costs squeeze margins; industrials, autos, energy, financials strongest."
+ },
+ {
+  "title": "Sensex ROARS BACK +889 pts (+1.16%) to 77,655; Nifty +265 to 24,250 â rupee strengthens, IT flows return, FII short covering.",
+  "source": "Investing.com",
+  "link": "https://m.in.investing.com/news/stock-market-news/nifty-sensex-rise-as-rupee-strengthens-despite-higher-crude-oil-prices-5481860",
+  "pubDate": "2026-07-29",
+  "tag": "india",
+  "tagLabel": "Market Rebound",
+  "impact": "bullish",
+  "impactText": "+1.16% Rally",
+  "stocks": [],
+  "detail": "Sharp reversal from last week's 4-session slide to 23,870. Drivers: IT sector inflows after global AI-stock correction, rupee appreciation to ~95.7/USD, FII short covering, sustained frontline buying."
+ },
+ {
+  "title": "Fed HOLDS rates â Sensex, Nifty seen positive with range-bound bias Jul 30. Crude eased to ~$85; USD/INR 95.69.",
+  "source": "Goodreturns",
+  "link": "https://www.goodreturns.in/news/stock-market-outlook-today-30-july-2026-sensex-nifty-likely-to-trade-positive-after-fed-holds-rates-1525181.html",
+  "pubDate": "2026-07-30",
+  "tag": "global",
+  "tagLabel": "Fed + Macro",
+  "impact": "bullish",
+  "impactText": "Fed Hold",
+  "stocks": [],
+  "detail": "Crude sharply off the $100+ Brent panic of Jul 23 â relief for OMCs, aviation, paints, chemicals. Resilient domestic earnings + improving global sentiment supporting the tape."
+ },
+ {
+  "title": "FII net BUY +Rs 2,982 Cr and DII net BUY +Rs 998 Cr Jul 29 â BOTH buyers; flow regime flipping bullish.",
+  "source": "NSE / 5paisa",
+  "link": "https://www.5paisa.com/share-market-today/fii-dii-data",
+  "pubDate": "2026-07-29",
+  "tag": "india",
+  "tagLabel": "FII Flow",
+  "impact": "bullish",
+  "impactText": "FII Buying",
+  "stocks": [],
+  "detail": "Reversal from -2,999 Cr FII selling on Jul 23. Short covering of the 2.63L net-short index-futures position underway. Double-buyer days after double-seller days = strong regime signal."
+ },
+ {
+  "title": "Asian Paints Q1 BEAT: PAT Rs 1,539 Cr (+40% YoY), Revenue Rs 10,521 Cr (+17.9%). PBDIT margin 20.6%.",
+  "source": "Business Standard",
+  "link": "https://www.business-standard.com/markets/capital-market-news/asian-paints-gains-as-q1-pat-jumps-40-percent-yoy-to-rs-1539-crore-126072900833_1.html",
+  "pubDate": "2026-07-29",
+  "tag": "company",
+  "tagLabel": "Asian Paints",
+  "impact": "bullish",
+  "impactText": "+40% PAT",
+  "stocks": [
+   "Asian Paints"
+  ],
+  "detail": "Margin expansion +240bps to 20.6%. International net sales +27.2% (Egypt, UAE, Oman, Nepal, Bangladesh); intl PBT '+94.9%'. Crude easing = further input-cost tailwind for paints."
+ },
+ {
+  "title": "Balkrishna Industries Q1: PAT jumps 56% YoY to Rs 451 Cr; Rs 4/share dividend declared.",
+  "source": "Sahi",
+  "link": "https://www.sahi.com/blogs/balkrishna-industries-q1-results-fy27",
+  "pubDate": "2026-07-29",
+  "tag": "company",
+  "tagLabel": "Balkrishna Inds",
+  "impact": "bullish",
+  "impactText": "+56% PAT",
+  "stocks": [
+   "Balkrishna Industries"
+  ],
+  "detail": "Revenue Rs 3,455 Cr +25.2% YoY. Off-highway tyre (agri/OTR) export demand strong."
+ },
+ {
+  "title": "Waaree Energies Q1: Revenue +79% to Rs 7,932 Cr, PAT +14% to Rs 850 Cr, EBITDA +44% to Rs 1,440 Cr.",
+  "source": "Upstox",
+  "link": "https://upstox.com/news/market-news/earnings/waaree-energies-q1-fy-27-results-net-profit-rises-14-to-850-crore-revenue-grows-to-7-932-crore/article-197793/",
+  "pubDate": "2026-07-29",
+  "tag": "company",
+  "tagLabel": "Waaree Energies",
+  "impact": "bullish",
+  "impactText": "+79% Revenue",
+  "stocks": [
+   "Waaree Energies"
+  ],
+  "detail": "Solar manufacturing scale-up on track. US arm won 236 MW Kentucky module supply (Jun 30). PAT growth lagging revenue = margin compression to watch."
+ },
+ {
+  "title": "Bajaj Housing Finance Q1: PAT +23% to Rs 715 Cr; AUM crosses Rs 1.49 L Cr (+24%); record disbursements.",
+  "source": "Upstox",
+  "link": "https://upstox.com/news/market-news/earnings/bajaj-housing-finance-q1-results-net-profit-rises-23-yo-y-to-715-crore-interest-income-climbs-14-details-here/article-197785/",
+  "pubDate": "2026-07-29",
+  "tag": "company",
+  "tagLabel": "Bajaj Housing",
+  "impact": "bullish",
+  "impactText": "+23% PAT",
+  "stocks": [
+   "Bajaj Housing Finance"
+  ],
+  "detail": "Record quarterly AUM addition Rs 8,918 Cr, all-time-high disbursements Rs 19,509 Cr. NII +9% vs AUM +24% = margin pressure to monitor."
+ },
+ {
+  "title": "KPIT Technologies Q1 WEAK: PAT -28% QoQ to Rs 117 Cr; revenue slips 2.1% QoQ to Rs 1,675 Cr.",
+  "source": "Prokerala / PTI",
+  "link": "https://www.prokerala.com/news/articles/a1793885.html",
+  "pubDate": "2026-07-29",
+  "tag": "company",
+  "tagLabel": "KPIT Tech",
+  "impact": "bearish",
+  "impactText": "Q1 Miss",
+  "stocks": [
+   "KPIT Technologies"
+  ],
+  "detail": "Auto ER&D demand soft. IT tape stays selective post-Infosys guide cut â engineering services not immune."
+ }
+]
