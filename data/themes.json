@@ -1,0 +1,107 @@
+[
+ {
+  "query": "AI artificial intelligence India stocks 2026",
+  "sectors": [
+   "IT/Enterprise",
+   "IT",
+   "Technology"
+  ],
+  "theme": "AI & Machine Learning",
+  "emoji": "\ud83e\udd16"
+ },
+ {
+  "query": "electric vehicle EV India",
+  "sectors": [
+   "Automobile",
+   "Auto CV",
+   "EV",
+   "Battery",
+   "Auto Ancillary"
+  ],
+  "theme": "EV Revolution",
+  "emoji": "\u26a1"
+ },
+ {
+  "query": "solar renewable energy India stocks",
+  "sectors": [
+   "Energy",
+   "Power",
+   "Solar",
+   "Renewable"
+  ],
+  "theme": "Green Energy",
+  "emoji": "\u2600\ufe0f"
+ },
+ {
+  "query": "semiconductor chip manufacturing India",
+  "sectors": [
+   "Electronics",
+   "Semiconductor",
+   "IT/Enterprise"
+  ],
+  "theme": "Semiconductor",
+  "emoji": "\ud83d\udc8e"
+ },
+ {
+  "query": "digital payments UPI India fintech",
+  "sectors": [
+   "Fintech",
+   "Banking",
+   "PSU Banking",
+   "Pvt Banking"
+  ],
+  "theme": "Digital Payments",
+  "emoji": "\ud83d\udcf1"
+ },
+ {
+  "query": "India infrastructure stocks invest",
+  "sectors": [
+   "Infrastructure",
+   "Cement",
+   "Steel",
+   "Steel Pipes",
+   "Construction",
+   "Capital Goods"
+  ],
+  "theme": "Infrastructure Boom",
+  "emoji": "\ud83c\udfd7\ufe0f"
+ },
+ {
+  "query": "India PLI manufacturing export",
+  "sectors": [
+   "Capital Goods",
+   "Electronics",
+   "Chemicals",
+   "Specialty Chem"
+  ],
+  "theme": "Make in India / PLI",
+  "emoji": "\ud83c\udfed"
+ },
+ {
+  "query": "India real estate housing boom",
+  "sectors": [
+   "Real Estate"
+  ],
+  "theme": "Real Estate Cycle",
+  "emoji": "\ud83c\udfe0"
+ },
+ {
+  "query": "India defence indigenous stocks",
+  "sectors": [
+   "Aerospace",
+   "Engineering"
+  ],
+  "theme": "Defence Indigenisation",
+  "emoji": "\ud83d\udee1\ufe0f"
+ },
+ {
+  "query": "cloud computing SaaS India",
+  "sectors": [
+   "IT/Enterprise",
+   "IT",
+   "Technology"
+  ],
+  "theme": "Cloud & SaaS",
+  "emoji": "\u2601\ufe0f"
+ }
+]
