@@ -19262,11 +19262,21 @@ function intelHubSectorStrength(sector) {
 // ── COMMAND CENTER REFRESH ──
 function refreshCommandCenter() {
   try {
-    // Day Trade Panel
-    var dtWallet = window._dayTradeWallet;
+    // Day Trade Panel — read from localStorage via getDT()
+    var dtWallet = (typeof getDT === 'function') ? getDT() : null;
     if (dtWallet) {
-      var dtPnl = (dtWallet.todayPnl || 0);
-      var dtPnlPct = dtWallet.initialCash > 0 ? (dtPnl / dtWallet.initialCash * 100) : 0;
+      // Compute today's P&L from dailyHistory + open position unrealized
+      var dtTodayStr = new Date().toISOString().slice(0,10);
+      var dtTodayHist = (dtWallet.dailyHistory || []).find(function(h) { return h.date === dtTodayStr; });
+      var dtRealizedPnl = dtTodayHist ? (dtTodayHist.netPnl || 0) : 0;
+      var dtUnrealPnl = 0;
+      (dtWallet.positions || []).forEach(function(p) {
+        var cp = p.currentPrice || p.buyPrice || 0;
+        dtUnrealPnl += (cp - (p.buyPrice || 0)) * (p.qty || 0);
+      });
+      var dtPnl = dtRealizedPnl + dtUnrealPnl;
+      var dtInitial = typeof DT_START !== 'undefined' ? DT_START : 2000000;
+      var dtPnlPct = dtInitial > 0 ? (dtPnl / dtInitial * 100) : 0;
       var el = document.getElementById('cmdDTPnl');
       if (el) { el.textContent = (dtPnl >= 0 ? '+' : '') + '₹' + Math.abs(dtPnl).toLocaleString('en-IN', {maximumFractionDigits:0}); el.style.color = dtPnl >= 0 ? 'var(--green)' : 'var(--red)'; }
       var bar = document.getElementById('cmdDTBar');
@@ -19288,18 +19298,29 @@ function refreshCommandCenter() {
       var posDiv = document.getElementById('cmdDTPositions');
       if (posDiv && dtWallet.positions && dtWallet.positions.length > 0) {
         posDiv.innerHTML = dtWallet.positions.map(function(p) {
-          var pnl = p.currentPrice ? ((p.currentPrice - p.entryPrice) / p.entryPrice * 100) : 0;
+          var ep = p.buyPrice || p.entryPrice || 0;
+          var pnl = (p.currentPrice && ep) ? ((p.currentPrice - ep) / ep * 100) : 0;
           var clr = pnl >= 0 ? 'var(--green)' : 'var(--red)';
           return '<div class="cmd-pos-row"><span class="cmd-pos-ticker">' + p.ticker + '</span><span style="color:' + clr + ';font-weight:600">' + (pnl >= 0 ? '+' : '') + pnl.toFixed(1) + '%</span></div>';
         }).join('');
       }
     }
 
-    // Paper Trade Panel
-    var ptWallet = window._paperWallet;
+    // Paper Trade Panel — read from localStorage via getPT()
+    var ptWallet = (typeof getPT === 'function') ? getPT() : null;
     if (ptWallet) {
-      var ptTotal = (ptWallet.cash || 0) + (ptWallet.holdingsValue || 0);
-      var ptReturn = ptWallet.initialCash > 0 ? ((ptTotal - ptWallet.initialCash) / ptWallet.initialCash * 100) : 0;
+      // Compute holdings value — lookup live prices same way as updatePTDisplay
+      var ptHoldingsVal = 0;
+      (ptWallet.positions || []).forEach(function(p) {
+        var stk = (typeof stocks !== 'undefined') ? stocks.find(function(s) { return s.ticker === p.ticker; }) : null;
+        var price = stk ? (stk.cmp || p.avgPrice || 0) : (p.avgPrice || 0);
+        if ((!stk || !stk.cmp) && window._extraPrices && window._extraPrices[p.ticker]) { var ep = window._extraPrices[p.ticker]; if (ep.cmp > 0) price = ep.cmp; }
+        p.currentPrice = price;
+        ptHoldingsVal += price * (p.qty || 0);
+      });
+      var ptTotal = (ptWallet.cash || 0) + ptHoldingsVal;
+      var ptInitial = ptWallet.initialCash || 10000000;
+      var ptReturn = ptInitial > 0 ? ((ptTotal - ptInitial) / ptInitial * 100) : 0;
       var ptEl = document.getElementById('cmdPTPnl');
       if (ptEl) { ptEl.textContent = (ptReturn >= 0 ? '+' : '') + ptReturn.toFixed(1) + '%'; ptEl.style.color = ptReturn >= 0 ? 'var(--green)' : 'var(--red)'; }
       var ptBar = document.getElementById('cmdPTBar');
@@ -19318,7 +19339,8 @@ function refreshCommandCenter() {
       var ptPosDiv = document.getElementById('cmdPTPositions');
       if (ptPosDiv && ptWallet.positions && ptWallet.positions.length > 0) {
         ptPosDiv.innerHTML = ptWallet.positions.map(function(p) {
-          var pnl = p.currentPrice ? ((p.currentPrice - p.buyPrice) / p.buyPrice * 100) : 0;
+          var bp = p.avgPrice || p.buyPrice || 0;
+          var pnl = (p.currentPrice && bp) ? ((p.currentPrice - bp) / bp * 100) : 0;
           var clr = pnl >= 0 ? 'var(--green)' : 'var(--red)';
           return '<div class="cmd-pos-row"><span class="cmd-pos-ticker">' + p.ticker + '</span><span style="color:' + clr + ';font-weight:600">' + (pnl >= 0 ? '+' : '') + pnl.toFixed(1) + '%</span></div>';
         }).join('');
@@ -19400,11 +19422,12 @@ setInterval(function() {
 var _origSwitchMajorTab = typeof switchMajorTab === 'function' ? switchMajorTab : null;
 // We'll hook into it after DOM load
 
-// Initial refresh after prices load
+// Initial refresh after prices load — double refresh to catch late price data
 var _cmdInitInterval = setInterval(function() {
   if (typeof stocks !== 'undefined' && stocks.length > 0) {
     clearInterval(_cmdInitInterval);
-    setTimeout(refreshCommandCenter, 2000);
+    setTimeout(refreshCommandCenter, 1000);
+    setTimeout(refreshCommandCenter, 5000); // second pass after prices settle
   }
 }, 1000);
 
