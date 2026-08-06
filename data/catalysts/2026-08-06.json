@@ -1,0 +1,322 @@
+[
+ {
+  "type": "EARNINGS",
+  "company": "BSE Ltd",
+  "ticker": "BSE",
+  "signal": "Q1 FY27 RECORD (Aug 4): Consolidated PAT Rs 872.7 Cr (+62% YoY), Revenue Rs 1,706.8 Cr (+63%). Transaction charges Rs 1,327.7 Cr (+80%) on derivatives surge; EBITDA margin 67% (from 65%), net margin 51%. Management: best quarter on record.",
+  "source": "BSE Q1 FY27 Investor Presentation / Investing.com",
+  "date": "2026-08-04",
+  "severity": "HIGH",
+  "icon": "ð¹"
+ },
+ {
+  "type": "POLICY",
+  "company": "Aug 4: 4-Day Rally Snapped Ahead of RBI",
+  "ticker": "",
+  "signal": "Sensex -210.08 (-0.27%) to 78,428.95; Nifty -159.40 (-0.64%) to 24,614.90 in volatile session â partial giveback of Aug 3 CAS-driven surge. Metals only sectoral gainer; Realty and IT led decline. Caution ahead of RBI policy Aug 5 + weekly expiry.",
+  "source": "HDFC Sky / Liquide / APAC News",
+  "date": "2026-08-04",
+  "severity": "HIGH",
+  "icon": "ð"
+ },
+ {
+  "type": "POLICY",
+  "company": "RBI MPC Decision TODAY 10am",
+  "ticker": "",
+  "signal": "Governor Sanjay Malhotra announces policy at 10am Aug 5. Consensus: HOLD at 5.25% for 4th straight meeting (Reuters poll: 68/72 economists; 4 see 25bps HIKE, none see cut). Context: resilient growth but rising inflation + elevated crude. Rate-sensitives (banks, NBFC, realty, autos) on watch.",
+  "source": "Business Standard / Angel One / NewsX",
+  "date": "2026-08-05",
+  "severity": "HIGH",
+  "icon": "ð¦"
+ },
+ {
+  "type": "POLICY",
+  "company": "Crude Rebounds: Brent Back to $86",
+  "ticker": "",
+  "signal": "Brent rebounded ~2.9% to ~$86.20 on Aug 4 after the Aug 3 crash to $83.82 â partial reversal of the Iran-peace-talks relief. OMC/paints/aviation/tyres tailwind intact but fading at the margin; watch $90 as regime trigger.",
+  "source": "Business Standard / HDFC Sky",
+  "date": "2026-08-04",
+  "severity": "MEDIUM",
+  "icon": "ð¢ï¸"
+ },
+ {
+  "type": "ORDER_WIN",
+  "company": "KEC International",
+  "ticker": "KEC",
+  "signal": "Rs 1,063 Cr multi-business orders announced Aug 3 across Civil, T&D, Renewables, Cables & Conductors. ~Rs 6,300 Cr new business since early May; FY27 YTD order intake >Rs 5,200 Cr. Order-book visibility compounding.",
+  "source": "Trade Brains / company filing",
+  "date": "2026-08-03",
+  "severity": "HIGH",
+  "icon": "ðï¸"
+ },
+ {
+  "type": "ORDER_WIN",
+  "company": "NCC Ltd",
+  "ticker": "NCC",
+  "signal": "Received 3 orders totalling Rs 1,052.71 Cr (ex-GST) in July 2026 â Rs 590.38 Cr Buildings Division + Rs 462.33 Cr Water Division. Shares rose ~3% on disclosure.",
+  "source": "Trade Brains / NSE filing",
+  "date": "2026-08-03",
+  "severity": "MEDIUM",
+  "icon": "ðï¸"
+ },
+ {
+  "type": "POLICY",
+  "company": "SEBI Restores Exchange-Route Buybacks",
+  "ticker": "",
+  "signal": "From Aug 1, 2026 listed companies can again buy back shares via the stock-exchange route â faster alternative to tender offers, halted since Apr 2025. Expect a pickup in buyback announcements from cash-rich IT/mid-caps; sentiment support for the tape.",
+  "source": "Prism News / SEBI",
+  "date": "2026-08-01",
+  "severity": "MEDIUM",
+  "icon": "ð"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "NSE (unlisted) Q1 FY27",
+  "ticker": "",
+  "signal": "PAT Rs 3,120 Cr (+8.7% YoY) despite revenue -8.2% to Rs 4,560 Cr; EBITDA margin expands to 77.9% (from 73.1%). IPO plans gain momentum post-SEBI settlement. Read-across: exchange/capital-market plays (BSE, CDSL, depositories) in favour.",
+  "source": "Free Press Journal / Indian Masterminds",
+  "date": "2026-08-04",
+  "severity": "MEDIUM",
+  "icon": "ð¹"
+ },
+ {
+  "type": "FII_FLOW",
+  "company": "FII + DII Both Buyers Aug 3",
+  "ticker": "",
+  "signal": "Aug 3 cash: FII net BUY +Rs 922.30 Cr, DII net BUY +Rs 1,571.20 Cr â both buyers. FII cash buy streak extends (Jul 29 +2,982, Jul 30 +3,624, Jul 31 +277) but FII stays net short index futures â hedged optimism.",
+  "source": "5paisa / NSE provisional",
+  "date": "2026-08-03",
+  "severity": "MEDIUM",
+  "icon": "ð"
+ },
+ {
+  "type": "POLICY",
+  "company": "Aug 3 Rally: Bank Nifty Fresh High",
+  "ticker": "",
+  "signal": "4th straight up day: Nifty +1.60% (+390.70) to 24,774.30 â first close above 24,700; Bank Nifty FRESH HIGH 58,247.95 (+1.72%); Sensex +544.39 to 78,639.03. Nifty IT +3% led (TCS, Infosys); new Closing Auction Session (CAS) rollout drove late-session surge. Drivers: FII inflows, crude crash, steady Q1 earnings.",
+  "source": "HDFC Sky / India Infoline",
+  "date": "2026-08-03",
+  "severity": "HIGH",
+  "icon": "ð"
+ },
+ {
+  "type": "POLICY",
+  "company": "Crude CRASH Below $80",
+  "ticker": "",
+  "signal": "Crude plunged >5% on Aug 3: WTI -5.97% to $79.62/bbl, Brent -4.68% to $83.82 â after surging 20%+ in July â as Trump announced Iran peace talks will resume following canceled military strike. Big tailwind for OMCs, paints (Asian Paints), aviation, tyres (Balkrishna); reverses the input-cost squeeze hitting Maruti/IOC.",
+  "source": "TradingEconomics / Fortune",
+  "date": "2026-08-03",
+  "severity": "HIGH",
+  "icon": "ð¢ï¸"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "Dixon Technologies",
+  "ticker": "DIXON",
+  "signal": "Q1 FY27 BLOWOUT (Jul 31): Consolidated PAT Rs 717.83 Cr (+156.3% YoY, +140.9% QoQ); Revenue Rs 16,076 Cr (+50% YoY). Electronics manufacturing scale-up + PLI momentum intact.",
+  "source": "BSE Filing / EquityBulls",
+  "date": "2026-07-31",
+  "severity": "HIGH",
+  "icon": "ð¹"
+ },
+ {
+  "type": "EARNINGS_MISS",
+  "company": "Indian Oil Corporation",
+  "ticker": "IOC",
+  "signal": "Q1 FY27 SHARP LOSS (Aug 1 slides): Net loss Rs 2,661 Cr vs Rs 11,378 Cr profit in prior quarter â July crude volatility/inventory losses. Watch: crude now crashing below $80 flips the driver positive for Q2.",
+  "source": "Investing.com / IOC Investor Presentation",
+  "date": "2026-08-01",
+  "severity": "HIGH",
+  "icon": "ð"
+ },
+ {
+  "type": "EARNINGS_UPCOMING",
+  "company": "Results Week: 350+ Companies Aug 3-8",
+  "ticker": "SBIN",
+  "signal": "UPCOMING: 350+ companies report Q1 FY27 during Aug 3-8 week incl SBI, Bharti Airtel, ONGC. PTC India board Aug 4 (call Aug 5); Cummins India Aug 5 â capex/industrials read.",
+  "source": "Goodreturns / BSE Calendar",
+  "date": "2026-08-04",
+  "severity": "MEDIUM",
+  "icon": "ð"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "TVS Motor",
+  "ticker": "TVSMOTOR",
+  "signal": "Q1 FY27 RECORD BEAT: PAT Rs 1,174 Cr (+51% YoY), Revenue Rs 13,896 Cr (+38%). All-time-high EBITDA Rs 1,779 Cr (+41%), margin 12.8% (+30bps). 2W momentum + EV (iQube) trajectory strong â confirms M&M/Bajaj auto strength.",
+  "source": "BSE Filing / ScanX",
+  "date": "2026-07-31",
+  "severity": "HIGH",
+  "icon": "ð¹"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "GAIL (India)",
+  "ticker": "GAIL",
+  "signal": "Q1 FY27 BLOWOUT: PAT Rs 4,670 Cr (+96% YoY), total income Rs 41,482 Cr (+16%). Higher gas transmission volumes + improved marketing margins.",
+  "source": "BSE Filing / Business Standard",
+  "date": "2026-07-31",
+  "severity": "HIGH",
+  "icon": "ð¹"
+ },
+ {
+  "type": "EARNINGS_MISS",
+  "company": "Maruti Suzuki",
+  "ticker": "MARUTI",
+  "signal": "Q1 FY27 MIXED: Standalone PAT Rs 3,352 Cr (-11% YoY vs Rs 3,758 Cr) on higher raw-material costs; Revenue Rs 52,456 Cr (+36%). EBITDA Rs 4,312 Cr (-7%). Volumes/SUV mix strong; margin squeeze the watch item vs M&M +34%, TVS +51%.",
+  "source": "BSE Filing / Upstox / Business Today",
+  "date": "2026-07-31",
+  "severity": "HIGH",
+  "icon": "ð"
+ },
+ {
+  "type": "EARNINGS_MISS",
+  "company": "JSW Energy",
+  "ticker": "JSWENERGY",
+  "signal": "Q1 FY27 WEAK: PAT Rs 532 Cr (-36% YoY) on higher finance costs; power sales -5% to 12.9 BU. But record 1,081 MW capacity added â total 14,535 MW, 61% renewable; growth capex intact, P&L pressured.",
+  "source": "BSE Filing / Business Standard / Upstox",
+  "date": "2026-07-31",
+  "severity": "MEDIUM",
+  "icon": "ð"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "Indian Energy Exchange",
+  "ticker": "IEX",
+  "signal": "Q1 FY27: PAT Rs 134.76 Cr (+11.6% YoY, +3.8% QoQ). Steady volume-led exchange growth.",
+  "source": "BSE Filing / Kotak Neo",
+  "date": "2026-07-31",
+  "severity": "MEDIUM",
+  "icon": "ð¹"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "Vedanta",
+  "ticker": "VEDL",
+  "signal": "Q1 FY27 BLOWOUT: Consolidated PAT Rs 5,473 Cr (+71.8% YoY), Revenue Rs 24,205 Cr (+53.6%). Demerged arms strong: Vedanta Aluminium PAT Rs 5,629 Cr (+216%, Rs 8/sh dividend); Oil & Gas PAT Rs 945 Cr vs prior-quarter loss. Metal prices + weak rupee tailwind.",
+  "source": "BSE Filing / Business Standard",
+  "date": "2026-07-30",
+  "severity": "HIGH",
+  "icon": "ð¹"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "Mahindra & Mahindra",
+  "ticker": "M&M",
+  "signal": "Q1 FY27 BEAT: Consolidated PAT Rs 5,455 Cr (+34% YoY vs Rs 4,083 Cr), Revenue Rs 58,188 Cr (+28%). SUV + tractor momentum â positive read-through for Maruti/TVS reporting Jul 31.",
+  "source": "BSE Filing / Business Standard",
+  "date": "2026-07-30",
+  "severity": "HIGH",
+  "icon": "ð¹"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "Coal India",
+  "ticker": "COALINDIA",
+  "signal": "Q1 FY27: Consolidated PAT Rs 8,850 Cr, Revenue Rs 46,255 Cr (+7.8% YoY). Rs 5.50/share interim dividend; coal offtake improving. Strong PSU results day alongside NTPC + IRFC.",
+  "source": "BSE Filing / Indian Masterminds",
+  "date": "2026-07-30",
+  "severity": "MEDIUM",
+  "icon": "ð¹"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "IRFC",
+  "ticker": "IRFC",
+  "signal": "Q1 FY27: PAT Rs 1,927 Cr (+10.4% YoY), Total income Rs 8,391 Cr (+21.3%). Zero NPA maintained; record net worth.",
+  "source": "BSE Filing / Indian Masterminds",
+  "date": "2026-07-30",
+  "severity": "MEDIUM",
+  "icon": "ð¹"
+ },
+ {
+  "type": "ORDER_WIN",
+  "company": "J Kumar Infraprojects",
+  "ticker": "JKIL",
+  "signal": "Bags Rs 2,360 Cr NHAI EPC order; shares jumped on the win. Order-book visibility strengthens. RVNL also got Rs 358.97 Cr East Central Railway doubling LoA same week.",
+  "source": "NSE Filing / HDFC Sky",
+  "date": "2026-07-29",
+  "severity": "HIGH",
+  "icon": "ðï¸"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "Asian Paints",
+  "ticker": "ASIANPAINT",
+  "signal": "Q1 FY27 STRONG BEAT: PAT Rs 1,539 Cr (+40% YoY), Revenue Rs 10,521 Cr (+17.9%). PBDIT margin 20.6% (from 18.2%). International net sales +27.2% â Egypt/UAE/Oman/Nepal driving; intl PBT +94.9%. New watch: crude back above $90.",
+  "source": "BSE Filing / Business Standard",
+  "date": "2026-07-29",
+  "severity": "HIGH",
+  "icon": "ð¹"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "Balkrishna Industries",
+  "ticker": "BALKRISIND",
+  "signal": "Q1 FY27 BEAT: PAT Rs 451 Cr (+56.4% YoY), Revenue Rs 3,455 Cr (+25.2%). Rs 4/share dividend declared. Off-highway tyre (agri/OTR) export demand strong.",
+  "source": "BSE Filing / Sahi",
+  "date": "2026-07-29",
+  "severity": "HIGH",
+  "icon": "ð¹"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "Waaree Energies",
+  "ticker": "WAAREEENER",
+  "signal": "Q1 FY27: Revenue Rs 7,932 Cr (+79% YoY), PAT Rs 850 Cr (+14%), EBITDA Rs 1,440 Cr (+44%). Solar scale-up + US arm's 236 MW Kentucky supply win. Margin compression is the watch item.",
+  "source": "BSE Filing / Upstox",
+  "date": "2026-07-29",
+  "severity": "HIGH",
+  "icon": "ð¹"
+ },
+ {
+  "type": "EARNINGS",
+  "company": "Bajaj Housing Finance",
+  "ticker": "BAJAJHFL",
+  "signal": "Q1 FY27: PAT Rs 715 Cr (+23% YoY). AUM Rs 1.50 L Cr (+24%). Record AUM addition Rs 8,918 Cr; all-time-high disbursements Rs 19,509 Cr. NII +9% vs AUM +24% = margin pressure.",
+  "source": "BSE Filing / Upstox",
+  "date": "2026-07-29",
+  "severity": "HIGH",
+  "icon": "ð¹"
+ },
+ {
+  "type": "EARNINGS_MISS",
+  "company": "KPIT Technologies",
+  "ticker": "KPITTECH",
+  "signal": "Q1 FY27 WEAK: PAT Rs 117 Cr (-28.1% QoQ vs Rs 163 Cr). Revenue Rs 1,675 Cr (-2.1% QoQ). Auto-ER&D demand soft; IT tape stays selective post-Infosys guide cut.",
+  "source": "BSE Filing / PTI",
+  "date": "2026-07-29",
+  "severity": "MEDIUM",
+  "icon": "ð"
+ },
+ {
+  "type": "FII_FLOW",
+  "company": "FII + DII Both Buyers Jul 31",
+  "ticker": "",
+  "signal": "Jul 31: FII net BUY +Rs 277.48 Cr cash; DII net BUY +Rs 2,260.37 Cr. FII buy streak extends (Jul 29 +2,982 Cr, Jul 30 ~+3,624 Cr) â DII firepower doing the heavy lifting.",
+  "source": "NSE / Trendlyne / 5paisa",
+  "date": "2026-07-31",
+  "severity": "HIGH",
+  "icon": "ð"
+ },
+ {
+  "type": "POLICY",
+  "company": "Macro: Best Week of July",
+  "ticker": "",
+  "signal": "Nifty closed Jul 31 at 24,383.60 (+0.27%), Sensex 78,094.64 (+0.21%) â weekly +2.5% (~600 pts), best of July. Brent eased to ~$88, WTI ~$82 as Middle East shipping lanes reopened; rupee firmed to 95.39/USD (from 95.68). Tailwind for OMCs, paints, aviation, tyres.",
+  "source": "MarketScreener / Kotak Neo / TS2",
+  "date": "2026-07-31",
+  "severity": "HIGH",
+  "icon": "ð"
+ },
+ {
+  "type": "EARNINGS_UPCOMING",
+  "company": "This Week: PTC India, Cummins",
+  "ticker": "CUMMINSIND",
+  "signal": "UPCOMING: PTC India board meets Aug 4 for Q1 FY27 (investor call Aug 5); Cummins India reports Aug 5 â capex/industrials read. Early Nifty-50 season: healthy revenue/operating growth, softer PAT as costs squeeze margins.",
+  "source": "ScanX / CompoundingAI / Navia",
+  "date": "2026-08-03",
+  "severity": "MEDIUM",
+  "icon": "ð"
+ }
+]
