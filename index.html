@@ -5062,8 +5062,10 @@ function computeMarketSentimentScore() {
     else if (breadth < 30) { sentiment.score -= 3; sentiment.factors.push('BROAD SELLOFF (' + Math.round(breadth) + '% advancing)'); }
     else if (breadth < 45) { sentiment.score -= 1; }
   }
-  if (window._smartSignalCache) {
-    const alerts = Object.values(window._smartSignalCache).filter(s => s.total >= 60).length;
+  // v20.1 FIX: window._smartSignalCache is never written anywhere; the real store is the
+  // module-scoped SMART_SIGNAL_CACHE. Shadow-alert component could never fire.
+  if (typeof SMART_SIGNAL_CACHE !== 'undefined' && Object.keys(SMART_SIGNAL_CACHE).length) {
+    const alerts = Object.values(SMART_SIGNAL_CACHE).filter(s => s && s.total >= 60).length;
     if (alerts > 10) { sentiment.score += 2; sentiment.factors.push(alerts + ' Shadow Alerts — accumulation'); }
     else if (alerts > 5) { sentiment.score += 1; }
   }
@@ -5692,8 +5694,21 @@ function aiScore(s) {
     } else { signal += 4; }
   }
   // Revenue/margin momentum (if available from fundamentals)
-  if (s.revGrowth && s.revGrowth > 20) { signal += 5; factors.push('Revenue growth ' + s.revGrowth + '%'); }
-  else if (s.revGrowth && s.revGrowth > 10) { signal += 3; }
+  // v20.1 FIX: s.revGrowth is never written anywhere, so +5/+3 were unreachable and this
+  // always defaulted to +2. No revenue feed exists; deriving one from PAT would be wrong
+  // data. Use the REAL earnings growth from the catalyst feed, labelled as earnings.
+  var _egr = null;
+  try {
+    if (typeof LiveCatalystEngine !== 'undefined' && typeof LiveCatalystEngine.getEarnings === 'function') {
+      var _tkBase = (s.ticker || '').replace('.NS','').replace('.BO','');
+      var _em = (LiveCatalystEngine.getEarnings() || []).find(function(e){ return e && e.ticker === _tkBase; });
+      if (_em && typeof _em.patGrowth === 'number' && _em.result !== 'MISS') _egr = _em.patGrowth;
+    }
+  } catch(e) { _egr = null; }
+  if (_egr !== null && _egr > 20) { signal += 5; factors.push('Earnings growth PAT +' + _egr + '% YoY'); }
+  else if (_egr !== null && _egr > 10) { signal += 3; factors.push('Earnings growth PAT +' + _egr + '%'); }
+  else if (typeof s.revGrowth === 'number' && s.revGrowth > 20) { signal += 5; factors.push('Revenue growth ' + s.revGrowth + '%'); }
+  else if (typeof s.revGrowth === 'number' && s.revGrowth > 10) { signal += 3; }
   else { signal += 2; }
   // Layer bonus (reduced weight to break circular dependency)
   if (s.layer === 'Immediate') { signal += 5; }
@@ -12634,13 +12649,54 @@ var AIAgentEngine = {
   },
 
   // ── Start/stop market-hours polling ──
+  // v20.1: publish the REAL day-trade wallet so the AI Brain reads truth instead of
+  // inferring positions from its own past decisions. When a decision failed to execute,
+  // the Brain believed it held a position it never opened (phantom positions) and guarded
+  // those slots, refusing new trades for the rest of the session. Primary device only.
+  publishWalletState: function() {
+    try {
+      var self = this;
+      var MAXPOS = self.MAX_POSITIONS || 3;
+      if (typeof JainPMS_Cloud === 'undefined' || !JainPMS_Cloud.isPrimary) return;
+      var w = getDT();
+      if (!w) return;
+      var positions = (w.positions || []).map(function(p) {
+        var cur = p.currentPrice || p.buyPrice || 0;
+        return { ticker:p.ticker, sector:p.sector||'', qty:p.qty, buyPrice:p.buyPrice,
+                 currentPrice:cur, stopLoss:p.stopLoss||null,
+                 pnlPct: p.buyPrice>0 ? Math.round(((cur-p.buyPrice)/p.buyPrice*1000))/10 : 0,
+                 openedAt: p.time||null };
+      });
+      var todayStr = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'})).toISOString().slice(0,10);
+      var soldToday = [];
+      (w.trades||[]).forEach(function(t){
+        if (t.type==='SELL' && t.time && t.time.slice(0,10)===todayStr && soldToday.indexOf(t.ticker)<0) soldToday.push(t.ticker);
+      });
+      var buysToday = (w.trades||[]).filter(function(t){ return t.type==='BUY' && t.time && t.time.slice(0,10)===todayStr; }).length;
+      var payload = JSON.stringify({
+        type:'walletState',
+        data:{ ts:new Date().toISOString(),
+               istTime:new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}),
+               cash:Math.round(w.cash||0), positions:positions, openCount:positions.length,
+               maxPositions:MAXPOS, freeSlots:Math.max(0,MAXPOS-positions.length),
+               heldTickers:positions.map(function(p){return p.ticker;}),
+               soldToday:soldToday, buysToday:buysToday, device:JainPMS_Cloud.deviceId },
+        device:JainPMS_Cloud.deviceId, v:'20.1'
+      });
+      fetch(JainPMS_Cloud.URL, { method:'POST', mode:'no-cors',
+        headers:{'Content-Type':'text/plain;charset=utf-8'}, body:payload });
+    } catch(e) { console.warn('[AI-AGENT] publishWalletState failed:', e.message); }
+  },
+
   startPolling: function() {
     var self = this;
     if (self._pollTimer) clearInterval(self._pollTimer);
     self._pollTimer = setInterval(function() {
       if (!self.isMarketHours()) return;
+      self.publishWalletState();
       self.fetchAndExecute();
     }, self._pollInterval);
+    self.publishWalletState();
   },
 
   stopPolling: function() {
@@ -12886,21 +12942,35 @@ var AIAgentEngine = {
         return;
       }
 
-      // v18.3.2 UPPER CIRCUIT HARD GATE — reject AI Brain picks at circuit
-      if (dec.entryPrice > 0 && dec.stopLoss > 0) {
-        var prevCloseEst = dec.entryPrice / (1 + ((dec.entryPrice - dec.stopLoss) / dec.stopLoss));
-        // Better: use changePct from the decision if available
-        var aiChangePct = 0;
-        if (dec.reasoning && dec.reasoning.match && dec.reasoning.match(/[+](\d+\.?\d*)%/)) {
-          aiChangePct = parseFloat(dec.reasoning.match(/[+](\d+\.?\d*)%/)[1]);
+      // v18.3.2 UPPER CIRCUIT HARD GATE
+      // v20.1 FIX: previously regex-matched the AI Brain's reasoning text for "+NN%",
+      // which grabbed EARNINGS growth ("PAT +75% YoY") and treated it as an intraday move,
+      // causing false circuit rejections on HINDALCO/TRENT. Now uses REAL intraday change
+      // from live price data; if no live data exists it does not guess.
+      if (dec.entryPrice > 0) {
+        var realChangePct = 0;
+        var realDayHigh = dec.entryPrice;
+        if (typeof stocks !== 'undefined') {
+          var _ls = stocks.find(function(s2) { return s2.ticker === dec.ticker; });
+          if (_ls) {
+            if (_ls.changePct) realChangePct = Math.abs(parseFloat(_ls.changePct));
+            if (_ls.dayHigh && _ls.dayHigh > 0) realDayHigh = _ls.dayHigh;
+          }
         }
-        if (aiChangePct > 0) {
-          var aiCircuit = isAtUpperCircuit(aiChangePct, dec.entryPrice, dec.entryPrice);
+        if (!realChangePct && window._extraPrices && window._extraPrices[dec.ticker]) {
+          var _ep = window._extraPrices[dec.ticker];
+          if (_ep.changePct) realChangePct = Math.abs(parseFloat(_ep.changePct));
+          if (_ep.dayHigh && _ep.dayHigh > 0) realDayHigh = _ep.dayHigh;
+        }
+        if (realChangePct > 0) {
+          var aiCircuit = isAtUpperCircuit(realChangePct, dec.entryPrice, realDayHigh);
           if (aiCircuit.atCircuit) {
-            console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — ' + aiCircuit.reason);
+            console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' - ' + aiCircuit.reason + ' (real change=' + realChangePct.toFixed(2) + '%)');
             self._executedIds[decisionKey] = true;
             return;
           }
+        } else {
+          console.log('[AI-AGENT] ' + dec.ticker + ' - no live intraday data, circuit check skipped');
         }
       }
 
@@ -12966,7 +13036,14 @@ var AIAgentEngine = {
       // Old behaviour: HIGH conviction = 30% of wallet in one intraday stock. One 1.5xATR
       // stop-out on that position breaches the daily circuit breaker in a single trade.
       if (typeof getRiskBasedPositionSize === 'function') {
-        var _rb = getRiskBasedPositionSize(walletValue, entryPrice, dec.stopLossPct || 0.008, riskGate.sizeMultiplier || 1.0);
+        // v20.1 FIX: Brain sends stopLoss as an ABSOLUTE PRICE, so dec.stopLossPct was always
+        // undefined and every position assumed a 0.8% stop, corrupting risk-based sizing.
+        var _slPct = dec.stopLossPct;
+        if (!_slPct && dec.stopLoss > 0 && entryPrice > 0 && dec.stopLoss < entryPrice) {
+          _slPct = (entryPrice - dec.stopLoss) / entryPrice;
+        }
+        if (!_slPct || _slPct <= 0 || _slPct > 0.10) _slPct = 0.015;
+        var _rb = getRiskBasedPositionSize(walletValue, entryPrice, _slPct, riskGate.sizeMultiplier || 1.0);
         if (_rb && _rb.qty > 0) {
           var _rbBudget = _rb.qty * entryPrice;
           if (positionBudget > _rbBudget) {
@@ -16136,9 +16213,19 @@ function discoverLiveMovers(candidates) {
 async function runDayTradeAI() {
   var w = getDT();
 
-  if (w.positions.length > 0) {
-    alert('You already have ' + w.positions.length + ' open positions. Square off first before running again.');
+  // v20.1 FIX: was an all-or-nothing gate that locked the internal engine out of the
+  // ENTIRE session as soon as ONE position existed - with free slots and idle cash -
+  // making the 3-position cap below unreachable code.
+  var DT_MAX_POSITIONS = 3;
+  if (w.positions.length >= DT_MAX_POSITIONS) {
+    console.log('[DT] All ' + DT_MAX_POSITIONS + ' slots full (' + w.positions.map(function(p){return p.ticker;}).join(', ') + ')');
+    if (!window._dtAutoRun) {
+      alert('All ' + DT_MAX_POSITIONS + ' day-trade slots are full. Wait for an exit or square off to free a slot.');
+    }
     return;
+  }
+  if (w.positions.length > 0) {
+    console.log('[DT] v20.1: ' + w.positions.length + '/' + DT_MAX_POSITIONS + ' slots used - hunting for ' + (DT_MAX_POSITIONS - w.positions.length) + ' more.');
   }
 
   if (w.cash < 15000) {
