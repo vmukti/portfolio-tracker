@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Fyers Auth Code</title>
+<style>body{background:#0b0e14;color:#dbe2f0;font:16px/1.6 -apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90vh;padding:20px;text-align:center}
+.code{background:#131722;border:2px solid #2ecc8f;border-radius:12px;padding:20px;margin:20px 0;font:14px monospace;word-break:break-all;max-width:700px;color:#2ecc8f}
+button{background:#2ecc8f;color:#0b0e14;border:0;padding:12px 30px;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer}
+.err{color:#ff5d6c}.ok{color:#2ecc8f;font-weight:700}</style></head><body>
+<h2>Fyers Authorization Code Catcher</h2>
+<div id="out"></div>
+<script>
+var q=new URLSearchParams(location.search);
+var code=q.get("auth_code")||new URLSearchParams(location.hash.slice(1)).get("auth_code");
+var out=document.getElementById("out");
+if(code){out.innerHTML='<p class="ok">Code captured. Copy it, then paste as the FYERS_AUTH_CODE script property.</p><div class="code" id="c">'+code+'</div><button onclick="navigator.clipboard.writeText(document.getElementById(\'c\').textContent).then(function(){document.getElementById(\'done\').textContent=\'Copied!\'})">Copy code</button><p id="done"></p>';}
+else{out.innerHTML='<p class="err">No auth_code in the URL. Start again from the authorization link.</p>';}
+</script></body></html>
