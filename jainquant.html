@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JAINQUANT — Cockpit</title>
+<style>
+  :root{--bg:#0b0e14;--card:#131722;--line:#232838;--txt:#dbe2f0;--dim:#8a93a8;--green:#2ecc8f;--red:#ff5d6c;--amber:#f5b942;--blue:#5aa2ff}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif;padding:24px;max-width:1100px;margin:0 auto}
+  h1{font-size:19px;letter-spacing:.4px;display:flex;align-items:center;gap:12px}
+  h1 small{color:var(--dim);font-weight:400;font-size:12px}
+  .pill{padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
+  .alive{background:#123626;color:var(--green)} .stale{background:#3a2b12;color:var(--amber)} .halted{background:#3a1219;color:var(--red)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .card h2{font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;justify-content:space-between}
+  .cash{font-size:22px;font-weight:700}
+  .pnl-pos{color:var(--green)} .pnl-neg{color:var(--red)}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+  th{color:var(--dim);font-weight:500;text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase}
+  td{padding:5px 6px;border-bottom:1px solid var(--line)}
+  .empty{color:var(--dim);padding:14px 4px;font-style:italic}
+  .log{font:12px/1.7 ui-monospace,Menlo,monospace;color:var(--dim);max-height:260px;overflow:auto;white-space:pre-wrap}
+  .full{grid-column:1/-1}
+  .state-armed{color:var(--blue)} .state-filled{color:var(--green)} .state-expired,.state-skipped-held,.state-skipped-cash{color:var(--dim)}
+  .halt-banner{background:#3a1219;border:1px solid var(--red);color:#ffb3ba;border-radius:10px;padding:12px 16px;margin-top:14px;display:none}
+  footer{color:var(--dim);font-size:11px;margin-top:22px;text-align:center}
+</style>
+</head>
+<body>
+<h1>JAINQUANT <small>paper cockpit — viewer only, the executor trades</small> <span id="hb" class="pill stale">connecting…</span></h1>
+<div id="haltBanner" class="halt-banner"></div>
+
+<div class="grid">
+  <div class="card"><h2>Day Book <span id="dayPnl"></span></h2><div class="cash" id="dayCash">—</div><table id="dayPos"></table></div>
+  <div class="card"><h2>Swing Book <span id="swingPnl"></span></h2><div class="cash" id="swingCash">—</div><table id="swingPos"></table></div>
+  <div class="card full"><h2>Armed Decisions</h2><table id="armed"></table></div>
+  <div class="card"><h2>Today's Trades</h2><table id="trades"></table></div>
+  <div class="card"><h2>Executor Log</h2><div class="log" id="log">—</div></div>
+</div>
+<footer>JAINQUANT v1 · single-writer server-side execution · Jain-compliant universe · all trading is paper · refreshes every 30s</footer>
+
+<script>
+const SYNC='https://script.google.com/macros/s/AKfycbzbKgZ2JBCln8elHDx6_wt9DZRHJbeuomfonTI-KyjwDzaXjlohwys7BAusd68YjIawZA/exec';
+const inr=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+const todayIST=()=>new Date(Date.now()+5.5*36e5).toISOString().slice(0,10);
+
+function renderBook(w,posEl,cashEl,pnlEl){
+  if(!w){cashEl.textContent='not seeded';posEl.innerHTML='';return;}
+  cashEl.textContent=inr(w.cash);
+  const t=todayIST();
+  let realized=(w.trades||[]).filter(x=>x.type==='SELL'&&(x.time||'').startsWith(t)).reduce((s,x)=>s+(x.pnl||0),0);
+  let unreal=(w.positions||[]).reduce((s,p)=>s+((p.lastPx||p.buyPrice)-p.buyPrice)*p.qty,0);
+  const tot=realized+unreal;
+  pnlEl.innerHTML='<span class="'+(tot>=0?'pnl-pos':'pnl-neg')+'">'+(tot>=0?'+':'')+inr(tot).replace('₹','₹')+' today</span>';
+  posEl.innerHTML=(w.positions&&w.positions.length)
+    ? '<tr><th>Ticker</th><th>Qty</th><th>Entry</th><th>Last</th><th>P&L%</th><th>Stop</th></tr>'+w.positions.map(p=>{
+        const px=p.lastPx||p.buyPrice, r=100*(px-p.buyPrice)/p.buyPrice;
+        return `<tr><td><b>${p.ticker}</b></td><td>${p.qty}</td><td>${p.buyPrice}</td><td>${px}</td><td class="${r>=0?'pnl-pos':'pnl-neg'}">${r.toFixed(2)}%</td><td>-${p.stopPct}%</td></tr>`;}).join('')
+    : '<tr><td class="empty">no open positions</td></tr>';
+  return (w.trades||[]).filter(x=>(x.time||'').startsWith(t));
+}
+
+async function refresh(){
+  try{
+    const r=await fetch(SYNC+'?op=load&type=jqStatus&_='+Date.now()).then(r=>r.json());
+    let d=r&&r.data?(typeof r.data==='string'?JSON.parse(r.data):r.data):null;
+    if(d&&d.data)d=d.data;
+    if(!d){document.getElementById('hb').textContent='no data yet';return;}
+    // heartbeat
+    const hb=document.getElementById('hb');
+    const age=d.heartbeat?(Date.now()-new Date(d.heartbeat.at).getTime())/6e4:1/0;
+    if(d.halt){hb.className='pill halted';hb.textContent='HALTED';
+      const b=document.getElementById('haltBanner');b.style.display='block';
+      b.textContent='SEV-1 HALT: '+(d.halt.why||'')+' at '+(d.halt.at||'')+' — review, then run jqClearHalt.';}
+    else if(age<3){hb.className='pill alive';hb.textContent='LIVE · tick '+Math.round(age)+'m ago';}
+    else{hb.className='pill stale';hb.textContent=isFinite(age)?('stale · '+Math.round(age)+'m'):'no heartbeat (off-hours?)';}
+    // books
+    const dT=renderBook(d.day,document.getElementById('dayPos'),document.getElementById('dayCash'),document.getElementById('dayPnl'))||[];
+    const sT=renderBook(d.swing,document.getElementById('swingPos'),document.getElementById('swingCash'),document.getElementById('swingPnl'))||[];
+    // armed
+    const a=d.armed||[];
+    document.getElementById('armed').innerHTML=a.length
+      ? '<tr><th>ID</th><th>Book</th><th>Ticker</th><th>Type</th><th>Trigger</th><th>Alloc</th><th>Stop</th><th>State</th></tr>'+a.map(x=>
+        `<tr><td>${x.id}</td><td>${x.book}</td><td><b>${x.ticker}</b></td><td>${x.triggerType}</td><td>${x.trigger}</td><td>${inr(x.allocRs||0)}</td><td>-${x.stopPct||1.2}%</td><td class="state-${x.state}">${x.state}</td></tr>`).join('')
+      : '<tr><td class="empty">no armed decisions — Brain/desk arms them pre-market</td></tr>';
+    // today's trades (both books)
+    const tr=[...dT.map(x=>({...x,bk:'day'})),...sT.map(x=>({...x,bk:'swing'}))].sort((x,y)=>(y.time||'').localeCompare(x.time||''));
+    document.getElementById('trades').innerHTML=tr.length
+      ? '<tr><th>Time</th><th>Book</th><th></th><th>Ticker</th><th>Qty</th><th>Price</th><th>P&L</th></tr>'+tr.map(x=>
+        `<tr><td>${(x.time||'').slice(11,16)}</td><td>${x.bk}</td><td>${x.type}</td><td><b>${x.ticker}</b></td><td>${x.qty}</td><td>${x.price}</td><td class="${(x.pnl||0)>=0?'pnl-pos':'pnl-neg'}">${x.pnl!=null?inr(x.pnl):''}</td></tr>`).join('')
+      : '<tr><td class="empty">no trades today</td></tr>';
+    // log
+    document.getElementById('log').textContent=(d.log||[]).join('\n')||'—';
+  }catch(e){document.getElementById('hb').textContent='fetch error';}
+}
+refresh(); setInterval(refresh,30000);
+</script>
+</body>
+</html>
