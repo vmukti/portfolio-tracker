@@ -29,7 +29,6 @@
 </style>
 </head>
 <body>
-<div style="margin-bottom:10px"><a href="index.html" style="color:#5aa2ff;text-decoration:none;font-size:13px">&larr; Dashboard</a> &nbsp; <a href="recommendations.html" style="color:#5aa2ff;text-decoration:none;font-size:13px">Recommendations &rarr;</a></div>
 <h1>JAINQUANT <small>paper cockpit — viewer only, the executor trades</small> <span id="hb" class="pill stale">connecting…</span></h1>
 <div id="haltBanner" class="halt-banner"></div>
 
@@ -44,8 +43,20 @@
 
 <script>
 const SYNC='https://script.google.com/macros/s/AKfycbzbKgZ2JBCln8elHDx6_wt9DZRHJbeuomfonTI-KyjwDzaXjlohwys7BAusd68YjIawZA/exec';
+const PROXY='https://script.google.com/macros/s/AKfycby5PazxAw5pvDzI8om9qimkesKaasklCII19-5bUX5gAo0E92g4Zf67ynQscLkv1Q_OEw/exec';
 const inr=n=>'₹'+Math.round(n).toLocaleString('en-IN');
 const todayIST=()=>new Date(Date.now()+5.5*36e5).toISOString().slice(0,10);
+let liveQ={};
+async function fetchLive(tickers){
+  if(!tickers.length){liveQ={};return;}
+  try{
+    const syms=tickers.map(t=>t+'.NS').join(',');
+    const r=await fetch(PROXY+'?op=quotes&symbols='+encodeURIComponent(syms)+'&_='+Date.now()).then(r=>r.json());
+    const s=(r&&r.data&&r.data.stocks)||{};
+    liveQ={};
+    Object.keys(s).forEach(k=>{liveQ[k.replace('.NS','')]=s[k];});
+  }catch(e){}
+}
 
 function renderBook(w,posEl,cashEl,pnlEl){
   if(!w){cashEl.textContent='not seeded';posEl.innerHTML='';return;}
@@ -82,9 +93,15 @@ async function refresh(){
     const sT=renderBook(d.swing,document.getElementById('swingPos'),document.getElementById('swingCash'),document.getElementById('swingPnl'))||[];
     // armed
     const a=d.armed||[];
+    await fetchLive(a.filter(x=>x.state==='armed').map(x=>x.ticker));
     document.getElementById('armed').innerHTML=a.length
-      ? '<tr><th>ID</th><th>Book</th><th>Ticker</th><th>Type</th><th>Trigger</th><th>Alloc</th><th>Stop</th><th>State</th></tr>'+a.map(x=>
-        `<tr><td>${x.id}</td><td>${x.book}</td><td><b>${x.ticker}</b></td><td>${x.triggerType}</td><td>${x.trigger}</td><td>${inr(x.allocRs||0)}</td><td>-${x.stopPct||1.2}%</td><td class="state-${x.state}">${x.state}</td></tr>`).join('')
+      ? '<tr><th>ID</th><th>Book</th><th>Ticker</th><th>Type</th><th>Trigger</th><th>Live</th><th>Gap</th><th>Alloc</th><th>Stop</th><th>State</th></tr>'+a.map(x=>{
+          const q=liveQ[x.ticker];
+          const live=q?q.price:null;
+          const gap=(live!=null&&x.trigger)?(100*(live-x.trigger)/x.trigger):null;
+          const liveCell=live!=null?live.toFixed(2):(x.state==='armed'?'…':'—');
+          const gapCell=gap!=null?`<span class="${gap>=0?'pnl-pos':'pnl-neg'}">${gap>=0?'+':''}${gap.toFixed(2)}%</span>`:'—';
+          return `<tr><td>${x.id}</td><td>${x.book}</td><td><b>${x.ticker}</b></td><td>${x.triggerType}</td><td>${x.trigger}</td><td>${liveCell}</td><td>${gapCell}</td><td>${inr(x.allocRs||0)}</td><td>-${x.stopPct||1.2}%</td><td class="state-${x.state}">${x.state}</td></tr>`;}).join('')
       : '<tr><td class="empty">no armed decisions — Brain/desk arms them pre-market</td></tr>';
     // today's trades (both books)
     const tr=[...dT.map(x=>({...x,bk:'day'})),...sT.map(x=>({...x,bk:'swing'}))].sort((x,y)=>(y.time||'').localeCompare(x.time||''));
