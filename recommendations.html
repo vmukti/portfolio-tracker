@@ -24,6 +24,7 @@
 </style>
 </head>
 <body>
+<div style="margin-bottom:14px"><a href="index.html" style="color:var(--dim);text-decoration:none;font-size:12px">← Dashboard</a> &nbsp;·&nbsp; <a href="jainquant.html" style="color:var(--blue);text-decoration:none;font-size:12px">Cockpit →</a></div>
 <h1>Today's Recommendations <small>JAINQUANT research output — what the engine wants to do and why</small></h1>
 <div class="date" id="d"></div>
 <div id="list"><div class="empty">loading…</div></div>
@@ -34,9 +35,20 @@ This is the research output of an experimental PAPER trading system for study pu
 </footer>
 <script>
 const SYNC='https://script.google.com/macros/s/AKfycbzbKgZ2JBCln8elHDx6_wt9DZRHJbeuomfonTI-KyjwDzaXjlohwys7BAusd68YjIawZA/exec';
+const PROXY='https://script.google.com/macros/s/AKfycby5PazxAw5pvDzI8om9qimkesKaasklCII19-5bUX5gAo0E92g4Zf67ynQscLkv1Q_OEw/exec';
 const inr=n=>'₹'+Math.round(n).toLocaleString('en-IN');
 const hh=v=>v?String(v).padStart(4,'0').replace(/(\d\d)(\d\d)/,'$1:$2'):'—';
 document.getElementById('d').textContent=new Date(Date.now()+5.5*36e5).toUTCString().slice(0,16)+' · refreshes every 60s';
+async function fetchLive(tickers){
+  if(!tickers.length)return{};
+  try{
+    const syms=tickers.map(t=>t+'.NS').join(',');
+    const r=await fetch(PROXY+'?op=quotes&symbols='+encodeURIComponent(syms)+'&_='+Date.now()).then(r=>r.json());
+    const s=(r&&r.data&&r.data.stocks)||{};
+    const out={}; Object.keys(s).forEach(k=>{out[k.replace('.NS','')]=s[k];});
+    return out;
+  }catch(e){return{};}
+}
 async function go(){
   try{
     const r=await fetch(SYNC+'?op=load&type=jqStatus&_='+Date.now()).then(r=>r.json());
@@ -44,14 +56,20 @@ async function go(){
     const a=(d&&d.armed)||[];
     const el=document.getElementById('list');
     if(!a.length){el.innerHTML='<div class="empty">No recommendations yet.<br>The Brain arms them pre-market (by ~08:45) and intraday when Grade-A catalysts break.</div>';return;}
+    const liveQ=await fetchLive(a.filter(x=>x.state==='armed').map(x=>x.ticker));
     el.innerHTML=a.map(x=>{
       const zone=x.triggerType==='limit_zone'?(x.zoneLow+' – '+x.trigger+' (buy the dip)'):(x.trigger+' – '+(x.limitMax||'')+' (buy the breakout)');
       const stop=(x.trigger*(1-(x.stopPct||1.2)/100)).toFixed(2);
+      const q=liveQ[x.ticker];
+      const live=q?q.price:null;
+      const gap=(live!=null&&x.trigger)?(100*(live-x.trigger)/x.trigger):null;
+      const liveBox=live!=null?`<div class="n"><b>${live.toFixed(2)}${gap!=null?` <span style="font-size:11px;color:${gap>=0?'var(--green)':'var(--red)'}">(${gap>=0?'+':''}${gap.toFixed(2)}%)</span>`:''}</b><span>live price</span></div>`:'';
       return `<div class="rec ${x.state==='filled'?'filled':(x.state&&x.state!=='armed'?'expired':'')}">
         <div class="top"><span><span class="tk">${x.ticker}</span> <span class="bk">${x.book} book</span></span>
         <span class="state s-${x.state||'armed'}">${(x.state||'armed').toUpperCase()}</span></div>
         <div class="nums">
           <div class="n"><b>${zone}</b><span>entry zone</span></div>
+          ${liveBox}
           <div class="n"><b>~${stop}</b><span>stop (-${x.stopPct||1.2}%)</span></div>
           <div class="n"><b>${inr(x.allocRs||0)}</b><span>allocation</span></div>
           <div class="n"><b>${hh(x.validFrom)}–${hh(x.validTo)}</b><span>valid window</span></div>
