@@ -12242,7 +12242,10 @@ var JainPMS_Cloud = {
             entryQuality: p.entryQuality, allocPct: p.allocPct, dtScore: p.dtScore,
             signals: (p.signals || []).slice(0, 6), entryVolume: p.entryVolume,
             entryDayHigh: p.entryDayHigh, entryATR: p.entryATR, stopLoss: p.stopLoss,
-            target1: p.target1, target2: p.target2, target3: p.target3 };
+            target1: p.target1, target2: p.target2, target3: p.target3,
+              entryDayLow: p.entryDayLow, entryVWAP: p.entryVWAP, entryTimeMin: p.entryTimeMin,
+              peakPrice: p.peakPrice, tier1Booked: p.tier1Booked, tier2Booked: p.tier2Booked,
+              currentPrice: p.currentPrice, stopLossPct: p.stopLossPct};
         }),
         dailyHistory: w.dailyHistory || [],
         trades: (w.trades || []).slice(-25),
@@ -17101,6 +17104,7 @@ async function runDayTradeSmartExits() {
     // ATR proxy = day range as % of price (minimum 0.5% floor for very tight stocks)
     var atrPct = liveDayHigh > liveDayLow ? ((liveDayHigh - liveDayLow) / livePrice * 100) : 0.5;
     if (atrPct < 0.5) atrPct = 0.5;
+          if (atrPct > 3.0) atrPct = 3.0;
     // VWAP = typical price approximation
     var liveVWAP = (liveDayHigh + liveDayLow + livePrice) / 3;
     // Hold duration in minutes
