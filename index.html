@@ -15761,6 +15761,7 @@ async function refreshDayTradePrices() {
       var batch = tickers.slice(bi, bi + batchSz);
       var resp = await fetch(appsScriptUrl + '?symbols=' + encodeURIComponent(batch.join(',')) + '&mode=all', {signal: AbortSignal.timeout(15000)});
       var json = await resp.json();
+            w = getDT(); // v20.3 fix: re-fetch fresh before applying price updates
       if (json && json.success && json.data && json.data.stocks) {
         Object.entries(json.data.stocks).forEach(function(entry) {
           var sym = entry[0];
@@ -17079,6 +17080,7 @@ async function runDayTradeSmartExits() {
       if (bi + batchSz < tickers.length) await new Promise(function(r) { setTimeout(r, 300); });
     }
   } catch(e) { console.log('[DT-EXITS] Price fetch error:', e.message); }
+    w = getDT(); // v20.3 fix
 
   var exitCount = 0;
   var exitLog = [];
