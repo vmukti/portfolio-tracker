@@ -4737,7 +4737,7 @@ function getPT() {
   } catch(e) {}
   return { cash: PT_START, positions: [], trades: [], startDate: new Date().toISOString(), dailySnap: {}, peakValue: PT_START };
 }
-function savePT(w) { localStorage.setItem(PT_KEY, JSON.stringify(w)); if (window.JainPMS_Cloud) JainPMS_Cloud.queueSync('paperTrade'); }
+function savePT(w) { w.v = (w.v || 0) + 1; localStorage.setItem(PT_KEY, JSON.stringify(w)); if (window.JainPMS_Cloud) JainPMS_Cloud.queueSync('paperTrade'); }
 
 function resetPaperWallet() {
   if (!confirm('Reset Jain PMS wallet to ₹1,00,00,000 (₹1 Crore)? All positions & trade history will be cleared.')) return;
@@ -12053,6 +12053,7 @@ function getDT() {
 }
 
 function saveDT(w) {
+    w.v = (w.v || 0) + 1; // v20.3: monotonic version guard against stale cloud overwrites
   localStorage.setItem(DT_KEY, JSON.stringify(w));
   if (window.JainPMS_Cloud) JainPMS_Cloud.queueSync('dayTrade'); // v15.4 cloud sync
 }
@@ -12245,12 +12246,13 @@ var JainPMS_Cloud = {
             target1: p.target1, target2: p.target2, target3: p.target3,
               entryDayLow: p.entryDayLow, entryVWAP: p.entryVWAP, entryTimeMin: p.entryTimeMin,
               peakPrice: p.peakPrice, tier1Booked: p.tier1Booked, tier2Booked: p.tier2Booked,
-              currentPrice: p.currentPrice, stopLossPct: p.stopLossPct};
+              currentPrice: p.currentPrice, stopLossPct: p.stopLossPct, currentValue: p.currentValue};
         }),
         dailyHistory: w.dailyHistory || [],
         trades: (w.trades || []).slice(-25),
         startDate: w.startDate,
-        todayDate: w.todayDate
+        todayDate: w.todayDate,
+          v: w.v
       };
     } else {
       return {
@@ -12263,7 +12265,8 @@ var JainPMS_Cloud = {
         trades: (w.trades || []).slice(-30),
         startDate: w.startDate,
         dailySnap: w.dailySnap || {},
-        peakValue: w.peakValue
+        peakValue: w.peakValue,
+          v: w.v
       };
     }
   },
@@ -12315,15 +12318,31 @@ var JainPMS_Cloud = {
           var cloudWallet = typeof d.data === 'string' ? JSON.parse(d.data) : d.data;
           var localWallet = type === 'dayTrade' ? getDT() : getPT();
 
-          // Merge: cloud state wins for positions/cash, merge trade history
-          cloudWallet.trades = self._mergeTrades(localWallet.trades || [], cloudWallet.trades || []);
+          // v20.3 FIX: cloud used to win unconditionally for cash/positions, merging only
+  // trade history. A stale cloud pull (secondary-device 60s poll, or a race with
+  // the 2s-debounced push after a trade) could then revert cash/positions to a
+  // pre-trade snapshot while the trade record survived via the history merge --
+  // producing a wallet where the log shows a trade the balance doesn't reflect.
+  // Now cash/positions only adopt the cloud copy if it's actually newer (higher
+  // version counter); a stale/older cloud snapshot can never roll back fresher
+  // local state. A device that has never saved locally (v undefined -- fresh
+  // browser/device, nothing to protect) always defers to cloud as before.
+  var mergedTrades = self._mergeTrades(localWallet.trades || [], cloudWallet.trades || []);
+  var localHasVersion = (localWallet.v !== undefined && localWallet.v !== null);
+  var cloudIsNewer = !localHasVersion || ((cloudWallet.v || 0) > (localWallet.v || 0));
+  var finalWallet = cloudIsNewer ? cloudWallet : localWallet;
+  finalWallet.trades = mergedTrades;
+  finalWallet.v = Math.max(cloudWallet.v || 0, localWallet.v || 0);
+  if (!cloudIsNewer) {
+  console.log('[Cloud] Stale cloud snapshot ignored for ' + type + ' (local v' + (localWallet.v||0) + ' >= cloud v' + (cloudWallet.v||0) + ') -- kept local cash/positions, merged trades only');
+  }
 
           // Save to local without re-triggering cloud sync
           self.enabled = false;
           if (type === 'dayTrade') {
-            localStorage.setItem(DT_KEY, JSON.stringify(cloudWallet));
+            localStorage.setItem(DT_KEY, JSON.stringify(finalWallet));
           } else {
-            localStorage.setItem(PT_KEY, JSON.stringify(cloudWallet));
+            localStorage.setItem(PT_KEY, JSON.stringify(finalWallet));
           }
           self.enabled = true;
           self._loaded[type] = true;
@@ -17235,6 +17254,8 @@ async function runDayTradeSmartExits() {
         reason: 'TIER-1: +' + returnPct.toFixed(1) + '% (1×ATR=' + tier1Target.toFixed(1) + '%) — 30% booked (' + t1Qty + 'qty)' + (pos.hasCatalyst ? ' [CAT]' : ''),
         source: 'daytrade', time: now.toISOString()
       });
+      if (pos.allocPct) pos.allocPct = Math.round(pos.allocPct * (pos.qty - t1Qty) / pos.qty);
+      pos.currentValue = pos.buyPrice * (pos.qty - t1Qty);
       pos.qty -= t1Qty;
       pos.tier1Booked = true;
       exitCount++;
@@ -17256,6 +17277,8 @@ async function runDayTradeSmartExits() {
         reason: 'TIER-2: +' + returnPct.toFixed(1) + '% (1.8×ATR=' + tier2Target.toFixed(1) + '%) — 30% more booked (' + t2Qty + 'qty)' + (pos.hasCatalyst ? ' [CAT]' : ''),
         source: 'daytrade', time: now.toISOString()
       });
+      if (pos.allocPct) pos.allocPct = Math.round(pos.allocPct * (pos.qty - t2Qty) / pos.qty);
+      pos.currentValue = pos.buyPrice * (pos.qty - t2Qty);
       pos.qty -= t2Qty;
       pos.tier2Booked = true;
       exitCount++;
