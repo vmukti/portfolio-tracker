@@ -12329,7 +12329,15 @@ var JainPMS_Cloud = {
   // browser/device, nothing to protect) always defers to cloud as before.
   var mergedTrades = self._mergeTrades(localWallet.trades || [], cloudWallet.trades || []);
   var localHasVersion = (localWallet.v !== undefined && localWallet.v !== null);
-  var cloudIsNewer = !localHasVersion || ((cloudWallet.v || 0) > (localWallet.v || 0));
+  // v20.6 fix: the version guard above only makes sense for the device that is actually
+  // trading (protects a live primary device from a stale cloud pull mid-trade). saveDT()
+  // bumps the local version counter on EVERY local save, including non-trading saves
+  // (UI refresh, price ticks) that happen on secondary devices too. A secondary device's
+  // local version therefore climbs on its own and can look "newer" than cloud even when
+  // cloud has fresher real trades from the primary device -- permanently blocking sync.
+  // A secondary/display-only device has no authoritative local state to protect, so it
+  // should always mirror cloud's cash/positions; only the primary keeps the guard.
+  var cloudIsNewer = !self.isPrimary || !localHasVersion || ((cloudWallet.v || 0) > (localWallet.v || 0));
   var finalWallet = cloudIsNewer ? cloudWallet : localWallet;
   finalWallet.trades = mergedTrades;
   finalWallet.v = Math.max(cloudWallet.v || 0, localWallet.v || 0);
