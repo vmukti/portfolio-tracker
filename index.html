@@ -12293,6 +12293,17 @@ var JainPMS_Cloud = {
 
   saveToCloud: function(type) {
     if (!this.enabled) return;
+    // v20.8 fix: writes to cloud were never gated by primary status -- a viewer/secondary
+    // device that triggered ANY local save (price refresh, UI update, etc.) would still
+    // silently push its own wallet snapshot to the cloud after this, overwriting whatever
+    // the primary just wrote. Trading and "Claim Primary" were already locked to one
+    // device; this closes the last gap so secondary devices are truly read-only and can
+    // never corrupt what every viewer sees.
+    if (!this.isPrimary) {
+      console.log('[Cloud] v20.8: Secondary/view-only device — skipping cloud write for ' + type);
+      this.updateBadge('synced');
+      return;
+    }
     var self = this;
     var wallet = type === 'dayTrade' ? getDT() : getPT();
     var slim = this.slimWallet(wallet, type);
