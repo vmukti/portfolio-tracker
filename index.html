@@ -15853,7 +15853,12 @@ function updatePredatorDashboard() {
 }
 
 function updateDTDisplay(w) {
-  // --- Calculate live P&L for open positions ---
+  // --- Calculate today's REALIZED P&L from dailyHistory (live-updated on each close) ---
+  var dtTodayStr = new Date().toISOString().slice(0, 10);
+  var dtTodayHistEntry = (w.dailyHistory || []).find(function(d) { return d.date === dtTodayStr; });
+  var realizedTodayPnl = dtTodayHistEntry ? (dtTodayHistEntry.netPnl || 0) : 0;
+
+  // --- Calculate live P&L for open positions (unrealized) ---
   var todayPnl = 0;
   var invested = 0;
   w.positions.forEach(function(p) {
@@ -15868,7 +15873,12 @@ function updateDTDisplay(w) {
     invested += p.buyPrice * p.qty;
   });
 
+  // --- Today's TOTAL P&L for display = realized (closed trades) + unrealized (open positions) ---
+  var todayDisplayPnl = realizedTodayPnl + todayPnl;
+
   // --- Calculate total return from dailyHistory ---
+  // (dailyHistory already includes today's realized P&L via the live-updating today entry,
+  //  so only add unrealized here to avoid double-counting realizedTodayPnl)
   var totalNetPnl = 0;
   w.dailyHistory.forEach(function(d) { totalNetPnl += (d.netPnl || 0); });
   totalNetPnl += todayPnl;
@@ -15891,8 +15901,8 @@ function updateDTDisplay(w) {
 
   var elPnl = document.getElementById('dtTodayPnl');
   if (elPnl) {
-    elPnl.textContent = (todayPnl >= 0 ? '+' : '') + '₹' + Math.abs(todayPnl).toLocaleString('en-IN', {maximumFractionDigits: 0});
-    elPnl.style.color = todayPnl >= 0 ? 'var(--green)' : 'var(--red)';
+    elPnl.textContent = (todayDisplayPnl >= 0 ? '+' : '') + '₹' + Math.abs(todayDisplayPnl).toLocaleString('en-IN', {maximumFractionDigits: 0});
+    elPnl.style.color = todayDisplayPnl >= 0 ? 'var(--green)' : 'var(--red)';
   }
 
   var elWin = document.getElementById('dtWinRate');
@@ -15911,7 +15921,7 @@ function updateDTDisplay(w) {
       badge.style.background = '#22c55e22';
       badge.style.color = '#22c55e';
       badge.style.borderColor = '#22c55e44';
-      badge.innerHTML = '&#128994; LIVE: ' + w.positions.length + ' positions open | P&L: ' + (todayPnl >= 0 ? '+' : '') + '₹' + Math.abs(todayPnl).toLocaleString('en-IN', {maximumFractionDigits: 0});
+      badge.innerHTML = '&#128994; LIVE: ' + w.positions.length + ' positions open | P&L: ' + (todayDisplayPnl >= 0 ? '+' : '') + '₹' + Math.abs(todayDisplayPnl).toLocaleString('en-IN', {maximumFractionDigits: 0});
     } else {
       badge.style.background = '#4f8cff22';
       badge.style.color = '#4f8cff';
