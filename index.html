@@ -16287,6 +16287,15 @@ function discoverLiveMovers(candidates) {
 //  "When only 1 stock qualifies, that IS correct. Never lower standards."
 // ---------------------------------------------------------------
 async function runDayTradeAI() {
+  // v20.9 fix: shared engine lock — see _dtEngineBusy declaration near the exit engine.
+  // Buy and exit both read the wallet once, await 10-30s of network calls, then blind-write
+  // at the end; without this they can race and silently erase each other's changes.
+  if (_dtEngineBusy) {
+    console.log('[DT] v20.9: Engine busy (exit run or another buy scan in progress) — skipping this cycle');
+    return;
+  }
+  _dtEngineBusy = true;
+  try {
   var w = getDT();
 
   // v20.1 FIX: was an all-or-nothing gate that locked the internal engine out of the
@@ -17077,12 +17086,22 @@ async function runDayTradeAI() {
   }
 
   updateDTDisplay(getDT());
+  } finally {
+    _dtEngineBusy = false;
+  }
 }
 
 // ---------------------------------------------------------------
 //  SMART DAY TRADE EXIT ENGINE — Auto stop-loss, trailing stop, time exit
 // ---------------------------------------------------------------
 var _dtExitInProgress = false; // v20.4 fix: prevent concurrent/multi-tab overlapping exit runs
+var _dtEngineBusy = false; // v20.9 fix: shared lock between the buy engine (runDayTradeAI) and
+                            // this exit engine. Both read the wallet once via getDT(), await
+                            // 10-30s of network calls, then blind-overwrite via saveDT(w) at the
+                            // end. Without this, whichever finishes last silently erases the
+                            // other's changes (e.g. a SELL undone by a concurrent buy scan, or a
+                            // fresh BUY dropped by a stale exit-engine save). _dtExitInProgress
+                            // alone only prevented exit-vs-exit overlap, not buy-vs-exit.
 
 async function runDayTradeSmartExits() {
   // v20.4 fix: only the primary device may execute exits. Secondary tabs/devices were
@@ -17097,11 +17116,12 @@ async function runDayTradeSmartExits() {
   // v20.4 fix: re-entrancy lock. A run awaits a 5-15s price fetch; if the 2-min interval
   // fires again (or any other caller invokes this) before the previous run finishes,
   // skip rather than double-process the same positions off two stale snapshots.
-  if (_dtExitInProgress) {
-    console.log('[DT-EXIT] v20.4: Skipping — previous exit run still in progress');
+  if (_dtExitInProgress || _dtEngineBusy) {
+    console.log('[DT-EXIT] v20.4/v20.9: Skipping — engine busy (exit run or buy scan in progress)');
     return 0;
   }
   _dtExitInProgress = true;
+  _dtEngineBusy = true;
   try {
   var w = getDT();
   if (w.positions.length === 0) return;
@@ -17420,6 +17440,7 @@ async function runDayTradeSmartExits() {
   return exitCount;
   } finally {
     _dtExitInProgress = false;
+    _dtEngineBusy = false;
   }
 }
 
