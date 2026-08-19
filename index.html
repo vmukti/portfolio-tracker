@@ -12072,6 +12072,12 @@ function resetDayTrade() {
 // ═══════════════════════════════════════════════════════════════
 var JainPMS_Cloud = {
   URL: 'https://script.google.com/macros/s/AKfycbzbKgZ2JBCln8elHDx6_wt9DZRHJbeuomfonTI-KyjwDzaXjlohwys7BAusd68YjIawZA/exec',
+  // v20.7 fix: trading is locked to Kushal's explicit primary computer only, by request.
+  // Every other browser/device (phone, other laptops) is permanently view-only, regardless
+  // of what the cloud trading-lock record says or whether someone clicks "Claim Primary"
+  // elsewhere. This closes the loop on stale/secondary devices independently deciding to
+  // trade (the root cause of today's duplicate-exit corruption).
+  LOCKED_PRIMARY_DEVICE_ID: 'Dms4wynnqnq7q',
   deviceId: null,
   lastSync: null,
   _timer: null,
@@ -12114,8 +12120,8 @@ var JainPMS_Cloud = {
           self.primaryLastSeen = new Date(lock.ts).getTime();
           var age = Date.now() - self.primaryLastSeen;
 
-          if (lock.deviceId === self.deviceId) {
-            // This device IS the primary
+          if (lock.deviceId === self.deviceId && self.deviceId === self.LOCKED_PRIMARY_DEVICE_ID) {
+            // This device IS the primary (and is the one locked-in trading computer)
             self.isPrimary = true;
             console.log('[Cloud] v19.0.2: This device IS primary (lock held)');
           } else {
@@ -12149,6 +12155,13 @@ var JainPMS_Cloud = {
 
   // v18.2: Claim this device as primary
   claimPrimary: function() {
+    // v20.7 fix: trading is locked to one computer by explicit request. Block claim
+    // attempts from any other device so the cloud trading-lock can never be stolen.
+    if (this.deviceId !== this.LOCKED_PRIMARY_DEVICE_ID) {
+      alert('Trading is locked to the primary computer. This device is view-only and cannot become the trader.');
+      console.log('[Cloud] v20.7: Claim blocked — this device is not the locked primary (' + this.deviceId + ' !== ' + this.LOCKED_PRIMARY_DEVICE_ID + ')');
+      return;
+    }
     this.isPrimary = true;
     this.primaryDeviceId = this.deviceId;
     this.primaryLastSeen = Date.now();
