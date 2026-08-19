@@ -17050,7 +17050,27 @@ async function runDayTradeAI() {
 // ---------------------------------------------------------------
 //  SMART DAY TRADE EXIT ENGINE — Auto stop-loss, trailing stop, time exit
 // ---------------------------------------------------------------
+var _dtExitInProgress = false; // v20.4 fix: prevent concurrent/multi-tab overlapping exit runs
+
 async function runDayTradeSmartExits() {
+  // v20.4 fix: only the primary device may execute exits. Secondary tabs/devices were
+  // independently firing TIER-1/TIER-2/trailing exits on the SAME position with no
+  // coordination, causing duplicate oversell trades (e.g. BAJAJHIND sold 42,647 shares
+  // vs only 26,655 ever bought). The buy engine already had this canAutoTrade() gate;
+  // the exit engine did not.
+  if (window.JainPMS_Cloud && typeof JainPMS_Cloud.canAutoTrade === 'function' && !JainPMS_Cloud.canAutoTrade()) {
+    console.log('[DT-EXIT] v20.4: Secondary device — skipping exit run (primary: ' + (JainPMS_Cloud.primaryDeviceId || '?') + ')');
+    return 0;
+  }
+  // v20.4 fix: re-entrancy lock. A run awaits a 5-15s price fetch; if the 2-min interval
+  // fires again (or any other caller invokes this) before the previous run finishes,
+  // skip rather than double-process the same positions off two stale snapshots.
+  if (_dtExitInProgress) {
+    console.log('[DT-EXIT] v20.4: Skipping — previous exit run still in progress');
+    return 0;
+  }
+  _dtExitInProgress = true;
+  try {
   var w = getDT();
   if (w.positions.length === 0) return;
 
@@ -17366,6 +17386,9 @@ async function runDayTradeSmartExits() {
   }
 
   return exitCount;
+  } finally {
+    _dtExitInProgress = false;
+  }
 }
 
 // (OLD exit monitor moved into Auto Day Trade Engine below)
