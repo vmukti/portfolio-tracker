@@ -17640,6 +17640,14 @@ if (typeof window !== 'undefined') {
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
       console.log('[DT-AUTO] Tab became visible — checking auto-triggers...');
+      // v20.5 fix: background tabs get their setInterval throttled by the browser,
+      // so a secondary device's 60s cloud poll can silently stall for many minutes
+      // while backgrounded. Force an immediate cloud reload on return to foreground
+      // instead of waiting for the next throttled interval tick.
+      if (window.JainPMS_Cloud && typeof JainPMS_Cloud.loadFromCloud === 'function') {
+        JainPMS_Cloud.loadFromCloud('dayTrade');
+        JainPMS_Cloud.loadFromCloud('paperTrade');
+      }
       setTimeout(function() { checkDayTradeAutoTrigger(); }, 3000);
     }
   });
@@ -17647,6 +17655,11 @@ if (typeof window !== 'undefined') {
   // Also run on window focus (covers more cases)
   window.addEventListener('focus', function() {
     console.log('[DT-AUTO] Window focused — checking auto-triggers...');
+    // v20.5 fix: same immediate-refresh reasoning as visibilitychange above
+    if (window.JainPMS_Cloud && typeof JainPMS_Cloud.loadFromCloud === 'function') {
+      JainPMS_Cloud.loadFromCloud('dayTrade');
+      JainPMS_Cloud.loadFromCloud('paperTrade');
+    }
     setTimeout(function() { checkDayTradeAutoTrigger(); }, 3000);
   });
 }
