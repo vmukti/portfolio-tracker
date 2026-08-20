@@ -12853,6 +12853,22 @@ var AIAgentEngine = {
                 console.log('[AI-AGENT] v18.3: Executing queued pre-market triggers NOW (9:20 AM)');
                 if (self._queuedPreMarket) {
                   self.processExitDecisions(self._queuedPreMarket.exitDecisions || []);
+                  // v20.14 fix: proactively fetch a live price for any pending AI-Brain decision
+                  // ticker not already tracked. v20.10 requires a live CMP before buying, but
+                  // nothing previously fetched a price for a brand-new (non-held) ticker, so a
+                  // genuinely new pick (e.g. IGL, ZAGGLE) could sit pending forever. Fire-and-
+                  // forget: populates the cache for this or the next ~60s poll cycle.
+                  (function(){
+                    var __decs = (self._queuedPreMarket && self._queuedPreMarket.decisions) || [];
+                    for (var __di = 0; __di < __decs.length; __di++) {
+                      var __tkr = __decs[__di] && __decs[__di].ticker;
+                      if (!__tkr) continue;
+                      var __cached = window._extraPrices && (window._extraPrices[__tkr] || window._extraPrices[__tkr + '.NS']);
+                      if (!__cached && typeof fetchPriceViaProxy === 'function') {
+                        try { fetchPriceViaProxy(__tkr); } catch(__e) {}
+                      }
+                    }
+                  })();
                   self.processBuyDecisions(self._queuedPreMarket.decisions || [], self._queuedPreMarket);
                   self._queuedPreMarket = null;
                   self.updateStatus('PRE-MARKET triggers executed at 9:20 AM');
