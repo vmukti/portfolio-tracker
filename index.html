@@ -13082,19 +13082,25 @@ var AIAgentEngine = {
         if (existing) liveCMP = existing.currentPrice;
       }
 
-      var entryPrice = liveCMP || aiPrice;
+      // v20.10 fix: NEVER trade on the AI Brain's price alone. RAILTEL was bought at
+      // 287.25 — exactly the PREVIOUS day's close — because no live quote was available
+      // yet (this fired 1 minute after open) and the old code silently fell back to
+      // aiPrice. That day's actual high was 285.8; we paid a price the stock never
+      // traded at today. If no live price is available yet, skip this decision this
+      // cycle only — it will retry automatically once a live quote exists — instead of
+      // trading on a stale/web-search-sourced number.
+      if (!liveCMP || liveCMP <= 0) {
+        console.log('[AI-AGENT] v20.10: BUY skip ' + dec.ticker + ' — no live price yet (AI Brain suggested ' + aiPrice + '); will retry once a live quote is available');
+        return;
+      }
+      var entryPrice = liveCMP;
 
-      // If live CMP available, log correction when AI Brain price was significantly off
-      if (liveCMP && aiPrice && Math.abs(liveCMP - aiPrice) / liveCMP > 0.02) {
+      // Log when AI Brain's suggested price was significantly off from the live price
+      if (aiPrice && Math.abs(liveCMP - aiPrice) / liveCMP > 0.02) {
         var pctDiff = ((liveCMP - aiPrice) / liveCMP * 100).toFixed(1);
-        console.log('[AI-AGENT] v18.3.5 PRICE FIX: ' + dec.ticker +
+        console.log('[AI-AGENT] v18.3.5/v20.10: ' + dec.ticker +
           ' AI Brain=' + aiPrice + ' vs LiveCMP=' + liveCMP +
           ' (diff ' + pctDiff + '%) — using LIVE price');
-      }
-
-      if (!entryPrice || entryPrice <= 0) {
-        console.log('[AI-AGENT] BUY skip ' + dec.ticker + ' — no valid price (AI=' + aiPrice + ', Live=' + liveCMP + ')');
-        return;
       }
 
       // ── P0 RISK CAP: conviction may REDUCE size but never exceed risk-based size ──
