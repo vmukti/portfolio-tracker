@@ -19065,36 +19065,65 @@ console.log('[v19.0] Command Center + Intelligence Sync Bus loaded');
 </script>
 
 <script>
-// ═══ v20.21: MY HOLDINGS VIEW — renders personal-holdings-fund-manager daily report ═══
+// ═══ v21.1: MY HOLDINGS DECISION DESK — senior-FM daily report with expandable analysis ═══
 (function() {
   function fmtN(x) { return (x === 0 || x) ? Number(x).toLocaleString('en-IN') : '--'; }
-  function badge(txt, color) { return '<span style="background:' + color + '22;color:' + color + ';padding:1px 7px;border-radius:8px;font-size:10px;font-weight:600">' + txt + '</span>'; }
+  function esc(s) { return String(s == null ? '' : s).replace(/</g, '&lt;'); }
+  function badge(txt, color) { return '<span style="background:' + color + '22;color:' + color + ';padding:1px 7px;border-radius:8px;font-size:10px;font-weight:600">' + esc(txt) + '</span>'; }
+  function sec(title, body) { return body ? '<div style="margin-top:8px"><div style="color:#6b7280;font-size:10px;text-transform:uppercase;letter-spacing:0.5px">' + title + '</div><div style="color:#cbd5e1;font-size:12px;margin-top:2px">' + body + '</div></div>' : ''; }
+  function detailHtml(s) {
+    var v = s.valuation || {}, kl = s.keyLevels || {}, da = s.decisionAid || {};
+    var news = (s.newsItems || []).map(function(n) {
+      return '<div style="margin-top:3px">&#8226; <span style="color:#6b7280">' + esc(n.d) + '</span> ' + (n.u ? '<a href="' + esc(n.u) + '" target="_blank" style="color:#60a5fa;text-decoration:none">' + esc(n.t) + '</a>' : esc(n.t)) + '</div>';
+    }).join('');
+    var risks = (s.risks || []).map(function(r) { return '<div>&#8226; ' + esc(r) + '</div>'; }).join('');
+    var daHtml = '';
+    if (da.aboveHigh || da.belowLow || da.watch) {
+      daHtml = '<div style="margin-top:8px;background:#0b0e1a;border:1px solid #ffffff14;border-radius:8px;padding:8px 10px">' +
+        '<div style="color:#f59e0b;font-size:10px;text-transform:uppercase;letter-spacing:0.5px">Decision aid (scenarios for your review — not advice)</div>' +
+        (da.aboveHigh ? '<div style="color:#cbd5e1;font-size:12px;margin-top:4px"><b style="color:#f59e0b">If above ' + fmtN(s.fvHigh) + ':</b> ' + esc(da.aboveHigh) + '</div>' : '') +
+        (da.belowLow ? '<div style="color:#cbd5e1;font-size:12px;margin-top:2px"><b style="color:#ef4444">If below ' + fmtN(s.fvLow) + ':</b> ' + esc(da.belowLow) + '</div>' : '') +
+        (da.watch ? '<div style="color:#cbd5e1;font-size:12px;margin-top:2px"><b style="color:#22c55e">Watch:</b> ' + esc(da.watch) + '</div>' : '') + '</div>';
+    }
+    var body = sec('Valuation', esc(v.peContext) + (v.assumptions ? ' <span style="color:#6b7280">&middot; Range assumes: ' + esc(v.assumptions) + '</span>' : '')) +
+      sec('Key levels', (kl.support ? 'Support ' + fmtN(kl.support) : '') + (kl.resistance ? ' &middot; Resistance ' + fmtN(kl.resistance) : '') + (kl.note ? ' <span style="color:#6b7280">(' + esc(kl.note) + ')</span>' : '')) +
+      sec('Recent news', news) + sec('Next event', esc(s.nextEvent)) + sec('Risks', risks) + daHtml;
+    return body || '<div style="color:#6b7280;font-size:12px;margin-top:6px">Full desk analysis arrives with the next 4 PM fund-manager run.</div>';
+  }
   function render(rep) {
     var host = document.getElementById('myHoldingsCard');
     if (!host) return;
     if (!rep) { host.innerHTML = '<div style="color:#6b7280;padding:12px">Holdings report not yet generated — the fund manager runs daily at 4:00 PM.</div>'; return; }
-    var rows = (rep.stocks || []).map(function(s) {
+    var rows = (rep.stocks || []).map(function(s, idx) {
       var rpC = s.rangePosition === 'BELOW-LOW' ? '#22c55e' : (s.rangePosition === 'ABOVE-HIGH' ? '#f59e0b' : '#94a3b8');
       var thC = s.thesisHealth === 'BROKEN' ? '#ef4444' : (s.thesisHealth === 'WEAKENING' ? '#f59e0b' : '#22c55e');
       var dp = (s.dayPct >= 0 ? '+' : '') + (s.dayPct || 0).toFixed(2) + '%';
-      return '<tr style="border-bottom:1px solid #ffffff11">' +
-        '<td style="padding:6px 8px;font-weight:600">' + s.ticker + '</td>' +
+      return '<tr data-mh="' + idx + '" style="border-bottom:1px solid #ffffff11;cursor:pointer" title="Click for full analysis">' +
+        '<td style="padding:6px 8px;font-weight:600">' + esc(s.ticker) + ' <span style="color:#374151;font-size:10px">&#9662;</span></td>' +
         '<td style="padding:6px 8px">' + fmtN(s.cmp) + '</td>' +
         '<td style="padding:6px 8px;color:' + (s.dayPct >= 0 ? '#22c55e' : '#ef4444') + '">' + dp + '</td>' +
         '<td style="padding:6px 8px;color:#94a3b8">' + fmtN(s.fvLow) + ' / ' + fmtN(s.fvFair) + ' / ' + fmtN(s.fvHigh) + '</td>' +
         '<td style="padding:6px 8px">' + badge(s.rangePosition || '--', rpC) + '</td>' +
         '<td style="padding:6px 8px">' + badge(s.thesisHealth || '--', thC) + '</td>' +
-        '<td style="padding:6px 8px;color:#94a3b8;font-size:11px;max-width:340px">' + (s.oneLiner || '') + '</td></tr>';
+        '<td style="padding:6px 8px;color:#94a3b8;font-size:11px;max-width:340px">' + esc(s.oneLiner) + '</td></tr>' +
+        '<tr data-mhd="' + idx + '" style="display:none;background:#0f1320"><td colspan="7" style="padding:4px 16px 12px 16px">' + detailHtml(s) + '</td></tr>';
     }).join('');
     var alerts = (rep.alerts || []).length
-      ? '<div style="margin-top:10px"><b style="color:#f59e0b">Alerts:</b><ul style="margin:4px 0 0 18px;color:#e2e8f0;font-size:12px">' + rep.alerts.map(function(a) { return '<li>' + a + '</li>'; }).join('') + '</ul></div>'
+      ? '<div style="margin-top:10px"><b style="color:#f59e0b">Alerts:</b><ul style="margin:4px 0 0 18px;color:#e2e8f0;font-size:12px">' + rep.alerts.map(function(a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul></div>'
       : '<div style="margin-top:10px;color:#22c55e;font-size:12px">No alerts.</div>';
     host.innerHTML =
-      '<div style="font-size:11px;color:#6b7280;margin-bottom:8px">Report as of ' + (rep.asOf || '--') + ' · fair-value ranges are research for review, not advice</div>' +
+      '<div style="font-size:11px;color:#6b7280;margin-bottom:8px">Report as of ' + esc(rep.asOf || '--') + ' &middot; click any stock for valuation, news, levels &amp; decision aid &middot; research for review, not advice</div>' +
       '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;color:#e2e8f0">' +
       '<thead><tr style="color:#6b7280;text-align:left;border-bottom:1px solid #ffffff22"><th style="padding:6px 8px">Stock</th><th style="padding:6px 8px">CMP</th><th style="padding:6px 8px">Day</th><th style="padding:6px 8px">FV Low/Fair/High</th><th style="padding:6px 8px">Range</th><th style="padding:6px 8px">Thesis</th><th style="padding:6px 8px">View</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>' + alerts +
-      (rep.summary ? '<div style="margin-top:10px;color:#94a3b8;font-size:12px;border-top:1px solid #ffffff11;padding-top:8px">' + rep.summary + '</div>' : '');
+      (rep.summary ? '<div style="margin-top:10px;color:#94a3b8;font-size:12px;border-top:1px solid #ffffff11;padding-top:8px"><b style="color:#e2e8f0">Fund manager\u2019s view:</b> ' + esc(rep.summary) + '</div>' : '') +
+      ((rep.wrongAbout || []).length ? '<div style="margin-top:8px;color:#6b7280;font-size:11px"><b>What I might be wrong about:</b> ' + rep.wrongAbout.map(esc).join(' &middot; ') + '</div>' : '');
+    host.querySelectorAll('tr[data-mh]').forEach(function(tr) {
+      tr.addEventListener('click', function() {
+        var d = host.querySelector('tr[data-mhd="' + tr.getAttribute('data-mh') + '"]');
+        if (d) d.style.display = d.style.display === 'none' ? '' : 'none';
+      });
+    });
   }
   function load() {
     try {
@@ -19110,7 +19139,7 @@ console.log('[v19.0] Command Center + Intelligence Sync Bus loaded');
     var card = document.createElement('div');
     card.className = 'cmd-panel';
     card.style.cssText = 'margin:16px 24px;background:#141824;border:1px solid #ffffff14;border-radius:12px;padding:16px';
-    card.innerHTML = '<div style="font-weight:700;color:#e2e8f0;margin-bottom:10px">\uD83D\uDCBC My Holdings <span style="font-weight:400;color:#6b7280;font-size:11px">(13 personal stocks &middot; daily fund-manager review)</span></div><div id="myHoldingsCard"><div style="color:#6b7280">Loading holdings report...</div></div>';
+    card.innerHTML = '<div style="font-weight:700;color:#e2e8f0;margin-bottom:10px">\uD83D\uDCBC My Holdings — Decision Desk <span style="font-weight:400;color:#6b7280;font-size:11px">(13 personal stocks &middot; daily senior-FM review)</span></div><div id="myHoldingsCard"><div style="color:#6b7280">Loading holdings report...</div></div>';
     target.appendChild(card);
     load();
     setInterval(load, 300000);
