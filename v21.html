@@ -12285,8 +12285,17 @@ var JainPMS_Cloud = {
               peakPrice: p.peakPrice, tier1Booked: p.tier1Booked, tier2Booked: p.tier2Booked,
               currentPrice: p.currentPrice, stopLossPct: p.stopLossPct, currentValue: p.currentValue};
         }),
-        dailyHistory: w.dailyHistory || [],
-        trades: (w.trades || []).slice(-25),
+        // v20.23 STORE-BLOAT FIX: dailyHistory was UNCAPPED (28+ entries, ~5KB) and
+        // trades kept 25 fat records with long reason strings (~8KB) — together pushing
+        // the cloud value past the ~9KB PropertiesService replica limit, which caused
+        // the stale-replica reads + skipped brain runs. Cap history to 20 days and slim
+        // each trade record (short reason, drop heavy fields) so the hot value stays small.
+        dailyHistory: (w.dailyHistory || []).slice(-20),
+        trades: (w.trades || []).slice(-15).map(function(t) {
+          return { type: t.type, ticker: t.ticker, qty: t.qty, price: t.price,
+            pnl: t.pnl, aiScore: t.aiScore, source: t.source, time: t.time,
+            reason: t.reason ? String(t.reason).slice(0, 60) : undefined };
+        }),
         startDate: w.startDate,
         todayDate: w.todayDate,
           v: w.v
@@ -12299,7 +12308,11 @@ var JainPMS_Cloud = {
             qty: p.qty, buyDate: p.buyDate, reason: p.reason, score: p.score, source: p.source,
             predatorScore: p.predatorScore, legendsScore: p.legendsScore };
         }),
-        trades: (w.trades || []).slice(-30),
+        trades: (w.trades || []).slice(-20).map(function(t) {
+          return { type: t.type, ticker: t.ticker, qty: t.qty, price: t.price,
+            pnl: t.pnl, score: t.score, source: t.source, time: t.time,
+            reason: t.reason ? String(t.reason).slice(0, 60) : undefined };
+        }),
         startDate: w.startDate,
         dailySnap: w.dailySnap || {},
         peakValue: w.peakValue,
@@ -12354,16 +12367,31 @@ var JainPMS_Cloud = {
     });
   },
 
-  loadFromCloud: function(type) {
+  loadFromCloud: function(type, _attempt) {
     if (!this.enabled) return;
     var self = this;
-    var url = this.URL + '?op=load&type=' + type;
+    _attempt = _attempt || 0;
+    var url = this.URL + '?op=load&type=' + type + '&_cb=' + Date.now();
 
     fetch(url, { signal: AbortSignal.timeout(10000) })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         if (d.found && d.data) {
           var cloudWallet = typeof d.data === 'string' ? JSON.parse(d.data) : d.data;
+          // v20.23 READ-REPAIR: PropertiesService serves reads from divergent replicas,
+          // some lag a full day. The store stamps a monotonic v on every save. Remember the
+          // highest v accepted; a read with a LOWER v is a stale replica - retry (up to 3x)
+          // before trusting it. Kills the loaded-yesterday-wallet bug both prior guards missed.
+          var vKey = type + '_maxV';
+          var seenMax = parseInt(localStorage.getItem(vKey) || '0', 10);
+          var thisV = (cloudWallet && typeof cloudWallet.v === 'number') ? cloudWallet.v
+                    : (d.meta && typeof d.meta.v === 'number') ? d.meta.v : 0;
+          if (thisV && seenMax && thisV < seenMax && _attempt < 3) {
+            console.warn('[Cloud] Stale replica ' + type + ' v=' + thisV + ' < ' + seenMax + ', retry ' + (_attempt+1));
+            setTimeout(function() { self.loadFromCloud(type, _attempt + 1); }, 1500);
+            return;
+          }
+          if (thisV > seenMax) localStorage.setItem(vKey, String(thisV));
           var localWallet = type === 'dayTrade' ? getDT() : getPT();
 
           // v20.3 FIX: cloud used to win unconditionally for cash/positions, merging only
