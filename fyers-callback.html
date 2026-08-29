@@ -10,6 +10,7 @@ button{background:#2ecc8f;color:#0b0e14;border:0;padding:12px 30px;border-radius
 var q=new URLSearchParams(location.search);
 var code=q.get("auth_code")||new URLSearchParams(location.hash.slice(1)).get("auth_code");
 var out=document.getElementById("out");
+if(code){var act=document.createElement('div');act.innerHTML='<p class="ok" style="font-size:18px">Step 2: activate on the Jain PMS server</p><a href="http://139.59.28.88:8090/fyers-auth?code='+encodeURIComponent(code)+'" style="display:inline-block;background:#2ecc8f;color:#0b0e14;padding:14px 34px;border-radius:8px;font-weight:700;text-decoration:none;font-size:17px">Activate Fyers for today</a><p style="color:#8b93a7;font-size:13px">This sends the code to your own server (139.59.28.88), which exchanges it for today\'s access token.</p><hr style="border-color:#222;margin:24px 0">';document.body.insertBefore(act,document.getElementById('out'));}
 if(code){out.innerHTML='<p class="ok">Code captured. Copy it, then paste as the FYERS_AUTH_CODE script property.</p><div class="code" id="c">'+code+'</div><button onclick="navigator.clipboard.writeText(document.getElementById(\'c\').textContent).then(function(){document.getElementById(\'done\').textContent=\'Copied!\'})">Copy code</button><p id="done"></p>';}
 else{out.innerHTML='<p class="err">No auth_code in the URL. Start again from the authorization link.</p>';}
 </script></body></html>
